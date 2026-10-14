@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, FileDown, Search, UserPlus, Users } from "lucide-react";
-import { completeSale } from "@/app/painel/_actions/sales";
+import { CheckCircle2, ClipboardCheck, FileDown, Search, UserPlus, Users } from "lucide-react";
+import { completeSale, reviewSale, type ContractField } from "@/app/painel/_actions/sales";
 import { createCustomer } from "@/app/painel/_actions/customers";
 import { isValidNif } from "@/lib/pt-validation";
 import type { TemplateId } from "@/lib/form-templates";
@@ -99,21 +99,46 @@ export function SalePanel({
     }
   }
 
-  async function submit() {
-    const res = await run(() =>
-      completeSale(vehicleId, {
-        customerId,
-        priceEur: Number(sale.priceEur.replace(/\s|€/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")) || 0,
-        date: sale.date,
-        time: sale.time,
-        deliveryKm: sale.km ? Number(sale.km.replace(/\D/g, "")) : null,
-        place: sale.place,
-        notes: sale.notes,
-        documents: [...docs],
-        markSold,
-      }),
-    );
+  // Passo 4: dados do contrato, revistos e completados antes de gerar.
+  const [review, setReview] = useState<ContractField[] | null>(null);
+  const [edited, setEdited] = useState<Record<string, string>>({});
+  const [saveToRecords, setSaveToRecords] = useState(true);
+  const [saved, setSaved] = useState<string[]>([]);
+  const saleKey = JSON.stringify([customerId, sale, [...docs].sort()]);
+  // Qualquer alteração nos passos 1–3 obriga a rever de novo.
+  useEffect(() => {
+    setReview(null);
+    setEdited({});
+  }, [saleKey]);
+
+  const baseInput = () => ({
+    customerId,
+    priceEur: Number(sale.priceEur.replace(/\s|€/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")) || 0,
+    date: sale.date,
+    time: sale.time,
+    deliveryKm: sale.km ? Number(sale.km.replace(/\D/g, "")) : null,
+    place: sale.place,
+    notes: sale.notes,
+    documents: [...docs],
+  });
+
+  async function prepare() {
+    const res = await run(() => reviewSale(vehicleId, baseInput()), { quiet: true });
     if (res.ok) {
+      setReview(res.data.fields);
+      setEdited({});
+      requestAnimationFrame(() => document.getElementById("dados-contrato")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+  }
+
+  const valueOf = (f: ContractField) => edited[f.key] ?? f.value;
+  const missing = review ? review.filter((f) => f.required && !valueOf(f).trim()) : [];
+
+  async function submit() {
+    if (!review) return;
+    const res = await run(() => completeSale(vehicleId, { ...baseInput(), markSold, values: Object.fromEntries(review.map((f) => [f.key, valueOf(f)])), saveToRecords }));
+    if (res.ok) {
+      setSaved(res.data.saved);
       setDone(res.data.documents);
       router.refresh();
     }
@@ -130,6 +155,7 @@ export function SalePanel({
       <section className="a-card a-card-pad" style={{ display: "grid", gap: 16 }}>
         <Alert kind="ok" title={markSold ? `${vehicleLabel} vendido a ${selected?.fullName ?? "cliente"}` : "Documentos gerados"}>
           <p>Abra, confira e imprima para assinar. Ficam guardados no separador Termos da viatura e na ficha do cliente.</p>
+          {saved.length > 0 && <p className="muted" style={{ fontSize: 13 }}>Os dados completados foram guardados em: {saved.join(", ")}.</p>}
         </Alert>
         <div className="a-actions">
           {done.map((d) => (
@@ -337,12 +363,68 @@ export function SalePanel({
           )}
         </div>
         <div className="a-form-foot" style={{ margin: 0 }}>
-          <button type="button" className="a-btn a-btn-primary" onClick={submit} disabled={pending || !customerId || (!docs.size && !markSold)}>
-            {pending ? <Spinner /> : <CheckCircle2 size={16} />} {markSold ? "Registar venda e gerar documentos" : "Gerar documentos"}
+          <button type="button" className="a-btn a-btn-primary" onClick={prepare} disabled={pending || !customerId || !docs.size}>
+            {pending && !review ? <Spinner /> : <ClipboardCheck size={16} />} Rever dados do contrato
           </button>
           {!customerId && <span className="muted" style={{ fontSize: 13 }}>Escolha ou crie o comprador primeiro.</span>}
         </div>
       </section>
+
+      {review && (
+        <section className="a-card" id="dados-contrato">
+          <div className="a-card-head">
+            <div>
+              <h2>4. Dados do contrato</h2>
+              <p>Tudo o que vai aparecer nos documentos. Confira, corrija e complete o que falta — só depois se gera.</p>
+            </div>
+            {missing.length > 0 ? <span className="a-pill danger">{missing.length} por preencher</span> : <span className="a-pill available">Completo</span>}
+          </div>
+          <div className="a-card-body" style={{ display: "grid", gap: 20 }}>
+            {[...new Set(review.map((f) => f.group))].map((group) => (
+              <fieldset key={group} className="a-fieldset">
+                <legend>{group}</legend>
+                <div className="a-fields">
+                  {review
+                    .filter((f) => f.group === group)
+                    .map((f) => {
+                      const v = valueOf(f);
+                      const empty = f.required && !v.trim();
+                      return (
+                        <div key={f.key} className={`a-field${f.key.endsWith("morada") || f.key === "venda.observacoes" || f.key === "viatura.modelo" ? " wide" : ""}`}>
+                          <label htmlFor={`c-${f.key}`}>
+                            {f.label}
+                            {f.required ? " *" : ""}
+                          </label>
+                          <input
+                            id={`c-${f.key}`}
+                            value={v}
+                            aria-invalid={empty || Boolean(errors[f.key])}
+                            onChange={(e) => setEdited((x) => ({ ...x, [f.key]: e.target.value }))}
+                            placeholder={/data|validade|nascimento|primeira/.test(f.key) ? "dd/mm/aaaa" : ""}
+                          />
+                          {errors[f.key] ? <span className="a-error">{errors[f.key]}</span> : empty ? <span className="a-error">Por preencher</span> : null}
+                        </div>
+                      );
+                    })}
+                </div>
+              </fieldset>
+            ))}
+            <label className="a-check">
+              <input type="checkbox" checked={saveToRecords} onChange={(e) => setSaveToRecords(e.target.checked)} />
+              <span>
+                Guardar o que completar aqui na ficha do cliente, na viatura e nos dados do stand
+                <span className="muted" style={{ display: "block", fontSize: 13 }}>Assim não é preciso voltar a escrever na próxima venda.</span>
+              </span>
+            </label>
+          </div>
+          <div className="a-form-foot" style={{ margin: 0 }}>
+            <button type="button" className="a-btn a-btn-primary" onClick={submit} disabled={pending || missing.length > 0}>
+              {pending ? <Spinner /> : <CheckCircle2 size={16} />} {markSold ? "Registar venda e gerar documentos" : "Gerar documentos"}
+            </button>
+            {missing.length > 0 && <span className="muted" style={{ fontSize: 13 }}>Falta preencher: {missing.map((f) => f.label).join(", ")}.</span>}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

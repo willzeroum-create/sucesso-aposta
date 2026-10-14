@@ -51,7 +51,7 @@ export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "viatura.km", label: "Quilómetros" },
   { key: "viatura.cor", label: "Cor" },
   { key: "viatura.combustivel", label: "Combustível" },
-  { key: "venda.preco", label: "Preço (por extenso em €)" },
+  { key: "venda.preco", label: "Preço de venda" },
   { key: "venda.data", label: "Data" },
   { key: "venda.hora", label: "Hora" },
   { key: "venda.local", label: "Localidade" },

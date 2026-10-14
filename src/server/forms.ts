@@ -92,6 +92,19 @@ export async function buildValues(customer: Customer | null, vehicle: VehicleRow
   };
 }
 
+/** Campos {{...}} usados por um modelo (documento Word carregado ou texto-base). */
+export async function templateFieldKeys(templateId: TemplateId): Promise<string[]> {
+  const word = (await getTemplateFiles())[templateId];
+  if (word) return word.fields;
+  const template = (await getTemplates())[templateId];
+  const used = new Set<string>();
+  const scan = (t: string) => t.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, k: string) => (used.add(k), ""));
+  scan(template.body);
+  template.table.flat().forEach((c) => scan(c.value));
+  template.signatures.forEach(scan);
+  return [...used];
+}
+
 /** Campos que ficaram por preencher (para avisar antes de imprimir). */
 export function missingValues(template: FormTemplate, values: Record<string, string>): string[] {
   const used = new Set<string>();
@@ -224,6 +237,7 @@ export async function createFormDocument(
   customer: Customer | null,
   vehicle: VehicleRow | null,
   sale: SaleInput,
+  overrides: Record<string, string> = {},
 ): Promise<{ id: string; fileId: string; title: string; url: string; format: "docx" | "pdf" }> {
   const { getSiteConfig } = await import("./settings");
   const { storeGenerated } = await import("./storage");
@@ -232,7 +246,9 @@ export async function createFormDocument(
   const templates = await getTemplates();
   const template = templates[templateId as keyof typeof templates];
   if (!template) throw new Error(`Modelo desconhecido: ${templateId}`);
-  const values = await buildValues(customer, vehicle, sale);
+  const values = { ...(await buildValues(customer, vehicle, sale)) };
+  // Valores revistos/completados pela pessoa antes de gerar.
+  for (const [k, v] of Object.entries(overrides)) if (typeof v === "string" && v.trim()) values[k] = v.trim();
   const id = newId("frm");
   values["documento.referencia"] = id.slice(-10).toUpperCase();
   const site = await getSiteConfig();
