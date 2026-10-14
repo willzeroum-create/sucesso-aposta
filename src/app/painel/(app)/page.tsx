@@ -13,7 +13,6 @@ export default async function Home() {
   const user = await requireUser();
   const seeVehicles = can(user, "vehicles.view");
   const seeLeads = can(user, "leads.view");
-  const seeAudit = can(user, "audit.view");
 
   const counts = seeVehicles
     ? await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)`, value: sql<number>`coalesce(sum(${schema.vehicles.priceEur}), 0)` }).from(schema.vehicles).groupBy(schema.vehicles.status)
@@ -43,7 +42,27 @@ export default async function Home() {
         .orderBy(schema.vehicles.nextInspection)
         .limit(5)
     : [];
-  const activity = seeAudit ? await db.select().from(schema.auditLogs).orderBy(desc(schema.auditLogs.createdAt)).limit(8) : [];
+  // Contactos recebidos (site + registados pela equipa): hoje, 7 dias, este mês e origem do mês.
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+  const countSince = async (d: Date) =>
+    Number((await db.select({ n: sql<number>`count(*)` }).from(schema.leads).where(gte(schema.leads.createdAt, d)))[0]?.n ?? 0);
+  const contacts = seeLeads
+    ? {
+        today: await countSince(startOfDay),
+        week: await countSince(weekAgo),
+        month: await countSince(monthStart),
+        sources: await db
+          .select({ source: sql<string>`coalesce(${schema.leads.utmSource}, ${schema.leads.source})`, n: sql<number>`count(*)` })
+          .from(schema.leads)
+          .where(gte(schema.leads.createdAt, monthStart))
+          .groupBy(sql`1`)
+          .orderBy(sql`2 desc`)
+          .limit(4),
+        won: Number((await db.select({ n: sql<number>`count(*)` }).from(schema.leads).where(and(eq(schema.leads.status, "won"), gte(schema.leads.updatedAt, monthStart))))[0]?.n ?? 0),
+      }
+    : null;
   const ai = aiProvider();
   const firstName = user.name.split(" ")[0];
 
@@ -204,34 +223,42 @@ export default async function Home() {
           </section>
         )}
 
-        {seeAudit && (
+        {contacts && (
           <section className="a-card">
             <div className="a-card-head">
               <div>
-                <h2>Atividade recente</h2>
-                <p>Quem fez o quê</p>
+                <h2>Contactos</h2>
+                <p>Pedidos recebidos pelo site e registados pela equipa</p>
               </div>
-              <Link href="/painel/atividade" className="a-btn a-btn-sm">
-                Ver tudo
-              </Link>
             </div>
-            {activity.length ? (
+            <div className="a-stats" style={{ border: 0, borderBottom: "1px solid var(--line)", borderRadius: 0, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+              <div className="a-stat">
+                <span>Hoje</span>
+                <strong>{contacts.today}</strong>
+              </div>
+              <div className="a-stat">
+                <span>Últimos 7 dias</span>
+                <strong>{contacts.week}</strong>
+              </div>
+              <div className="a-stat">
+                <span>Este mês</span>
+                <strong>{contacts.month}</strong>
+                <small>{contacts.won} convertido{contacts.won === 1 ? "" : "s"} em venda</small>
+              </div>
+            </div>
+            {contacts.sources.length ? (
               <table className="a-table">
                 <tbody>
-                  {activity.map((a) => (
-                    <tr key={a.id}>
-                      <td>
-                        <strong style={{ fontWeight: 600 }}>{a.userName}</strong> <span className="muted">{a.summary}</span>
-                      </td>
-                      <td className="right muted" style={{ fontSize: 13, whiteSpace: "nowrap" }}>
-                        {relative(a.createdAt)}
-                      </td>
+                  {contacts.sources.map((s) => (
+                    <tr key={s.source}>
+                      <td>{s.source.charAt(0).toUpperCase() + s.source.slice(1)}</td>
+                      <td className="right num">{Number(s.n)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <div className="a-empty">Ainda sem atividade registada.</div>
+              <div className="a-empty">Ainda sem contactos este mês.</div>
             )}
           </section>
         )}
