@@ -9,17 +9,17 @@ import { AiReader, type FieldMeta } from "./ai-reader";
 import { Alert, Field, Spinner, useAction } from "./ui";
 
 const AI_FIELDS: FieldMeta[] = [
-  { key: "fullName", label: "Nome" },
-  { key: "nif", label: "NIF" },
+  { key: "fullName", label: "Nome", important: true },
+  { key: "nif", label: "NIF", important: true },
   { key: "idDocumentType", label: "Tipo de documento" },
-  { key: "idDocumentNumber", label: "Nº do documento" },
-  { key: "idDocumentExpiry", label: "Validade" },
+  { key: "idDocumentNumber", label: "Nº do documento", important: true },
+  { key: "idDocumentExpiry", label: "Validade", important: true },
   { key: "idDocumentIssuer", label: "Emitido por" },
-  { key: "birthDate", label: "Nascimento" },
+  { key: "birthDate", label: "Nascimento", important: true },
   { key: "nationality", label: "Nacionalidade" },
-  { key: "address", label: "Morada" },
-  { key: "postalCode", label: "Código postal" },
-  { key: "city", label: "Localidade" },
+  { key: "address", label: "Morada", important: true },
+  { key: "postalCode", label: "Código postal", important: true },
+  { key: "city", label: "Localidade", important: true },
   { key: "country", label: "País" },
   { key: "drivingLicenseNumber", label: "Carta de condução" },
 ];

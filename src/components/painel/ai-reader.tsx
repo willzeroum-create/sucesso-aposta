@@ -18,10 +18,13 @@ export interface FieldMeta {
   key: string;
   label: string;
   format?: (v: string | number) => string;
+  /** Avisar quando o documento não trouxe este campo. */
+  important?: boolean;
 }
 
 /**
- * Fotografar/carregar documentos → ler com IA → rever campo a campo → aplicar ao formulário.
+ * Fotografar/carregar documentos → ler com IA → os campos vazios são preenchidos logo (a azul, para conferir);
+ * avisa o que não veio e, se já havia outro valor, deixa escolher.
  * Os ficheiros ficam guardados como documentos (da viatura/cliente, ou soltos até à criação).
  */
 export function AiReader({
@@ -48,7 +51,7 @@ export function AiReader({
   const [error, setError] = useState<string | null>(null);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [model, setModel] = useState<string | null>(null);
-  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const [result, setResult] = useState<{ filled: FieldMeta[]; conflicts: FieldMeta[]; missing: FieldMeta[] } | null>(null);
   const [lastFiles, setLastFiles] = useState<string[]>([]);
   // Documentos juntos antes da leitura (frente, verso, comprovativo…): a leitura só começa no botão.
   const [queue, setQueue] = useState<{ file: File; url: string | null }[]>([]);
@@ -68,6 +71,7 @@ export function AiReader({
     if (!files.length) return;
     setError(null);
     setProposal(null);
+    setResult(null);
     if (stage === "review") setStage("idle");
     const room = Math.max(0, MAX - queue.length);
     const next = files.slice(0, room).map((file) => ({ file, url: file.type.startsWith("image/") ? URL.createObjectURL(file) : null }));
@@ -109,19 +113,25 @@ export function AiReader({
       setStage("reading");
       setProgress("A ler os documentos…");
       const { proposal: p, model: m } = await readWithAi<Proposal>(mode, ids);
+      const has = (k: string) => p.fields[k] !== undefined && p.fields[k] !== null && String(p.fields[k]).trim() !== "";
+      // Preenche logo tudo o que o documento trouxe e estava vazio; não pergunta.
+      const fill: Record<string, string> = {};
+      for (const f of fields) if (has(f.key) && !current[f.key]) fill[f.key] = String(p.fields[f.key]);
+      if (Object.keys(fill).length) onApply(fill);
+      setResult({
+        filled: fields.filter((f) => fill[f.key] !== undefined),
+        // Já havia um valor diferente: não se apaga o que a equipa escreveu, mostra-se para decidir.
+        conflicts: fields.filter((f) => has(f.key) && current[f.key] && String(p.fields[f.key]) !== current[f.key]),
+        missing: fields.filter((f) => f.important && !has(f.key) && !current[f.key]),
+      });
       setProposal(p);
       setModel(m);
-      // Por omissão aplica só o que está vazio ou é diferente; campos já preenchidos ficam desmarcados.
-      setChosen(new Set(fields.filter((f) => p.fields[f.key] !== undefined && p.fields[f.key] !== "" && !current[f.key]).map((f) => f.key)));
       setStage("review");
     } catch (e) {
       setError(e instanceof Error ? e.message : "A leitura falhou.");
       setStage("idle");
     }
   }
-
-  const rows = proposal ? fields.filter((f) => proposal.fields[f.key] !== undefined && proposal.fields[f.key] !== "" && String(proposal.fields[f.key]) !== current[f.key]) : [];
-  const same = proposal ? fields.filter((f) => proposal.fields[f.key] !== undefined && String(proposal.fields[f.key]) === current[f.key]).length : 0;
 
   return (
     <section className="a-card" aria-labelledby={`ai-${mode}`}>
@@ -201,71 +211,59 @@ export function AiReader({
               )}
             </Alert>
           )}
-          {stage === "review" && proposal && (
+          {stage === "review" && proposal && result && (
             <>
-              <p>
-                <strong>{proposal.summary || "Leitura concluída."}</strong>{" "}
-                <span className="muted" style={{ fontSize: 13 }}>
-                  {model ? `Lido por ${model}. ` : ""}Confirme cada valor com o documento antes de guardar.
-                </span>
-              </p>
-              {proposal.warnings.length > 0 && (
-                <Alert kind="warn" title="Atenção">
+              <Alert kind={result.filled.length ? "ok" : "info"} title={result.filled.length ? `Preenchidos ${result.filled.length} campo${result.filled.length === 1 ? "" : "s"} no formulário` : "Os documentos não trouxeram dados novos"}>
+                <p>
+                  {proposal.summary}
+                  {proposal.summary ? ". " : ""}
+                  <span className="muted" style={{ fontSize: 13 }}>
+                    {model ? `Lido por ${model}. ` : ""}Os campos a azul vieram do documento: confira antes de guardar.
+                  </span>
+                </p>
+              </Alert>
+              {(proposal.warnings.length > 0 || result.missing.length > 0) && (
+                <Alert kind="warn" title="Falta informação">
                   <ul>
+                    {result.missing.length > 0 && <li>Não veio no documento: {result.missing.map((f) => f.label.toLowerCase()).join(", ")}.</li>}
                     {proposal.warnings.map((w) => (
                       <li key={w}>{w}</li>
                     ))}
                   </ul>
                 </Alert>
               )}
-              {rows.length ? (
-                <fieldset className="a-fieldset">
-                  <legend className="sr-only">Campos a aplicar</legend>
+              {result.conflicts.length > 0 && (
+                <div style={{ display: "grid", gap: 8 }}>
+                  <p className="muted" style={{ fontSize: 13 }}>
+                    Estes campos já tinham outro valor e foram mantidos:
+                  </p>
                   <div className="a-proposal">
-                    {rows.map((f) => {
+                    {result.conflicts.map((f) => {
                       const v = proposal.fields[f.key];
                       return (
-                        <label key={f.key}>
-                          <input
-                            type="checkbox"
-                            checked={chosen.has(f.key)}
-                            onChange={(e) => {
-                              const next = new Set(chosen);
-                              if (e.target.checked) next.add(f.key);
-                              else next.delete(f.key);
-                              setChosen(next);
-                            }}
-                          />
+                        <div key={f.key} className="a-conflict">
                           <span className="muted">{f.label}</span>
-                          <span className="from">{current[f.key] ? (f.format ? f.format(current[f.key]) : current[f.key]) : "vazio"}</span>
+                          <span className="from">{f.format ? f.format(current[f.key]) : current[f.key]}</span>
                           <span className="to">{f.format ? f.format(v) : String(v)}</span>
-                        </label>
+                          <button
+                            type="button"
+                            className="a-btn a-btn-sm"
+                            onClick={() => {
+                              onApply({ [f.key]: String(v) });
+                              setResult((r) => (r ? { ...r, conflicts: r.conflicts.filter((x) => x.key !== f.key) } : r));
+                            }}
+                          >
+                            Usar o do documento
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
-                </fieldset>
-              ) : (
-                <Alert kind="info">Os documentos não trouxeram dados novos{same ? ` (${same} campos já coincidem)` : ""}.</Alert>
+                </div>
               )}
-              <div className="a-actions">
-                {rows.length > 0 && (
-                  <button
-                    type="button"
-                    className="a-btn a-btn-primary"
-                    disabled={!chosen.size}
-                    onClick={() => {
-                      const values: Record<string, string> = {};
-                      for (const k of chosen) values[k] = String(proposal.fields[k]);
-                      onApply(values);
-                      setStage("idle");
-                      setProposal(null);
-                    }}
-                  >
-                    Aplicar {chosen.size} campo{chosen.size === 1 ? "" : "s"} ao formulário
-                  </button>
-                )}
-                <button type="button" className="a-btn" onClick={() => (setStage("idle"), setProposal(null))}>
-                  Descartar
+              <div>
+                <button type="button" className="a-btn a-btn-sm a-btn-ghost" onClick={() => (setStage("idle"), setProposal(null), setResult(null))}>
+                  Fechar resumo
                 </button>
               </div>
             </>
