@@ -269,8 +269,21 @@ export async function getCatalogData(): Promise<CatalogData> {
   const mode = process.env.CATALOG_MODE ?? "demo";
   if (mode === "demo")
     return { ...parsePublicCatalog(demoCatalog), source: "demo" };
+  if (mode === "database") {
+    // Mesmo domínio: lê a base de dados do dashboard diretamente, com a mesma validação
+    // do modo remoto. Sem fallback para a demonstração.
+    const { buildPublicCatalog } = await import("@/server/public-catalog");
+    let payload: unknown;
+    try {
+      payload = await buildPublicCatalog();
+    } catch (error) {
+      console.error("[catalog] database", error);
+      throw new CatalogLoadError("The catalogue database is unavailable.");
+    }
+    return { ...parsePublicCatalog(payload), source: "remote" };
+  }
   if (mode !== "remote")
-    throw new CatalogLoadError("CATALOG_MODE must be demo or remote.");
+    throw new CatalogLoadError("CATALOG_MODE must be demo, database or remote.");
 
   const endpoint = process.env.CATALOG_API_URL;
   if (!endpoint)

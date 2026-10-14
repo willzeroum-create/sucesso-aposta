@@ -2,6 +2,8 @@
 
 Primeira versão da landing page de um stand automóvel em Portugal. **Sucesso Aposta é um nome provisório**, retirado da pasta do projeto. A página pública foi preparada pelo Codex; o backend e o dashboard ficam para o Claude.
 
+**Duas direções visuais disponíveis:** a proposta 02, Drive Studio, está em `/`; a primeira proposta editorial está preservada em `/conceito-a`. Ver [comparação e reversão](docs/CONCEITOS.md). A escolha final continua em avaliação.
+
 Next.js **16.4.1**, React **19.3.1** e TypeScript, com App Router. Requer Node.js **20.9 ou superior**. Tipografia e fotografias são servidas localmente.
 
 ## Arranque local
@@ -47,6 +49,18 @@ Os seis automóveis, preços e características são exemplos. As imagens são i
 | Variáveis disponíveis, sem credenciais             | `.env.example`                                              |
 
 O nome apresentado vem de `demoSiteConfig.name`; com catálogo remoto, virá de `SiteConfig.name`. O título e a descrição da página são derivados da mesma configuração em `src/app/page.tsx`. Os metadados de fallback e o `noindex` de pré-lançamento estão em `src/app/layout.tsx`.
+
+## Painel e backend
+
+O painel do stand está em `/painel` (viaturas, clientes, CRM, termos em PDF, anúncios, site, equipa e registo de atividade). Arranque, arquitetura, variáveis e o que foi verificado: [docs/PAINEL.md](docs/PAINEL.md).
+
+```powershell
+npm.cmd run db:migrate
+npm.cmd run admin:create -- email@stand.pt "Nome Completo"
+npm.cmd test
+```
+
+Para a landing usar os dados reais do painel: `CATALOG_MODE=database`.
 
 ## Continuação com Claude
 

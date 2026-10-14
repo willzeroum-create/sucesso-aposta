@@ -2,12 +2,18 @@
 
 Este projeto está dividido entre **Codex: landing page** e **Claude: backend/dashboard**. A prioridade é ligar conteúdo e operações reais à interface pública existente, preservando o desenho e os contratos preparados.
 
+Há duas propostas visuais em avaliação. A raiz `/` usa `drive-showroom.tsx` com CSS Module próprio; `/conceito-a` mantém `showroom.tsx` e os estilos originais. Ler `docs/CONCEITOS.md` e preservar ambas até a escolha do utilizador. Os contratos e o backend são partilhados.
+
 Antes de implementar, ler:
 
 1. `docs/BACKEND_HANDOFF.md` — payloads, validação, leads e fluxo privado de geração de imagens.
 2. `src/lib/contracts.ts` e `src/lib/catalog.ts` — tipos e adapter que a landing já utiliza.
 3. `src/data/demo.ts` — exemplos de estrutura; não são dados de produção.
 4. `docs/DESIGN.md` e `docs/ASSETS.md` — composição, recortes e créditos.
+
+## Estado (14/10/2026)
+
+Backend e painel implementados — ver `docs/PAINEL.md` (arquitetura, verificação e o que falta validar com credenciais reais). O catálogo tem um terceiro modo, `CATALOG_MODE=database`, que lê a base de dados do painel no mesmo domínio. `POST /api/leads` grava pedidos reais.
 
 ## Âmbito do backend
 

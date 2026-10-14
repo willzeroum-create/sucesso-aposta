@@ -7,3 +7,8 @@ out/
 *.log
 .DS_Store
 coverage/
+
+# Dados locais do backoffice (base de dados e ficheiros carregados)
+data/
+
+tests/output/
