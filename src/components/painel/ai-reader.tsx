@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Camera, FileUp, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, FileText, FileUp, Sparkles, X } from "lucide-react";
 import { Alert, Spinner } from "./ui";
 import { readWithAi, uploadDocuments } from "./upload";
 
@@ -50,25 +50,57 @@ export function AiReader({
   const [model, setModel] = useState<string | null>(null);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [lastFiles, setLastFiles] = useState<string[]>([]);
+  // Documentos juntos antes da leitura (frente, verso, comprovativo…): a leitura só começa no botão.
+  const [queue, setQueue] = useState<{ file: File; url: string | null }[]>([]);
+  const MAX = 8;
 
-  async function handle(files: FileList | null) {
-    if (!files?.length) return;
+  const queueRef = useRef(queue);
+  queueRef.current = queue;
+  useEffect(() => () => queueRef.current.forEach((q) => q.url && URL.revokeObjectURL(q.url)), []);
+  const clear = () => {
+    queue.forEach((q) => q.url && URL.revokeObjectURL(q.url));
+    setQueue([]);
+  };
+
+  function add(list: FileList | null) {
+    // Copiar já: a FileList é "viva" e esvazia quando o input é limpo abaixo.
+    const files = [...(list ?? [])];
+    if (!files.length) return;
+    setError(null);
+    setProposal(null);
+    if (stage === "review") setStage("idle");
+    const room = Math.max(0, MAX - queue.length);
+    const next = files.slice(0, room).map((file) => ({ file, url: file.type.startsWith("image/") ? URL.createObjectURL(file) : null }));
+    if (files.length > room) setError(`No máximo ${MAX} ficheiros por leitura.`);
+    setQueue((q) => [...q, ...next]);
+    if (input.current) input.current.value = "";
+    if (camera.current) camera.current.value = "";
+  }
+
+  function remove(i: number) {
+    setQueue((q) => {
+      const item = q[i];
+      if (item?.url) URL.revokeObjectURL(item.url);
+      return q.filter((_, j) => j !== i);
+    });
+  }
+
+  async function start() {
+    if (!queue.length) return;
     setError(null);
     setProposal(null);
     try {
       setStage("uploading");
-      const list = [...files].slice(0, 8);
+      const list = queue.map((q) => q.file);
       const uploaded = await uploadDocuments(list, target, (d, t) => setProgress(`A enviar ${d} de ${t}…`));
       const ids = uploaded.map((u) => u.fileId);
       setLastFiles(ids);
       onUploaded?.(ids);
+      clear();
       await read(ids);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha no envio.");
       setStage("idle");
-    } finally {
-      if (input.current) input.current.value = "";
-      if (camera.current) camera.current.value = "";
     }
   }
 
@@ -101,18 +133,59 @@ export function AiReader({
           <p>{intro}</p>
         </div>
         <div className="a-actions">
-          <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => handle(e.target.files)} />
-          <input ref={input} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => handle(e.target.files)} />
-          <button type="button" className="a-btn a-btn-sm" onClick={() => camera.current?.click()} disabled={stage === "uploading" || stage === "reading"}>
+          <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => add(e.target.files)} />
+          <input ref={input} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => add(e.target.files)} />
+          <button type="button" className="a-btn a-btn-sm" onClick={() => camera.current?.click()} disabled={stage === "uploading" || stage === "reading" || queue.length >= MAX}>
             <Camera size={15} /> Fotografar
           </button>
-          <button type="button" className="a-btn a-btn-sm" onClick={() => input.current?.click()} disabled={stage === "uploading" || stage === "reading"}>
-            <FileUp size={15} /> Escolher ficheiros
+          <button type="button" className="a-btn a-btn-sm" onClick={() => input.current?.click()} disabled={stage === "uploading" || stage === "reading" || queue.length >= MAX}>
+            <FileUp size={15} /> {queue.length ? "Adicionar ficheiros" : "Escolher ficheiros"}
           </button>
         </div>
       </div>
-      {(stage !== "idle" || error) && (
+      {(stage !== "idle" || error || queue.length > 0) && (
         <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
+          {queue.length > 0 && stage === "idle" && (
+            <div style={{ display: "grid", gap: 12 }}>
+              <p className="muted" style={{ fontSize: 13 }}>
+                Junte todos os documentos (frente, verso, comprovativo de morada…) e carregue em ler. A IA cruza a informação de todos.
+              </p>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {queue.map((q, i) => (
+                  <li key={`${q.file.name}-${i}`} style={{ position: "relative", width: 112, display: "grid", gap: 4 }}>
+                    {q.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={q.url} alt="" style={{ width: 112, height: 84, objectFit: "cover", borderRadius: 6, border: "1px solid var(--line)" }} />
+                    ) : (
+                      <span className="a-thumb-empty" style={{ width: 112, height: 84 }}>
+                        <FileText size={22} />
+                      </span>
+                    )}
+                    <span className="muted" style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {q.file.name}
+                    </span>
+                    <button
+                      type="button"
+                      className="a-icon-btn"
+                      onClick={() => remove(i)}
+                      aria-label={`Retirar ${q.file.name}`}
+                      style={{ position: "absolute", top: 4, right: 4, width: 26, height: 26, background: "var(--surface)", border: "1px solid var(--line)" }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="a-actions">
+                <button type="button" className="a-btn a-btn-primary" onClick={start}>
+                  <Sparkles size={16} /> Ler {queue.length} documento{queue.length === 1 ? "" : "s"}
+                </button>
+                <button type="button" className="a-btn a-btn-ghost" onClick={clear}>
+                  Limpar
+                </button>
+              </div>
+            </div>
+          )}
           {(stage === "uploading" || stage === "reading") && (
             <p style={{ display: "flex", gap: 8, alignItems: "center" }} aria-live="polite">
               <Spinner /> {progress} {stage === "reading" && <span className="muted">(pode demorar até 30 segundos)</span>}
