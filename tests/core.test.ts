@@ -158,3 +158,18 @@ test("termos: preenchimento e PDF", async () => {
   mkdirSync("tests/output", { recursive: true });
   writeFileSync("tests/output/termo-exemplo.pdf", pdf);
 });
+
+test("modelos Word: campos e preenchimento", async () => {
+  const { readFileSync } = await import("node:fs");
+  const PizZip = (await import("pizzip")).default;
+  const { inspectDocx, fillDocx } = await import("../src/server/docx-template");
+  const original = readFileSync("docs/modelos/contrato-compra-venda.docx");
+  const { fields, unknown } = inspectDocx(original);
+  assert.ok(fields.includes("cliente.nome") && fields.includes("viatura.vin"));
+  assert.deepEqual(unknown, []);
+  const filled = fillDocx(original, { "cliente.nome": "Ana Silva", "viatura.vin": "WBA8E1C50JA123456" });
+  const xml = new PizZip(filled).file("word/document.xml")!.asText();
+  assert.ok(xml.includes("Ana Silva") && xml.includes("WBA8E1C50JA123456"));
+  assert.ok(!xml.includes("{{"));
+  assert.throws(() => inspectDocx(Buffer.from("isto não é word")), /Word/);
+});

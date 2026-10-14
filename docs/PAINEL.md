@@ -54,6 +54,14 @@ As mutações do painel são Server Actions (`src/app/painel/_actions/`) e verif
   - Ficha preenchida a partir do Cartão de Cidadão, título de residência, passaporte ou comprovativo de morada.
   - Validação do NIF por dígito de controlo e aviso de documento caducado.
   - Apagamento da ficha, ao abrigo do RGPD.
+- **Venda (na página da viatura)**
+  - Escolher um cliente existente ou criar um novo, incluindo a leitura do documento por IA.
+  - Indicar preço, data, hora, km e observações.
+  - Um clique marca a viatura como vendida e gera o contrato e o termo de entrega já preenchidos.
+- **Documentos Word do stand**
+  - Em Configurações → Modelos de documentos carrega-se o contrato e o termo reais (.docx), com campos `{{cliente.nome}}`, `{{viatura.vin}}`, etc.
+  - Cada venda gera uma cópia em Word preenchida, mantendo o formato do original.
+  - Exemplos para teste em `docs/modelos/`. Sem documento Word, é usado o texto-base em PDF.
 - **Termos e fichas**
   - Termo de entrega e responsabilidade, contrato de compra e venda, declaração de venda ao stand, ficha de cliente e folha de dados para o Requerimento de Registo Automóvel.
   - O stand pode colar o texto que já usa em Configurações → Modelos de documentos.

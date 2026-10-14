@@ -29,7 +29,7 @@ export type SaleInput = z.input<typeof saleSchema>;
  * Dá saída à viatura: associa o comprador, marca como vendida (preço, data) e gera de uma vez
  * o contrato e o termo de entrega já preenchidos com a viatura e o comprador.
  */
-export async function completeSale(vehicleId: string, raw: SaleInput): Promise<ActionResult<{ documents: { title: string; url: string }[] }>> {
+export async function completeSale(vehicleId: string, raw: SaleInput): Promise<ActionResult<{ documents: { title: string; url: string; format: "docx" | "pdf" }[] }>> {
   return run(async () => {
     const user = await assertPermission("forms.generate");
     const input = saleSchema.parse(raw);
@@ -64,10 +64,10 @@ export async function completeSale(vehicleId: string, raw: SaleInput): Promise<A
     }
 
     const sale = { priceEur: input.priceEur, date: input.date, time: input.time, place: input.place, deliveryKm: input.deliveryKm, notes: input.notes };
-    const documents: { title: string; url: string }[] = [];
+    const documents: { title: string; url: string; format: "docx" | "pdf" }[] = [];
     for (const t of input.documents) {
       const doc = await createFormDocument(user, t, customer, current, sale);
-      documents.push({ title: doc.title, url: doc.url });
+      documents.push({ title: doc.title, url: doc.url, format: doc.format });
     }
 
     revalidatePath(`/painel/viaturas/${vehicleId}`);

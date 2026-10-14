@@ -6,6 +6,20 @@ import { DEFAULT_TEMPLATES, fillPlaceholders, type FormTemplate, type TemplateId
 import { formatDatePt, formatPlate } from "@/lib/pt-validation";
 import { getCompanyInfo } from "./settings";
 
+export interface TemplateFileInfo {
+  fileId: string;
+  name: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  fields: string[];
+}
+
+/** Modelos Word carregados pelo stand (um por tipo de documento). */
+export async function getTemplateFiles(): Promise<Partial<Record<TemplateId, TemplateFileInfo>>> {
+  const [row] = await db.select().from(schema.settings).where(eq(schema.settings.key, "templateFiles")).limit(1);
+  return (row?.value ?? {}) as Partial<Record<TemplateId, TemplateFileInfo>>;
+}
+
 type Customer = typeof schema.customers.$inferSelect;
 type VehicleRow = typeof schema.vehicles.$inferSelect;
 
@@ -210,7 +224,7 @@ export async function createFormDocument(
   customer: Customer | null,
   vehicle: VehicleRow | null,
   sale: SaleInput,
-): Promise<{ id: string; fileId: string; title: string; url: string }> {
+): Promise<{ id: string; fileId: string; title: string; url: string; format: "docx" | "pdf" }> {
   const { getSiteConfig } = await import("./settings");
   const { storeGenerated } = await import("./storage");
   const { newId } = await import("./ids");
@@ -220,10 +234,24 @@ export async function createFormDocument(
   if (!template) throw new Error(`Modelo desconhecido: ${templateId}`);
   const values = await buildValues(customer, vehicle, sale);
   const id = newId("frm");
+  values["documento.referencia"] = id.slice(-10).toUpperCase();
   const site = await getSiteConfig();
-  const pdf = await renderPdf(template, values, { reference: id.slice(-10).toUpperCase(), standName: site.name });
-  const name = `${template.title} - ${customer?.fullName ?? vehicle?.plate ?? id}.pdf`.replace(/[\/:*?"<>|]/g, "");
-  const stored = await storeGenerated(pdf, "application/pdf", name, user.id);
+  const who = customer?.fullName ?? vehicle?.plate ?? id;
+  const wordTemplate = (await getTemplateFiles())[templateId as TemplateId];
+  let stored;
+  if (wordTemplate) {
+    // Documento real do stand (Word): preenche os campos e mantém o formato original.
+    const { getObject } = await import("./storage");
+    const { fillDocx, DOCX_MIME } = await import("./docx-template");
+    const [file] = await db.select().from(schema.files).where(eq(schema.files.id, wordTemplate.fileId)).limit(1);
+    const original = file ? await getObject(file.storageKey) : null;
+    if (!original) throw new Error("O modelo Word deste documento não foi encontrado. Volte a carregá-lo em Configurações.");
+    const docx = fillDocx(original, values);
+    stored = await storeGenerated(docx, DOCX_MIME, `${template.title} - ${who}.docx`.replace(/[\\/:*?"<>|]/g, ""), user.id);
+  } else {
+    const pdf = await renderPdf(template, values, { reference: values["documento.referencia"], standName: site.name });
+    stored = await storeGenerated(pdf, "application/pdf", `${template.title} - ${who}.pdf`.replace(/[\\/:*?"<>|]/g, ""), user.id);
+  }
   await db.insert(schema.generatedForms).values({ id, template: templateId, customerId: customer?.id ?? null, vehicleId: vehicle?.id ?? null, data: values, fileId: stored.id, createdBy: user.id });
   await audit(user, {
     action: "form.generate",
@@ -231,5 +259,5 @@ export async function createFormDocument(
     entityId: vehicle?.id ?? customer?.id ?? null,
     summary: `Gerou "${template.title}"${customer ? ` para ${customer.fullName}` : ""}${vehicle ? ` — ${vehicle.make} ${vehicle.model}${vehicle.plate ? ` ${vehicle.plate}` : ""}` : ""}`,
   });
-  return { id, fileId: stored.id, title: template.title, url: `/api/admin/files/${stored.id}` };
+  return { id, fileId: stored.id, title: template.title, url: `/api/admin/files/${stored.id}`, format: wordTemplate ? "docx" : "pdf" };
 }

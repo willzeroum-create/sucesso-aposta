@@ -69,7 +69,7 @@ export function SalePanel({
   });
   const [docs, setDocs] = useState<Set<TemplateId>>(new Set(DEFAULT_DOCS.filter((d) => documents.some((x) => x.id === d))));
   const [markSold, setMarkSold] = useState(canMarkSold && !sold);
-  const [done, setDone] = useState<{ title: string; url: string }[] | null>(null);
+  const [done, setDone] = useState<{ title: string; url: string; format: "docx" | "pdf" }[] | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -134,7 +134,7 @@ export function SalePanel({
         <div className="a-actions">
           {done.map((d) => (
             <a key={d.url} className="a-btn a-btn-primary" href={d.url} target="_blank" rel="noopener">
-              <FileDown size={16} /> {d.title}
+              <FileDown size={16} /> {d.title} ({d.format === "docx" ? "Word" : "PDF"})
             </a>
           ))}
         </div>

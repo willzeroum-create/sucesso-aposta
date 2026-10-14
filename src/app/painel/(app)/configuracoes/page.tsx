@@ -5,7 +5,7 @@ import { Alert } from "@/components/painel/ui";
 import { aiModelLabel } from "@/server/ai/provider";
 import { vindecoderConfigured } from "@/server/vin";
 import { requirePagePermission } from "@/server/auth/session";
-import { getTemplates } from "@/server/forms";
+import { getTemplateFiles, getTemplates } from "@/server/forms";
 import { getCompanyInfo, getPrivacySettings } from "@/server/settings";
 import { storageDriver } from "@/server/storage";
 import { databaseConfig } from "@/db/config";
@@ -17,6 +17,7 @@ export default async function SettingsPage() {
   const company = await getCompanyInfo();
   const privacy = await getPrivacySettings();
   const templates = await getTemplates();
+  const wordFiles = await getTemplateFiles();
   const [custom] = await db.select().from(schema.settings).where(eq(schema.settings.key, "templates")).limit(1);
   const customized = new Set(Object.keys((custom?.value ?? {}) as object));
   const ai = aiModelLabel();
@@ -88,10 +89,19 @@ export default async function SettingsPage() {
       <div style={{ display: "grid", gap: 10 }}>
         <h2 className="a-section-title">Modelos de documentos</h2>
         <Alert kind="info">
-          Pode colar aqui o texto do termo que o stand já usa, mantendo os campos entre chavetas. Os textos-base são uma proposta: confirme-os com o vosso contabilista ou jurista antes de usar.
+          Carregue o contrato e o termo reais do stand em Word: cada venda gera uma cópia já preenchida com o comprador e a viatura. Os exemplos incluídos servem só para testar e devem ser substituídos pelos documentos revistos pelo vosso jurista.
         </Alert>
         {Object.values(templates).map((t) => (
-          <TemplateEditor key={t.id} id={t.id} title={t.title} body={t.body} customized={customized.has(t.id)} />
+          <TemplateEditor
+            key={t.id}
+            id={t.id}
+            title={t.title}
+            body={t.body}
+            customized={customized.has(t.id)}
+            word={wordFiles[t.id] ? { name: wordFiles[t.id]!.name, uploadedAt: wordFiles[t.id]!.uploadedAt, uploadedBy: wordFiles[t.id]!.uploadedBy, fields: wordFiles[t.id]!.fields } : null}
+            hasExample={t.id === "contrato_compra_venda" || t.id === "termo_responsabilidade"}
+            open={t.id === "contrato_compra_venda" || t.id === "termo_responsabilidade"}
+          />
         ))}
       </div>
 

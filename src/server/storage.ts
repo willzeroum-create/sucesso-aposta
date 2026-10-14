@@ -44,6 +44,7 @@ export function sniffMime(buf: Buffer): string | null {
 const EXT: Record<string, string> = {
   "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf", "image/gif": "gif",
   "image/heic": "heic", "image/avif": "avif",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 };
 
 async function putObject(key: string, body: Buffer, mime: string): Promise<void> {
@@ -137,6 +138,12 @@ export async function storePrivateDocument(input: Buffer, originalName: string, 
   const mime = sniffMime(input);
   if (!mime) throw new UploadError(`${originalName}: formato não suportado. Envie PDF, JPG, PNG, WebP ou HEIC.`);
   return saveRecord(input, mime, "private", originalName, userId, null, null);
+}
+
+/** Modelo Word do stand (validado em docx-template.ts antes de chegar aqui). */
+export async function storeTemplateFile(input: Buffer, originalName: string, userId: string): Promise<StoredFile> {
+  if (input.length > MAX_UPLOAD_BYTES) throw new UploadError("Ficheiro demasiado grande (máx. 20 MB).");
+  return saveRecord(input, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "private", originalName, userId, null, null);
 }
 
 /** Ficheiro gerado pelo sistema (ex.: termo em PDF). */
