@@ -202,3 +202,34 @@ export async function renderPdf(template: FormTemplate, values: Record<string, s
   });
   return Buffer.from(await pdf.save());
 }
+
+/** Gera o PDF de um modelo, guarda-o e regista-o (usado pelos termos avulsos e pela venda). */
+export async function createFormDocument(
+  user: { id: string; name: string },
+  templateId: string,
+  customer: Customer | null,
+  vehicle: VehicleRow | null,
+  sale: SaleInput,
+): Promise<{ id: string; fileId: string; title: string; url: string }> {
+  const { getSiteConfig } = await import("./settings");
+  const { storeGenerated } = await import("./storage");
+  const { newId } = await import("./ids");
+  const { audit } = await import("./audit");
+  const templates = await getTemplates();
+  const template = templates[templateId as keyof typeof templates];
+  if (!template) throw new Error(`Modelo desconhecido: ${templateId}`);
+  const values = await buildValues(customer, vehicle, sale);
+  const id = newId("frm");
+  const site = await getSiteConfig();
+  const pdf = await renderPdf(template, values, { reference: id.slice(-10).toUpperCase(), standName: site.name });
+  const name = `${template.title} - ${customer?.fullName ?? vehicle?.plate ?? id}.pdf`.replace(/[\/:*?"<>|]/g, "");
+  const stored = await storeGenerated(pdf, "application/pdf", name, user.id);
+  await db.insert(schema.generatedForms).values({ id, template: templateId, customerId: customer?.id ?? null, vehicleId: vehicle?.id ?? null, data: values, fileId: stored.id, createdBy: user.id });
+  await audit(user, {
+    action: "form.generate",
+    entityType: vehicle ? "vehicle" : "customer",
+    entityId: vehicle?.id ?? customer?.id ?? null,
+    summary: `Gerou "${template.title}"${customer ? ` para ${customer.fullName}` : ""}${vehicle ? ` — ${vehicle.make} ${vehicle.model}${vehicle.plate ? ` ${vehicle.plate}` : ""}` : ""}`,
+  });
+  return { id, fileId: stored.id, title: template.title, url: `/api/admin/files/${stored.id}` };
+}

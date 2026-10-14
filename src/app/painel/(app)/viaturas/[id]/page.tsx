@@ -10,6 +10,7 @@ import { StatusTrack } from "@/components/painel/status-track";
 import { Plate } from "@/components/painel/ui";
 import { VehicleForm } from "@/components/painel/vehicle-form";
 import { DeleteVehicle } from "@/components/painel/delete-vehicle";
+import { SalePanel } from "@/components/painel/sale-panel";
 import { VEHICLE_DOCUMENT_KINDS } from "@/lib/document-kinds";
 import { dateTime, daysSince, eur, int } from "@/lib/labels";
 import { can, requirePagePermission } from "@/server/auth/session";
@@ -19,6 +20,7 @@ import { publicUrl } from "@/server/storage";
 
 const TABS = [
   { key: "dados", label: "Dados" },
+  { key: "venda", label: "Venda" },
   { key: "fotos", label: "Fotografias" },
   { key: "documentos", label: "Documentos" },
   { key: "termos", label: "Termos" },
@@ -118,7 +120,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
       />
 
       <nav className="a-tabs" aria-label="Secções da viatura">
-        {TABS.filter((t) => (t.key === "documentos" ? canDocs : t.key === "termos" ? canForms : true)).map((t) => (
+        {TABS.filter((t) => (t.key === "documentos" ? canDocs : t.key === "termos" || t.key === "venda" ? canForms : true)).map((t) => (
           <Link key={t.key} href={`/painel/viaturas/${id}?tab=${t.key}`} aria-current={tab === t.key ? "page" : undefined} scroll={false}>
             {t.label}
             {t.key === "fotos" && <span className="a-tab-count">{gallery.length}</span>}
@@ -150,6 +152,19 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
 
       {tab === "documentos" && canDocs && (
         <DocumentsPanel owner={{ type: "vehicle", id: v.id }} docs={await documentsFor("vehicle", v.id)} kinds={VEHICLE_DOCUMENT_KINDS} canUpload={can(user, "documents.upload")} />
+      )}
+
+      {tab === "venda" && canForms && (
+        <SalePanel
+          vehicleId={v.id}
+          vehicleLabel={`${v.make} ${v.model}`}
+          customers={customers}
+          documents={(await templateInfos()).filter((t) => t.needsVehicle && t.needsCustomer && t.id !== "declaracao_compra")}
+          defaults={{ customerId: v.buyerCustomerId, priceEur: v.soldPriceEur ?? v.priceEur, km: v.mileageKm }}
+          sold={v.status === "sold" ? { buyer: buyer?.fullName ?? null, date: v.soldAt ? v.soldAt.toLocaleDateString("pt-PT") : null } : null}
+          canMarkSold={can(user, "vehicles.status")}
+          canCreateCustomer={can(user, "customers.edit")}
+        />
       )}
 
       {tab === "termos" && canForms && (
