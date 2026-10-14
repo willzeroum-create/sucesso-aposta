@@ -1,0 +1,20 @@
+parte do opus: criar um dashboard
+esse dashboard vai todas informações do stand
+quando chegar um carro novo eles conseguirem adicionar, botar todos os documentos do carro, 
+ e dados junto com fotos, procure exemplos funcionais para isso não ficar quebrado
+uma outra pagina para controle do fb ads e do google ads
+uma parte do crm
+
+algo importante que o cliente quer implementar!
+leitura de documentos com ia, temos uma pasta aqui no computador que já faz isso, pasta legalcar você tem acesso total ha ela!
+basicamente pro carro chegar, torar foto do documento, e preencher ali os dados do carro, a mesma coisa com um potencial cliente!
+quando clicar em gerar ficha do cliente,  uma foto do documento dele com o endereço você já preencher tudo!
+ele quer isso para aplicar o termo de direção, quando o carro e vendido eles fazem um termo pro carro rodar, não sei ao certo o nome procure, mas é algo que já é pronto, e precisamos apenas preencher o termo do cliente!
+assim como o do carro que chega 
+e ter as opções básicas de carro em preparação, carro, reservado, disponível, vendido
+fácil alterações que seja efetiva no site!
+
+esse dashboard tem que ter a opção de claro escuro, 
+logs para a gente ver quem fez cada ação
+sistema de hierarquia, onde o admin vai falando oque cada um faz
+quero algo simples fácil de mexer porem, robusta! com as funcionalidades todas em dia! para que isso rode da melhor forma possível!

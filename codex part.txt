@@ -1,0 +1,10 @@
+vamos criar um projeto agora de um site/sistema
+
+parte do códex: criar a landing page moderna e sofisticada, pnde o hero seja modificado conforme o carro que o cliente pedir, pode deixar uma chave api linkada para gerar o novo fundo conforme o cliente pediu
+inspiração pro site premium: https://alves-imports-auto.vercel.app/#inicio
+fizemos esse site premium, onde o cliente gostou muito, com uma estética de  revista, o ponto que eu trago é: se o cliente botar um outro carro, esse fundo vai ficar desproporcional ou ruim, então refazemos o fundo pra ele se adequar ao novo carro!
+inspiração que eu digo nesse Alves import e o hero, que se destacou demais! gostei muito de como ficou e o cliente também, porem não pode ser idêntico, pois ele já viu esse trabalho, no restante da landing page quero alçgo mais detalhado, mais premium, essa que ficou para o Alves ficou algo mais neutro mais sem brilho! quero esse site realmente chamando atenção em todas as pontas!
+pode usar imagens da internet ou oque for! não quero algo artificial, quero algo substancialmente bonito e realista!
+
+
+
