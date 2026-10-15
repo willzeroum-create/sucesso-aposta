@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, FileText, FileUp, Sparkles, X } from "lucide-react";
 import { Alert, Spinner } from "./ui";
-import { readWithAi, uploadDocuments } from "./upload";
+import { readWithAi, uploadDocuments, type AiReadMode } from "./upload";
 
 export interface Proposal {
   documents: string[];
@@ -36,7 +36,7 @@ export function AiReader({
   onUploaded,
   intro,
 }: {
-  mode: "vehicle" | "person";
+  mode: AiReadMode;
   target: { ownerType: "vehicle" | "customer" | "none"; ownerId?: string; kind: string };
   fields: FieldMeta[];
   current: Record<string, string>;

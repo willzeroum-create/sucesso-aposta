@@ -3,7 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { kindFromAi, DOCUMENT_KINDS } from "@/lib/document-kinds";
-import { readPersonDocuments, readVehicleDocuments, prepareForAi } from "@/server/ai/documents";
+import { readImportDocuments, readPersonDocuments, readRequesterDocuments, readVehicleDocuments, prepareForAi } from "@/server/ai/documents";
 import { aiModelLabel } from "@/server/ai/provider";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
@@ -15,8 +15,10 @@ import { UserError } from "@/server/action";
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
 
+const MODE_LABEL = { vehicle: "viatura", person: "cliente", import: "importação", requester: "requerente" } as const;
+
 const bodySchema = z.object({
-  mode: z.enum(["vehicle", "person"]),
+  mode: z.enum(["vehicle", "person", "import", "requester"]),
   fileIds: z.array(z.string().max(60)).min(1).max(8),
 });
 
@@ -46,7 +48,14 @@ export async function POST(req: Request) {
     if (docs.length) await db.update(schema.documents).set({ extractionStatus: "pending" }).where(inArray(schema.documents.fileId, fileIds));
 
     try {
-      const proposal = mode === "vehicle" ? await readVehicleDocuments(parts) : await readPersonDocuments(parts);
+      const proposal =
+        mode === "vehicle"
+          ? await readVehicleDocuments(parts)
+          : mode === "person"
+            ? await readPersonDocuments(parts)
+            : mode === "import"
+              ? await readImportDocuments(parts)
+              : await readRequesterDocuments(parts);
       for (const d of docs) {
         const detected = proposal.documents.length === 1 && d.kind === "outro" ? kindFromAi(proposal.documents[0]) : d.kind;
         await db
@@ -63,7 +72,7 @@ export async function POST(req: Request) {
         action: "ai.read",
         entityType: docs[0]?.ownerType ?? "upload",
         entityId: docs[0]?.ownerId ?? null,
-        summary: `Leitura com IA (${mode === "vehicle" ? "viatura" : "cliente"}, ${files.length} ficheiro(s)): ${proposal.summary || "sem resumo"}`,
+        summary: `Leitura com IA (${MODE_LABEL[mode]}, ${files.length} ficheiro(s)): ${proposal.summary || "sem resumo"}`,
       });
       return NextResponse.json({ ok: true, proposal, model: aiModelLabel() });
     } catch (e) {

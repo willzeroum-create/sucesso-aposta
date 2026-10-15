@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Eye, FileText, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import { Camera, Download, Eye, FileText, Image as ImageIcon, Trash2, Upload } from "lucide-react";
 import { deleteDocument, setDocumentKind } from "@/app/painel/_actions/customers";
 import { DOCUMENT_KINDS, type DocumentKind } from "@/lib/document-kinds";
 import { dateOnly, dateTime } from "@/lib/labels";
@@ -38,6 +38,7 @@ export function DocumentsPanel({
   const toast = useToast();
   const { pending, run } = useAction();
   const input = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState<DocumentKind>(kinds[0]);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -52,6 +53,7 @@ export function DocumentsPanel({
     } finally {
       setBusy(null);
       if (input.current) input.current.value = "";
+      if (camera.current) camera.current.value = "";
     }
   }
 
@@ -77,6 +79,10 @@ export function DocumentsPanel({
               ))}
             </select>
             <input ref={input} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => upload(e.target.files)} />
+            <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => upload(e.target.files)} />
+            <button type="button" className="a-btn a-btn-sm" onClick={() => camera.current?.click()} disabled={!!busy}>
+              <Camera size={15} /> Fotografar
+            </button>
             <button type="button" className="a-btn a-btn-sm" onClick={() => input.current?.click()} disabled={!!busy}>
               {busy ? <Spinner size={14} /> : <Upload size={15} />} {busy ?? "Carregar"}
             </button>

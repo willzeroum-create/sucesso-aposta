@@ -60,6 +60,7 @@ export default async function SettingsPage() {
               { name: "representativeName", label: "Representante legal" },
               { name: "representativeRole", label: "Cargo" },
               { name: "licenseNumber", label: "Alvará / licença (opcional)" },
+              { name: "certCode", label: "Código da certidão permanente (Modelo 9)" },
             ]} />
         </div>
       </section>
@@ -84,6 +85,7 @@ export default async function SettingsPage() {
               { name: "representativeName", label: "Representante legal" },
               { name: "representativeRole", label: "Cargo" },
               { name: "licenseNumber", label: "Alvará / licença (opcional)" },
+              { name: "certCode", label: "Código da certidão permanente (Modelo 9)" },
             ]} />
         </div>
       </section>

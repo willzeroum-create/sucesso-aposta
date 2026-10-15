@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
-  Activity, Car, FileSignature, Globe, Home, LogOut, Megaphone, Menu, Moon, Settings, Sun, SunMoon, UserRound, UsersRound, Inbox,
+  Activity, Car, FileSignature, Globe, Home, LogOut, Megaphone, Menu, Moon, Settings, Stamp, Sun, SunMoon, UserRound, UsersRound, Inbox,
 } from "lucide-react";
 import { logout, setTheme } from "@/app/painel/_actions/auth";
 
@@ -55,6 +55,7 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
           {perms.vehicles && item("/painel/viaturas", "Viaturas", Car)}
           {perms.customers && item("/painel/clientes", "Clientes", UserRound)}
           {perms.forms && item("/painel/termos", "Termos e fichas", FileSignature)}
+          {perms.forms && item("/painel/legalizacao", "Modelo 9 e homologação", Stamp)}
           {(perms.leads || perms.ads || perms.site) && <span className="a-nav-group">Vendas e marketing</span>}
           {perms.leads && item("/painel/crm", "Pedidos (CRM)", Inbox, newLeads > 0 ? <span className="a-count" aria-label={`${newLeads} novos`}>{newLeads}</span> : null)}
           {perms.ads && item("/painel/anuncios", "Anúncios", Megaphone)}

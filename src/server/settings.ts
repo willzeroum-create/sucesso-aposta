@@ -17,6 +17,8 @@ export interface CompanyInfo {
   representativeName: string;
   representativeRole: string;
   licenseNumber: string;
+  /** Código de acesso à certidão permanente (Modelo 9 com a empresa como requerente). */
+  certCode: string;
 }
 
 /** Duas empresas: vendas (termo de garantia, declaração de circulação) e aluguer (contrato de locação). */
@@ -45,6 +47,7 @@ const DEFAULT_COMPANY: Record<CompanyKind, CompanyInfo> = {
     representativeName: "",
     representativeRole: "Gerente",
     licenseNumber: "",
+    certCode: "",
   },
   rent: {
     legalName: "Aposta Promissora Unipessoal Lda",
@@ -58,6 +61,7 @@ const DEFAULT_COMPANY: Record<CompanyKind, CompanyInfo> = {
     representativeName: "",
     representativeRole: "Gerente",
     licenseNumber: "",
+    certCode: "",
   },
 };
 

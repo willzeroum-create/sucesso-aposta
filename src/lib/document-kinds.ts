@@ -11,12 +11,13 @@ export const DOCUMENT_KINDS = {
   morada: "Comprovativo de morada",
   carta_conducao: "Carta de condução",
   contrato: "Contrato / termo assinado",
+  modelo9: "Modelo 9 (IMT)",
   outro: "Outro documento",
 } as const;
 
 export type DocumentKind = keyof typeof DOCUMENT_KINDS;
 
-export const VEHICLE_DOCUMENT_KINDS: DocumentKind[] = ["dua", "livrete_estrangeiro", "coc", "fatura", "inspecao", "registo", "seguro", "contrato", "outro"];
+export const VEHICLE_DOCUMENT_KINDS: DocumentKind[] = ["dua", "livrete_estrangeiro", "coc", "modelo9", "fatura", "inspecao", "registo", "seguro", "contrato", "outro"];
 export const CUSTOMER_DOCUMENT_KINDS: DocumentKind[] = ["identificacao", "morada", "carta_conducao", "contrato", "outro"];
 
 /** O tipo de documento detetado pela IA → tipo de arquivo. */
@@ -34,6 +35,7 @@ export function kindFromAi(code: string): DocumentKind {
     bilhete_identidade: "identificacao",
     carta_conducao: "carta_conducao",
     comprovativo_morada: "morada",
+    certidao_permanente: "outro",
   };
   return map[code] ?? "outro";
 }

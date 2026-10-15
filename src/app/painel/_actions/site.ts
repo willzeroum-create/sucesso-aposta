@@ -55,6 +55,7 @@ const companySchema = z.object({
   representativeName: z.string().trim().max(160),
   representativeRole: z.string().trim().max(80),
   licenseNumber: z.string().trim().max(60),
+  certCode: z.string().trim().max(40).default(""),
 });
 
 export async function saveCompany(form: FormData, kind: "sale" | "rent" = "sale"): Promise<ActionResult> {

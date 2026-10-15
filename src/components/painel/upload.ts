@@ -22,6 +22,8 @@ export async function shrinkImage(file: File, maxSide = 2400, maxBytes = 3 * 102
   }
 }
 
+export type AiReadMode = "vehicle" | "person" | "import" | "requester";
+
 export interface UploadedDoc {
   fileId: string;
   documentId: string | null;
@@ -70,7 +72,7 @@ export async function uploadPhotos(vehicleId: string, files: File[], onProgress?
   return n;
 }
 
-export async function readWithAi<P>(mode: "vehicle" | "person", fileIds: string[]): Promise<{ proposal: P; model: string | null }> {
+export async function readWithAi<P>(mode: AiReadMode, fileIds: string[]): Promise<{ proposal: P; model: string | null }> {
   const res = await fetch("/api/admin/ai/read", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

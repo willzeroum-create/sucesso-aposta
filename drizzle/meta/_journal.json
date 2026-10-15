@@ -15,6 +15,13 @@
       "when": 1792064014616,
       "tag": "0001_aluguer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792081842570,
+      "tag": "0002_legalizacao",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,9 @@ import "./admin.css";
 export const metadata: Metadata = {
   title: { default: "Painel", template: "%s · Painel" },
   robots: { index: false, follow: false },
+  manifest: "/painel/app.webmanifest",
+  appleWebApp: { capable: true, title: "Painel", statusBarStyle: "default" },
+  icons: { apple: "/painel-icon-180.png" },
 };
 
 export const viewport: Viewport = {

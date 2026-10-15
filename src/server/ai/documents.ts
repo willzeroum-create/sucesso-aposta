@@ -15,6 +15,7 @@ import {
   normalizeVin,
   parseNumber,
 } from "@/lib/pt-validation";
+import { categoriaPT, normalizarDataMatricula, normalizarFinalidade, numero, paisOrigemValido, tipoPT } from "@/lib/modelo9";
 import { AiError, requestJson, type AiPart } from "./provider";
 
 export const MAX_AI_FILE_BYTES = 15 * 1024 * 1024;
@@ -322,4 +323,201 @@ export async function readPersonDocuments(parts: AiPart[]): Promise<PersonPropos
   if (!parts.length) throw new AiError("Envie pelo menos um ficheiro.", 400);
   const json = await requestJson({ system: PERSON_PROMPT, parts: [...parts, { text: "Extrai os dados para a ficha de cliente." }], schema: PERSON_SCHEMA });
   return normalizePersonExtraction(json);
+}
+
+/* ───────────── Importação (Modelo 9 e homologação) ───────────── */
+
+const IMPORT_FIELDS = [
+  "marca", "modelo", "versao", "variante", "vin", "matricula_origem", "data_primeira_matricula", "pais_origem",
+  "homologacao", "categoria", "finalidade", "cor", "num_motor", "combustivel", "num_cilindros", "cilindrada",
+  "distancia_eixos", "peso_bruto", "tara", "lotacao", "co2",
+] as const;
+
+const IMPORT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["documentos", "legivel", "problema", "resumo", "dados"],
+  properties: {
+    documentos: { type: "array", items: { type: "string" } },
+    legivel: { type: "boolean" },
+    problema: { type: "string" },
+    resumo: { type: "string" },
+    dados: {
+      type: "object",
+      additionalProperties: false,
+      required: [...IMPORT_FIELDS],
+      properties: Object.fromEntries(IMPORT_FIELDS.map((f) => [f, { type: "string" }])),
+    },
+  },
+};
+
+const IMPORT_PROMPT = `És o assistente de um stand de automóveis em Portugal que importa carros e os legaliza (Modelo 9 do IMT e homologação). Analisa as fotos/PDF dos documentos estrangeiros de UMA viatura. Cruza a informação de todos.
+
+Documentos possíveis (códigos em "documentos"):
+- "livrete_estrangeiro": certificado de matrícula estrangeiro, Parte I ou II. NL "Kentekenbewijs Deel I/II"; DE "Zulassungsbescheinigung Teil I/II"; FR "Certificat d'immatriculation"; "Registration Certificate"; ES "Permiso de circulación"; IT "Carta di circolazione".
+- "coc": Certificado de Conformidade ("Certificate of Conformity", DE "Übereinstimmungsbescheinigung").
+- "fatura": fatura ou declaração de compra.
+- "outro".
+
+Responde APENAS com JSON: {"documentos":[],"legivel":true,"problema":"","resumo":"","dados":{...}}
+
+Regras para "dados" ("" quando não constar; lê com atenção TODOS os campos — cada vazio tem de ser escrito à mão):
+- marca (D.1); modelo (D.3 ou designação comercial); variante (D.2, a variante) e versao (D.2, a versão) — no CoC são "Variante"/"Versão".
+- vin: nº de quadro (campo E), exatamente 17 caracteres, confirma letra a letra (sem O, I, Q).
+- matricula_origem: a matrícula estrangeira tal como está (campo A).
+- data_primeira_matricula: campo B (NL "Datum eerste toelating", DE "Datum der Erstzulassung"), em AAAA-MM-DD. Lê dia, mês e ano com cuidado.
+- pais_origem: o país que EMITIU a matrícula estrangeira, em português ("Países Baixos", "Alemanha", "Bélgica", "França", "Itália", "Espanha", "Luxemburgo", "Suíça"…). NUNCA "Portugal". Pistas: idioma e brasão do documento; formato da matrícula (Países Baixos "99-XXX-9"/"XX-999-X", Alemanha "ABC-D 1234", Bélgica "1-ABC-234", França "AA-000-AA", Itália "AA 000 AA", Espanha "0000 ABC"). O país da marca ou do nº de homologação NÃO conta.
+- homologacao: nº de homologação (campo K; CoC "e1*2007/46*…").
+- categoria: categoria europeia (campo J): "M1", "N1"…
+- finalidade: "Passageiros" (M1/M2/M3) ou "Mercadorias" (N1/N2/N3); sem campo J, pelo tipo escrito (NL "Personenauto", DE "Pkw" = Passageiros; NL "Bedrijfsauto"/"Bestelauto", DE "Lkw" = Mercadorias).
+- cor (campo R), traduzida para português (NL "Zwart" = Preto, "Grijs" = Cinzento, "Wit" = Branco, "Blauw" = Azul, "Rood" = Vermelho).
+- num_motor; combustivel (P.3): "Gasolina", "Gasóleo", "Elétrico", "Híbrido" ou "GPL"; num_cilindros; cilindrada em cm³ (P.1).
+- distancia_eixos em mm; peso_bruto em kg (F.1; se não houver, F.2); tara em kg (G, massa em ordem de marcha); lotacao (S.1, nº de lugares); co2 em g/km (V.7). Só números.
+- legivel: true só se VIN, matrícula e datas se leem por completo; senão "problema" diz exatamente onde ("o VIN está desfocado no livrete").
+- resumo: UMA linha, ex.: "Kentekenbewijs NL de VW Golf, 99-XXX-9, 1.ª matrícula 2019 + CoC".`;
+
+export interface FieldsProposal {
+  documents: string[];
+  legible: boolean;
+  problem: string | null;
+  summary: string;
+  fields: Record<string, string>;
+  warnings: string[];
+}
+
+function baseProposal(json: Record<string, unknown>, fields: Record<string, string>, warnings: string[]): FieldsProposal {
+  const legible = json.legivel === true;
+  const problem = str(json.problema).replace(/[.\s]+$/, "") || null;
+  if (!legible && problem) warnings.unshift(problem);
+  for (const [k, v] of Object.entries(fields)) if (!v) delete fields[k];
+  return {
+    documents: Array.isArray(json.documentos) ? json.documentos.map(str).filter(Boolean) : [],
+    legible,
+    problem: legible ? null : problem,
+    summary: str(json.resumo),
+    fields,
+    warnings,
+  };
+}
+
+export function normalizeImportExtraction(json: Record<string, unknown>): FieldsProposal {
+  const d = (json.dados && typeof json.dados === "object" ? json.dados : {}) as Record<string, unknown>;
+  const raw = Object.fromEntries(IMPORT_FIELDS.map((f) => [f, str(d[f])])) as Record<(typeof IMPORT_FIELDS)[number], string>;
+  const warnings: string[] = [];
+  const num = (v: string) => {
+    const n = numero(v);
+    return n ? String(Math.round(n)) : "";
+  };
+  const vin = raw.vin ? normalizeVin(raw.vin) : "";
+  if (vin && !isValidVinFormat(vin)) warnings.push(`O VIN lido (${vin}) não tem 17 caracteres válidos. Confirme no documento.`);
+  const firstRegistration = normalizarDataMatricula(raw.data_primeira_matricula);
+  if (raw.data_primeira_matricula && !firstRegistration) warnings.push(`A data da 1.ª matrícula (${raw.data_primeira_matricula}) não é válida. Confirme no campo B.`);
+  const euCategory = raw.categoria.toUpperCase().replace(/\s/g, "");
+  const fields: Record<string, string> = {
+    make: raw.marca,
+    model: raw.modelo,
+    version: raw.versao,
+    variant: raw.variante,
+    vin,
+    foreignPlate: raw.matricula_origem.toUpperCase(),
+    firstRegistration,
+    originCountry: paisOrigemValido(raw.pais_origem),
+    homologation: raw.homologacao,
+    euCategory,
+    purpose: tipoPT({ purpose: normalizarFinalidade(raw.finalidade), euCategory }),
+    color: raw.cor,
+    engineNumber: raw.num_motor,
+    fuel: raw.combustivel,
+    cylinders: num(raw.num_cilindros),
+    engineCc: num(raw.cilindrada),
+    wheelbaseMm: num(raw.distancia_eixos),
+    grossWeightKg: num(raw.peso_bruto),
+    tareKg: num(raw.tara),
+    seats: num(raw.lotacao),
+    co2: num(raw.co2),
+  };
+  fields.category = categoriaPT({ grossWeightKg: fields.grossWeightKg, seats: fields.seats, euCategory });
+  if (!fields.foreignPlate) warnings.push("Não veio a matrícula estrangeira (campo A).");
+  if (!firstRegistration) warnings.push("Não veio a data da 1.ª matrícula (campo B).");
+  return baseProposal(json, fields, warnings);
+}
+
+export async function readImportDocuments(parts: AiPart[]): Promise<FieldsProposal> {
+  if (!parts.length) throw new AiError("Envie pelo menos um ficheiro.", 400);
+  const json = await requestJson({ system: IMPORT_PROMPT, parts: [...parts, { text: "Extrai os dados para o Modelo 9 e a homologação." }], schema: IMPORT_SCHEMA });
+  return normalizeImportExtraction(json);
+}
+
+/* ───────────── Requerente do Modelo 9 (empresa ou particular) ───────────── */
+
+const REQUESTER_KEYS = ["tipo", "nome", "nif", "num_documento", "codigo_certidao", "morada", "codigo_postal", "localidade", "email", "telefone"] as const;
+
+const REQUESTER_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["documentos", "legivel", "problema", "resumo", "dados"],
+  properties: {
+    documentos: { type: "array", items: { type: "string" } },
+    legivel: { type: "boolean" },
+    problema: { type: "string" },
+    resumo: { type: "string" },
+    dados: {
+      type: "object",
+      additionalProperties: false,
+      required: [...REQUESTER_KEYS],
+      properties: Object.fromEntries(REQUESTER_KEYS.map((f) => [f, { type: "string" }])),
+    },
+  },
+};
+
+const REQUESTER_PROMPT = `És o assistente de um stand de automóveis em Portugal. Vais preencher o REQUERENTE do Modelo 9 do IMT (em nome de quem o carro importado fica registado) a partir de fotos dos seus documentos. Junta a informação de todos.
+
+Documentos possíveis (códigos em "documentos"):
+- "certidao_permanente": certidão permanente do registo comercial de uma EMPRESA (tem "Código de acesso", NIPC, firma, sede).
+- "cartao_empresa": cartão de pessoa coletiva / cartão da empresa (NIPC, firma, sede).
+- "cartao_cidadao", "titulo_residencia", "passaporte", "bilhete_identidade": documento de uma pessoa.
+- "comprovativo_morada": fatura ou outro documento com morada.
+- "outro".
+
+Responde APENAS com JSON: {"documentos":[],"legivel":true,"problema":"","resumo":"","dados":{...}}
+
+Regras para "dados" ("" quando não constar):
+- tipo: "empresa" se o requerente é uma sociedade/empresa; "particular" se é uma pessoa.
+- nome: firma completa da empresa (ex.: "Sucesso Prudente, Unipessoal Lda") ou nome completo da pessoa.
+- nif: NIPC da empresa ou NIF da pessoa (9 algarismos).
+- num_documento: SÓ particular — nº do documento de identificação (CC: nº de identificação civil, ex. "12345678 9 ZZ1").
+- codigo_certidao: SÓ empresa — o código de acesso à certidão permanente (formato "0000-0000-0000").
+- morada (rua, número, andar), codigo_postal ("0000-000") e localidade: a SEDE da empresa ou a morada da pessoa em Portugal. Nunca inventes a morada a partir do local de nascimento; num passaporte ou documento estrangeiro sem morada em Portugal deixa "".
+- email e telefone: só se estiverem escritos.
+- legivel: true só se os dados principais se leem por completo; senão "problema" diz onde.
+- resumo: UMA linha, ex.: "Certidão permanente de Sucesso Prudente, Unipessoal Lda".`;
+
+export function normalizeRequesterExtraction(json: Record<string, unknown>): FieldsProposal {
+  const d = (json.dados && typeof json.dados === "object" ? json.dados : {}) as Record<string, unknown>;
+  const raw = Object.fromEntries(REQUESTER_KEYS.map((f) => [f, str(d[f])])) as Record<(typeof REQUESTER_KEYS)[number], string>;
+  const warnings: string[] = [];
+  const nif = raw.nif.replace(/\D/g, "");
+  if (nif && !isValidNif(nif)) warnings.push(`O NIF lido (${raw.nif}) não passa na validação. Confirme no documento.`);
+  const kind = raw.tipo.toLowerCase().startsWith("emp") ? "empresa" : raw.tipo ? "particular" : "";
+  const fields: Record<string, string> = {
+    kind,
+    name: raw.nome.replace(/\s+/g, " "),
+    nif,
+    docNumber: kind === "empresa" ? "" : raw.num_documento,
+    certCode: kind === "particular" ? "" : raw.codigo_certidao,
+    address: raw.morada,
+    postalCode: raw.codigo_postal ? formatPostalCodePt(raw.codigo_postal) : "",
+    city: raw.localidade,
+    email: raw.email.toLowerCase(),
+    phone: raw.telefone,
+  };
+  if (!raw.morada) warnings.push("Nenhum documento tem a morada (sede). Escreva-a ou envie um comprovativo.");
+  if (kind === "empresa" && !raw.codigo_certidao) warnings.push("Não veio o código da certidão permanente.");
+  return baseProposal(json, fields, warnings);
+}
+
+export async function readRequesterDocuments(parts: AiPart[]): Promise<FieldsProposal> {
+  if (!parts.length) throw new AiError("Envie pelo menos um ficheiro.", 400);
+  const json = await requestJson({ system: REQUESTER_PROMPT, parts: [...parts, { text: "Extrai os dados do requerente." }], schema: REQUESTER_SCHEMA });
+  return normalizeRequesterExtraction(json);
 }

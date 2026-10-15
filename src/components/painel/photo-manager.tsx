@@ -89,7 +89,8 @@ export function PhotoManager({ vehicleId, photos: initial, coverId, canEdit }: {
             </div>
           ) : (
             <>
-              <strong>Arraste fotografias para aqui ou clique para escolher</strong>
+              <strong>Toque para fotografar ou escolher fotografias</strong>
+              <span style={{ fontSize: 13 }}>No computador, também pode arrastá-las para aqui.</span>
               <span style={{ fontSize: 13 }}>JPG, PNG ou WebP. São otimizadas e os dados de localização (GPS) são removidos.</span>
             </>
           )}

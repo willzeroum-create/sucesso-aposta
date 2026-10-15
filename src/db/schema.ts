@@ -401,6 +401,28 @@ export const rentals = pgTable(
   (t) => [index("rentals_vehicle_idx").on(t.vehicleId, t.startAt)],
 );
 
+/** Legalização de carros importados: Modelo 9 do IMT e pedido de homologação. */
+export const legalizations = pgTable(
+  "legalizations",
+  {
+    id: text("id").primaryKey(),
+    /** Viatura do stock a que o processo diz respeito (opcional). */
+    vehicleId: text("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
+    customerId: text("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    requester: jsonb("requester").$type<Record<string, string>>().notNull().default({}),
+    vehicle: jsonb("vehicle").$type<Record<string, string>>().notNull().default({}),
+    /** Fotografias/PDF dos documentos (livrete estrangeiro, CoC, documentos do requerente). */
+    fileIds: jsonb("file_ids").$type<string[]>().notNull().default([]),
+    modelo9FileId: text("modelo9_file_id"),
+    status: text("status", { enum: ["draft", "generated", "submitted", "done"] }).notNull().default("draft"),
+    notes: text("notes"),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("legalizations_updated_idx").on(t.updatedAt)],
+);
+
 /* ───────────────────────── Site / hero ───────────────────────── */
 
 export const heroSlides = pgTable("hero_slides", {

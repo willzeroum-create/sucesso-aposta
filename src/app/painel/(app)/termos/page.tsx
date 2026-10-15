@@ -11,7 +11,7 @@ export default async function FormsPage() {
       <div className="a-head">
         <div>
           <h1>Termos e fichas</h1>
-          <p>Termo de entrega e responsabilidade, contrato, declaração de venda ao stand, ficha de cliente e dados para o registo automóvel.</p>
+          <p>Termo de garantia, declaração de circulação, contrato de locação, declaração de venda ao stand, ficha de cliente e dados para o registo automóvel.</p>
         </div>
       </div>
       <FormGenerator templates={await templateInfos()} customers={await customerOptions()} vehicles={await vehicleOptions()} history={await formHistory({ limit: 30 })} />
