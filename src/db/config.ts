@@ -1,7 +1,7 @@
 /**
- * Ligação à base de dados PostgreSQL (Supabase).
- *  - DATABASE_URL: pooler de transações (porta 6543) — usado pelo site e pelo painel, também na Vercel.
- *  - DATABASE_URL_MIGRATIONS: pooler de sessão (porta 5432) — usado só para criar/alterar tabelas.
+ * Ligação à base de dados PostgreSQL do Supabase pela API (PostgREST), só com o URL do projeto e a chave
+ * de servidor — sem a palavra-passe da base de dados. As consultas passam pela função `sa_exec`
+ * (supabase/setup.sql), que só a chave de servidor pode executar.
  */
 export class DatabaseConfigError extends Error {
   constructor(message: string) {
@@ -10,18 +10,10 @@ export class DatabaseConfigError extends Error {
   }
 }
 
-function check(url: string | undefined, name: string): string {
-  const value = url?.trim();
-  if (!value) throw new DatabaseConfigError(`${name} não está definido. Ver .env.example.`);
-  if (!/^postgres(ql)?:\/\//i.test(value)) throw new DatabaseConfigError(`${name} tem de ser um endereço postgresql:// (Supabase → Connect).`);
-  if (value.includes("[YOUR-PASSWORD]")) throw new DatabaseConfigError(`${name} ainda tem [YOUR-PASSWORD]: substitua pela palavra-passe da base de dados.`);
-  return value;
-}
-
-export function databaseUrl(): string {
-  return check(process.env.DATABASE_URL, "DATABASE_URL");
-}
-
-export function migrationsUrl(): string {
-  return check(process.env.DATABASE_URL_MIGRATIONS || process.env.DATABASE_URL, "DATABASE_URL_MIGRATIONS");
+export function supabaseConfig(): { url: string; key: string } {
+  const url = (process.env.SUPABASE_URL ?? "").trim().replace(/\/(rest|storage)\/v1\/?$/, "").replace(/\/+$/, "");
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "").trim();
+  if (!url) throw new DatabaseConfigError("SUPABASE_URL não está definido. Ver .env.example.");
+  if (!key) throw new DatabaseConfigError("SUPABASE_SERVICE_ROLE_KEY não está definido. Ver .env.example.");
+  return { url, key };
 }

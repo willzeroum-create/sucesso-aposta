@@ -7,7 +7,7 @@ import { config } from "dotenv";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { createPgClient } from "../src/db/client";
+import { runSql } from "../src/db/client";
 
 config({ path: [".env.local", ".env"], quiet: true });
 
@@ -20,7 +20,6 @@ if (!existsSync(SOURCE)) {
 const require = createRequire(import.meta.url);
 const { createClient } = require("@libsql/client") as typeof import("@libsql/client");
 const lite = createClient({ url: `file:${SOURCE}` });
-const pg = createPgClient("migrations");
 
 // Ordem respeita as chaves estrangeiras. Sessões e limites de pedidos não se copiam.
 const TABLES = ["roles", "users", "files", "settings", "vehicles", "vehicle_photos", "customers", "leads", "lead_events", "documents", "generated_forms", "hero_slides", "hero_jobs", "audit_logs"];
@@ -29,8 +28,7 @@ let total = 0;
 for (const table of TABLES) {
   const exists = await lite.execute({ sql: "select name from sqlite_master where type='table' and name=?", args: [table] });
   if (!exists.rows.length) continue;
-  const cols = await pg<{ column_name: string; data_type: string }[]>`
-    select column_name, data_type from information_schema.columns where table_schema = 'public' and table_name = ${table}`;
+  const cols = (await runSql("select column_name, data_type from information_schema.columns where table_schema = 'public' and table_name = $1", [table])) as { column_name: string; data_type: string }[];
   const types = new Map(cols.map((c) => [c.column_name, c.data_type]));
   const rows = (await lite.execute(`select * from ${table}`)).rows;
   let copied = 0;
@@ -42,12 +40,16 @@ for (const table of TABLES) {
       if (raw === null || raw === undefined) record[key] = null;
       else if (type.startsWith("timestamp")) record[key] = new Date(Number(raw));
       else if (type === "boolean") record[key] = Boolean(Number(raw));
-      else if (type === "jsonb") record[key] = typeof raw === "string" ? JSON.parse(raw) : raw;
+      else if (type === "jsonb") record[key] = typeof raw === "string" ? raw : JSON.stringify(raw);
       else if (type === "integer" || type === "bigint" || type === "double precision") record[key] = Number(raw);
       else record[key] = String(raw);
     }
-    const result = await pg`insert into ${pg(table)} ${pg(record)} on conflict do nothing`;
-    copied += result.count;
+    const keys = Object.keys(record);
+    const inserted = await runSql(
+      `insert into "${table}" (${keys.map((k) => `"${k}"`).join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")}) on conflict do nothing returning 1`,
+      keys.map((k) => record[k]),
+    );
+    copied += inserted.length;
   }
   total += copied;
   console.log(`  ${table}: ${copied} de ${rows.length} copiados`);
@@ -75,5 +77,4 @@ if (process.env.SUPABASE_URL && key) {
 }
 
 lite.close();
-await pg.end();
 console.log(`✓ Cópia concluída (${total} registos novos).`);

@@ -1,16 +1,13 @@
 import "server-only";
-import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { createPgClient } from "./client";
+import { createDb, type Db } from "./client";
 import * as schema from "./schema";
 
-export type Db = PostgresJsDatabase<typeof schema>;
+export type { Db };
 const globalForDb = globalThis as unknown as { __saDb?: Db };
 
 function getDb(): Db {
-  if (globalForDb.__saDb) return globalForDb.__saDb;
-  const instance = drizzle(createPgClient("app"), { schema });
-  globalForDb.__saDb = instance;
-  return instance;
+  globalForDb.__saDb ??= createDb();
+  return globalForDb.__saDb;
 }
 
 /** Ligação criada no primeiro uso, não ao importar (o build não precisa de base de dados). */

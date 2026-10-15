@@ -7,8 +7,7 @@
 import { config } from "dotenv";
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { createPgClient } from "../src/db/client";
+import { createDb } from "../src/db/client";
 import * as schema from "../src/db/schema";
 import { hashPassword } from "../src/server/auth/password";
 import { newId } from "../src/server/ids";
@@ -25,8 +24,7 @@ if (!email || !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || /^[a-z0-9._-]{3,60}$
   process.exit(1);
 }
 
-const client = createPgClient("migrations");
-const db = drizzle(client, { schema });
+const db = createDb();
 const password = process.env.ADMIN_INITIAL_PASSWORD || `${randomBytes(9).toString("base64url")}9a`;
 const passwordHash = await hashPassword(password);
 const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
@@ -48,7 +46,6 @@ await db.insert(schema.auditLogs).values({
   entityId: email,
   summary: `${existing ? "Acesso de administrador reposto" : "Administrador criado"} pela linha de comandos: ${email}`,
 });
-await client.end();
 console.log(`✓ Administrador ${existing ? "reposto" : "criado"}: ${email}`);
 if (!process.env.ADMIN_INITIAL_PASSWORD) console.log(`  Palavra-passe temporária (mostrada só agora): ${password}`);
 if (!keepPassword) console.log("  Será pedida uma nova palavra-passe no primeiro acesso.");

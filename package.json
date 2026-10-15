@@ -29,7 +29,6 @@
     "next": "16.4.1",
     "pdf-lib": "^1.17.1",
     "pizzip": "^3.3.0",
-    "postgres": "^3.4.9",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1",
