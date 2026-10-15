@@ -18,3 +18,5 @@ tests/output/
 
 .vercel
 .env*
+
+/cobrar/

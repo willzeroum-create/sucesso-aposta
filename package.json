@@ -12,6 +12,7 @@
     "admin:create": "tsx --conditions=react-server scripts/create-admin.mts",
     "test": "tsx --conditions=react-server --test tests/*.test.ts",
     "db:copy-local": "tsx --conditions=react-server scripts/sqlite-to-postgres.mts",
+    "cobrar:importar": "tsx --conditions=react-server scripts/import-cobrar.mts",
     "senha": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/definir-senha.ps1",
     "vercel-build": "npm run db:migrate && next build",
     "publicar": "node scripts/publicar-vercel.mjs"

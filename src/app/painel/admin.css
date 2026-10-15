@@ -1502,3 +1502,21 @@
   letter-spacing: 0.04em;
   user-select: all;
 }
+
+/* Valores em euros: números mais pequenos para caberem no telemóvel */
+.a-stats.is-money .a-stat strong {
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+.a-stat strong.is-good {
+  color: var(--ok, #2f7a4a);
+}
+.a-stat strong.is-bad {
+  color: var(--danger);
+}
+.a-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}

@@ -423,6 +423,87 @@ export const legalizations = pgTable(
   (t) => [index("legalizations_updated_idx").on(t.updatedAt)],
 );
 
+/** Custos de cada viatura (transporte, legalização, reparações…) para a ficha financeira. */
+export const vehicleCosts = pgTable(
+  "vehicle_costs",
+  {
+    id: text("id").primaryKey(),
+    vehicleId: text("vehicle_id")
+      .notNull()
+      .references(() => vehicles.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    category: text("category").notNull(),
+    description: text("description").notNull().default(""),
+    amountEur: doublePrecision("amount_eur").notNull(),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("vehicle_costs_vehicle_idx").on(t.vehicleId, t.date)],
+);
+
+/* ───────────────────────── Cobranças (vendas a prestações) ───────────────────────── */
+// Valores em cêntimos (inteiros), datas AAAA-MM-DD — como na app Cobrar de onde vieram.
+
+export const chargeContracts = pgTable(
+  "charge_contracts",
+  {
+    id: text("id").primaryKey(),
+    customerId: text("customer_id")
+      .notNull()
+      .references(() => customers.id),
+    vehicleId: text("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
+    make: text("make").notNull().default(""),
+    model: text("model").notNull().default(""),
+    color: text("color").notNull().default(""),
+    year: integer("year"),
+    plate: text("plate").notNull().default(""),
+    vin: text("vin").notNull().default(""),
+    deliveryDate: text("delivery_date"),
+    saleCents: integer("sale_cents").notNull().default(0),
+    /** Parte paga pelo banco/financeira: o stand não cobra isto. */
+    financedCents: integer("financed_cents").notNull().default(0),
+    notes: text("notes").notNull().default(""),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("charge_contracts_customer_idx").on(t.customerId)],
+);
+
+export const chargeInstallments = pgTable(
+  "charge_installments",
+  {
+    id: text("id").primaryKey(),
+    contractId: text("contract_id")
+      .notNull()
+      .references(() => chargeContracts.id, { onDelete: "cascade" }),
+    dueDate: text("due_date").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    note: text("note").notNull().default(""),
+    createdAt: createdAt(),
+  },
+  (t) => [index("charge_installments_contract_idx").on(t.contractId, t.dueDate)],
+);
+
+export const chargePayments = pgTable(
+  "charge_payments",
+  {
+    id: text("id").primaryKey(),
+    contractId: text("contract_id")
+      .notNull()
+      .references(() => chargeContracts.id, { onDelete: "cascade" }),
+    /** null = entrada ou pagamento avulso (abate só no saldo). */
+    installmentId: text("installment_id").references(() => chargeInstallments.id, { onDelete: "set null" }),
+    date: text("date").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    method: text("method").notNull().default("dinheiro"),
+    note: text("note").notNull().default(""),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("charge_payments_contract_idx").on(t.contractId), index("charge_payments_installment_idx").on(t.installmentId)],
+);
+
 /* ───────────────────────── Site / hero ───────────────────────── */
 
 export const heroSlides = pgTable("hero_slides", {

@@ -11,6 +11,8 @@ import { Plate } from "@/components/painel/ui";
 import { VehicleForm } from "@/components/painel/vehicle-form";
 import { DeleteVehicle } from "@/components/painel/delete-vehicle";
 import { SalePanel } from "@/components/painel/sale-panel";
+import { CostsPanel } from "@/components/painel/costs-panel";
+import { costSummary } from "@/lib/vehicle-costs";
 import { VEHICLE_DOCUMENT_KINDS } from "@/lib/document-kinds";
 import { dateTime, daysSince, eur, int } from "@/lib/labels";
 import { can, requirePagePermission } from "@/server/auth/session";
@@ -22,6 +24,7 @@ const TABS = [
   { key: "dados", label: "Dados" },
   { key: "venda", label: "Venda" },
   { key: "aluguer", label: "Aluguer" },
+  { key: "custos", label: "Custos" },
   { key: "fotos", label: "Fotografias" },
   { key: "documentos", label: "Documentos" },
   { key: "termos", label: "Termos" },
@@ -121,7 +124,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
       />
 
       <nav className="a-tabs" aria-label="Secções da viatura">
-        {TABS.filter((t) => (t.key === "documentos" ? canDocs : t.key === "termos" || t.key === "venda" || t.key === "aluguer" ? canForms : true)).map((t) => (
+        {TABS.filter((t) => (t.key === "documentos" ? canDocs : t.key === "custos" ? canCosts : t.key === "termos" || t.key === "venda" || t.key === "aluguer" ? canForms : true)).map((t) => (
           <Link key={t.key} href={`/painel/viaturas/${id}?tab=${t.key}`} aria-current={tab === t.key ? "page" : undefined} scroll={false}>
             {t.label}
             {t.key === "fotos" && <span className="a-tab-count">{gallery.length}</span>}
@@ -183,6 +186,10 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         />
       )}
 
+      {tab === "custos" && canCosts && (
+        <CostsCard vehicle={v} canEditPurchase={can(user, "vehicles.edit")} />
+      )}
+
       {tab === "historico" && (
         <section className="a-card">
           <div className="a-card-head">
@@ -208,4 +215,13 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
       {can(user, "vehicles.delete") && tab === "dados" && v.status !== "sold" && <DeleteVehicle id={v.id} />}
     </div>
   );
+}
+
+async function CostsCard({ vehicle, canEditPurchase }: { vehicle: typeof schema.vehicles.$inferSelect; canEditPurchase: boolean }) {
+  const costs = await db
+    .select({ id: schema.vehicleCosts.id, date: schema.vehicleCosts.date, category: schema.vehicleCosts.category, description: schema.vehicleCosts.description, amountEur: schema.vehicleCosts.amountEur })
+    .from(schema.vehicleCosts)
+    .where(eq(schema.vehicleCosts.vehicleId, vehicle.id))
+    .orderBy(asc(schema.vehicleCosts.date));
+  return <CostsPanel vehicleId={vehicle.id} summary={costSummary(vehicle, costs)} costs={costs} canEditPurchase={canEditPurchase} />;
 }

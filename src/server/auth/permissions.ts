@@ -4,7 +4,8 @@ export const PERMISSIONS = {
   "vehicles.edit": "Criar e editar viaturas e fotografias",
   "vehicles.status": "Mudar estado e publicação no site",
   "vehicles.delete": "Apagar viaturas",
-  "vehicles.costs": "Ver preços de compra e margens",
+  "vehicles.costs": "Ver preços de compra, custos e margens",
+  "billing.manage": "Gerir cobranças de vendas a prestações",
   "documents.view": "Ver documentos de viaturas e clientes",
   "documents.upload": "Carregar documentos e usar a leitura com IA",
   "customers.view": "Ver clientes",
@@ -23,6 +24,7 @@ export const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[];
 
 export const PERMISSION_GROUPS: { label: string; items: Permission[] }[] = [
   { label: "Stock", items: ["vehicles.view", "vehicles.edit", "vehicles.status", "vehicles.delete", "vehicles.costs"] },
+  { label: "Cobranças", items: ["billing.manage"] },
   { label: "Documentos", items: ["documents.view", "documents.upload", "forms.generate"] },
   { label: "CRM", items: ["customers.view", "customers.edit", "leads.view", "leads.edit"] },
   { label: "Marketing e site", items: ["ads.view", "site.edit"] },
