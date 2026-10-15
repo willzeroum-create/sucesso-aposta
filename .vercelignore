@@ -1,0 +1,10 @@
+.env*
+!.env.example
+data/
+backups/
+tests/output/
+.tmp/
+docs/references/
+docs/qa/
+docs/preview/
+*.log
