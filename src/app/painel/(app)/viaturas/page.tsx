@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, desc, eq, inArray, like, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ilike, or, sql, type SQL } from "drizzle-orm";
 import { Car, Globe, Plus, Search } from "lucide-react";
 import { db, schema } from "@/db";
 import { VEHICLE_STATUSES } from "@/db/schema";
@@ -25,11 +25,11 @@ export default async function VehiclesPage(props: PageProps<"/painel/viaturas">)
     const plate = normalizePlate(q);
     conditions.push(
       or(
-        like(schema.vehicles.make, pattern),
-        like(schema.vehicles.model, pattern),
-        like(schema.vehicles.version, pattern),
-        like(schema.vehicles.vin, `%${plate}%`),
-        plate.length >= 2 ? like(sql`replace(${schema.vehicles.plate}, '-', '')`, `%${plate}%`) : undefined,
+        ilike(schema.vehicles.make, pattern),
+        ilike(schema.vehicles.model, pattern),
+        ilike(schema.vehicles.version, pattern),
+        ilike(schema.vehicles.vin, `%${plate}%`),
+        plate.length >= 2 ? ilike(sql`replace(${schema.vehicles.plate}, '-', '')`, `%${plate}%`) : undefined,
       )!,
     );
   }
@@ -55,7 +55,7 @@ export default async function VehiclesPage(props: PageProps<"/painel/viaturas">)
     return c ? publicUrl(c.key) : null;
   };
 
-  const totals = await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)` }).from(schema.vehicles).groupBy(schema.vehicles.status);
+  const totals = await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)::int` }).from(schema.vehicles).groupBy(schema.vehicles.status);
   const n = (s: string) => Number(totals.find((t) => t.status === s)?.n ?? 0);
   const tabs = [
     { key: "stock", label: "Em stock", count: n("preparation") + n("available") + n("reserved") },

@@ -1,20 +1,19 @@
-import { createRequire } from "node:module";
-import type { Client } from "@libsql/client";
-import { createClient as createHttpClient } from "@libsql/client/http";
-import { databaseConfig } from "./config";
+import postgres from "postgres";
+import { databaseUrl, migrationsUrl } from "./config";
 
-export { databaseConfig } from "./config";
+export { databaseUrl, migrationsUrl, DatabaseConfigError } from "./config";
 
 /**
- * Remoto → cliente HTTP (JavaScript puro, compatível com serverless).
- * Ficheiro local → cliente nativo carregado por require dinâmico, para não entrar no bundle de produção.
+ * Cliente postgres.js. O pooler de transações do Supabase não suporta prepared statements,
+ * por isso `prepare: false`. Em serverless, poucas ligações por instância.
  */
-export function createLibsqlClient(): Client {
-  const { url, authToken, remote } = databaseConfig();
-  if (!remote) {
-    const require = createRequire(import.meta.url);
-    const { createClient } = require("@libsql/client") as typeof import("@libsql/client");
-    return createClient({ url, authToken });
-  }
-  return createHttpClient({ url: url.replace(/^libsql:/, "https:"), authToken });
+export function createPgClient(kind: "app" | "migrations" = "app") {
+  const url = kind === "app" ? databaseUrl() : migrationsUrl();
+  return postgres(url, {
+    prepare: false,
+    max: kind === "app" ? (process.env.VERCEL ? 3 : 8) : 1,
+    idle_timeout: 20,
+    connect_timeout: 15,
+    onnotice: () => {},
+  });
 }

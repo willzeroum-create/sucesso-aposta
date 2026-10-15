@@ -1,17 +1,27 @@
 /**
- * Ligação à base de dados: ficheiro local em desenvolvimento, Turso/libSQL remoto em produção.
- * Um DATABASE_URL Postgres (Supabase) é ignorado aqui: fica reservado para a migração para Postgres
- * e não pode partir a base de dados atual.
+ * Ligação à base de dados PostgreSQL (Supabase).
+ *  - DATABASE_URL: pooler de transações (porta 6543) — usado pelo site e pelo painel, também na Vercel.
+ *  - DATABASE_URL_MIGRATIONS: pooler de sessão (porta 5432) — usado só para criar/alterar tabelas.
  */
-const LIBSQL = /^(file:|libsql:|https?:|wss?:)/i;
+export class DatabaseConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DatabaseConfigError";
+  }
+}
 
-export function databaseConfig() {
-  const candidates = [process.env.DATABASE_URL, process.env.TURSO_DATABASE_URL].map((v) => v?.trim()).filter(Boolean) as string[];
-  const url = candidates.find((v) => LIBSQL.test(v)) ?? "file:./data/app.db";
-  const authToken =
-    process.env.DATABASE_AUTH_TOKEN?.trim() ||
-    process.env.TURSO_AUTH_TOKEN?.trim() ||
-    undefined;
-  const remote = !url.startsWith("file:");
-  return { url, authToken, remote };
+function check(url: string | undefined, name: string): string {
+  const value = url?.trim();
+  if (!value) throw new DatabaseConfigError(`${name} não está definido. Ver .env.example.`);
+  if (!/^postgres(ql)?:\/\//i.test(value)) throw new DatabaseConfigError(`${name} tem de ser um endereço postgresql:// (Supabase → Connect).`);
+  if (value.includes("[YOUR-PASSWORD]")) throw new DatabaseConfigError(`${name} ainda tem [YOUR-PASSWORD]: substitua pela palavra-passe da base de dados.`);
+  return value;
+}
+
+export function databaseUrl(): string {
+  return check(process.env.DATABASE_URL, "DATABASE_URL");
+}
+
+export function migrationsUrl(): string {
+  return check(process.env.DATABASE_URL_MIGRATIONS || process.env.DATABASE_URL, "DATABASE_URL_MIGRATIONS");
 }

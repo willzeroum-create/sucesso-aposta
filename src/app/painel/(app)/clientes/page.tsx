@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc, like, or } from "drizzle-orm";
+import { desc, ilike, or } from "drizzle-orm";
 import { Plus, Search } from "lucide-react";
 import { db, schema } from "@/db";
 import { dateOnly } from "@/lib/labels";
@@ -15,7 +15,7 @@ export default async function CustomersPage(props: PageProps<"/painel/clientes">
   const rows = await db
     .select()
     .from(schema.customers)
-    .where(q ? or(like(schema.customers.fullName, pattern), like(schema.customers.nif, pattern), like(schema.customers.email, pattern), like(schema.customers.phone, pattern)) : undefined)
+    .where(q ? or(ilike(schema.customers.fullName, pattern), ilike(schema.customers.nif, pattern), ilike(schema.customers.email, pattern), ilike(schema.customers.phone, pattern)) : undefined)
     .orderBy(desc(schema.customers.updatedAt))
     .limit(300);
 

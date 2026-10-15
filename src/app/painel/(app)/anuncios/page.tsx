@@ -116,7 +116,7 @@ export default async function AdsPage(props: PageProps<"/painel/anuncios">) {
   const [meta, google] = await Promise.all([getMetaReport(days), getGoogleReport(days)]);
   const since = new Date(Date.now() - days * 86_400_000);
   const leadsBySource = await db
-    .select({ source: sql<string>`coalesce(${schema.leads.utmSource}, ${schema.leads.source})`, n: sql<number>`count(*)` })
+    .select({ source: sql<string>`coalesce(${schema.leads.utmSource}, ${schema.leads.source})`, n: sql<number>`count(*)::int` })
     .from(schema.leads)
     .where(and(gte(schema.leads.createdAt, since)))
     .groupBy(sql`1`)

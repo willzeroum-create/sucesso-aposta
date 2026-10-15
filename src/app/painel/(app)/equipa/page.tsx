@@ -9,7 +9,7 @@ export default async function TeamPage() {
   const me = await requirePagePermission("users.manage");
   const users = await db.select().from(schema.users).orderBy(asc(schema.users.name));
   const roles = await db
-    .select({ role: schema.roles, users: sql<number>`(select count(*) from ${schema.users} where ${schema.users.roleId} = ${schema.roles.id})` })
+    .select({ role: schema.roles, users: sql<number>`(select count(*)::int from ${schema.users} where ${schema.users.roleId} = ${schema.roles.id})` })
     .from(schema.roles)
     .orderBy(sql`${schema.roles.isSystem} desc`, asc(schema.roles.name));
   return (

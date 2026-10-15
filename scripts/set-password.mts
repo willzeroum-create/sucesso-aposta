@@ -5,8 +5,8 @@
  */
 import { config } from "dotenv";
 import { eq, like } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/libsql/http";
-import { createLibsqlClient } from "../src/db/client";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { createPgClient } from "../src/db/client";
 import * as schema from "../src/db/schema";
 import { hashPassword, verifyPassword } from "../src/server/auth/password";
 import { newId } from "../src/server/ids";
@@ -20,7 +20,7 @@ if (!login || !password) {
   process.exit(1);
 }
 
-const client = createLibsqlClient();
+const client = createPgClient("migrations");
 const db = drizzle(client, { schema });
 const [user] = await db.select().from(schema.users).where(eq(schema.users.email, login)).limit(1);
 if (!user) {
@@ -44,5 +44,5 @@ await db.insert(schema.auditLogs).values({
   summary: `Palavra-passe de ${user.name} definida pela linha de comandos`,
 });
 const ok = await verifyPassword(password, passwordHash);
-client.close();
+await client.end();
 console.log(ok ? `OK: palavra-passe de "${login}" gravada e confirmada.` : "ERRO na confirmação.");

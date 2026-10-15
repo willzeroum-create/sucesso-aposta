@@ -1,7 +1,8 @@
 /**
  * Armazenamento de ficheiros.
- *  - local (predefinido): ./data/uploads/{public|private}/… — desenvolvimento e servidores com disco persistente.
- *  - blob: Vercel Blob (BLOB_READ_WRITE_TOKEN) — obrigatório em serverless, onde o disco não persiste.
+ *  - supabase (predefinido quando SUPABASE_URL e a chave de servidor existem): bucket privado no Supabase Storage.
+ *  - local: ./data/uploads/{public|private}/… — desenvolvimento sem Supabase.
+ *  - blob: Vercel Blob (BLOB_READ_WRITE_TOKEN).
  * Os ficheiros são sempre servidos pela aplicação (/media/… públicos, /api/admin/files/… privados com sessão),
  * por isso a URL pública nunca revela o fornecedor nem permite listar documentos.
  */
@@ -21,8 +22,41 @@ const ROOT = process.env.UPLOADS_DIR
   : path.join(process.cwd(), "data", "uploads");
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
-export function storageDriver(): "local" | "blob" {
-  return process.env.STORAGE_DRIVER === "blob" || (process.env.VERCEL && process.env.BLOB_READ_WRITE_TOKEN) ? "blob" : "local";
+export function storageDriver(): "supabase" | "local" | "blob" {
+  const forced = process.env.STORAGE_DRIVER;
+  if (forced === "local" || forced === "blob" || forced === "supabase") return forced;
+  if (process.env.SUPABASE_URL && supabaseKey()) return "supabase";
+  if (process.env.VERCEL && process.env.BLOB_READ_WRITE_TOKEN) return "blob";
+  return "local";
+}
+
+/* ── Supabase Storage (API REST, chave de servidor; o bucket é privado) ── */
+
+const BUCKET = () => process.env.SUPABASE_STORAGE_BUCKET || "stand";
+const supabaseKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "";
+// Aceita o endereço do projeto com ou sem /rest/v1 (como aparece no painel do Supabase).
+const supabaseBase = () => `${(process.env.SUPABASE_URL ?? "").replace(/\/(rest|storage)\/v1\/?$/, "").replace(/\/+$/, "")}/storage/v1`;
+const supabaseHeaders = () => ({ Authorization: `Bearer ${supabaseKey()}`, apikey: supabaseKey() });
+const encodeKey = (key: string) => key.split("/").map(encodeURIComponent).join("/");
+let bucketReady: Promise<void> | null = null;
+
+/** Cria o bucket privado na primeira utilização (idempotente). */
+function ensureBucket(): Promise<void> {
+  bucketReady ??= (async () => {
+    const res = await fetch(`${supabaseBase()}/bucket/${BUCKET()}`, { headers: supabaseHeaders(), cache: "no-store" });
+    if (res.ok) return;
+    const created = await fetch(`${supabaseBase()}/bucket`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ id: BUCKET(), name: BUCKET(), public: false, file_size_limit: 26214400 }),
+      cache: "no-store",
+    });
+    if (!created.ok && created.status !== 409) {
+      bucketReady = null;
+      throw new Error(`Supabase Storage: não foi possível criar o bucket (${created.status}).`);
+    }
+  })();
+  return bucketReady;
 }
 
 /** Assinaturas (magic bytes): o tipo declarado pelo navegador não é confiável. */
@@ -48,6 +82,17 @@ const EXT: Record<string, string> = {
 };
 
 async function putObject(key: string, body: Buffer, mime: string): Promise<void> {
+  if (storageDriver() === "supabase") {
+    await ensureBucket();
+    const res = await fetch(`${supabaseBase()}/object/${BUCKET()}/${encodeKey(key)}`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(), "Content-Type": mime, "x-upsert": "false", "cache-control": "31536000" },
+      body: new Uint8Array(body),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Supabase Storage recusou o ficheiro (${res.status}).`);
+    return;
+  }
   if (storageDriver() === "blob") {
     const { put } = await import("@vercel/blob");
     // Loja privada: tudo (fotos incluídas) é servido pela aplicação, nunca por URL direta do Blob.
@@ -61,6 +106,10 @@ async function putObject(key: string, body: Buffer, mime: string): Promise<void>
 }
 
 export async function getObject(key: string): Promise<Buffer | null> {
+  if (storageDriver() === "supabase") {
+    const res = await fetch(`${supabaseBase()}/object/authenticated/${BUCKET()}/${encodeKey(key)}`, { headers: supabaseHeaders(), cache: "no-store" }).catch(() => null);
+    return res?.ok ? Buffer.from(await res.arrayBuffer()) : null;
+  }
   if (storageDriver() === "blob") {
     const { get } = await import("@vercel/blob");
     try {
@@ -81,6 +130,15 @@ export async function getObject(key: string): Promise<Buffer | null> {
 }
 
 export async function deleteObject(key: string): Promise<void> {
+  if (storageDriver() === "supabase") {
+    await fetch(`${supabaseBase()}/object/${BUCKET()}`, {
+      method: "DELETE",
+      headers: { ...supabaseHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ prefixes: [key] }),
+      cache: "no-store",
+    }).catch(() => {});
+    return;
+  }
   if (storageDriver() === "blob") {
     const { del } = await import("@vercel/blob");
     await del(key).catch(() => {});

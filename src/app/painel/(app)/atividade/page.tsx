@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, desc, eq, like, lt, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, lt, type SQL } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { dateTime } from "@/lib/labels";
 import { requirePagePermission } from "@/server/auth/session";
@@ -36,7 +36,7 @@ export default async function ActivityPage(props: PageProps<"/painel/atividade">
   const where: SQL[] = [];
   if (who) where.push(eq(schema.auditLogs.userId, who));
   if (area) where.push(eq(schema.auditLogs.entityType, area));
-  if (q) where.push(like(schema.auditLogs.summary, `%${q.replace(/[%_]/g, "")}%`));
+  if (q) where.push(ilike(schema.auditLogs.summary, `%${q.replace(/[%_]/g, "")}%`));
   if (before) where.push(lt(schema.auditLogs.createdAt, before));
   const rows = await db.select().from(schema.auditLogs).where(and(...where)).orderBy(desc(schema.auditLogs.createdAt)).limit(PAGE);
   const users = await db.select({ id: schema.users.id, name: schema.users.name }).from(schema.users).orderBy(asc(schema.users.name));

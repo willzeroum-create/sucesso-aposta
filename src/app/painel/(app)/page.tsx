@@ -15,20 +15,20 @@ export default async function Home() {
   const seeLeads = can(user, "leads.view");
 
   const counts = seeVehicles
-    ? await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)`, value: sql<number>`coalesce(sum(${schema.vehicles.priceEur}), 0)` }).from(schema.vehicles).groupBy(schema.vehicles.status)
+    ? await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)::int`, value: sql<number>`coalesce(sum(${schema.vehicles.priceEur}), 0)` }).from(schema.vehicles).groupBy(schema.vehicles.status)
     : [];
   const by = (s: string) => counts.find((c) => c.status === s);
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
   const [soldMonth] = seeVehicles
-    ? await db.select({ n: sql<number>`count(*)` }).from(schema.vehicles).where(and(eq(schema.vehicles.status, "sold"), gte(schema.vehicles.soldAt, monthStart)))
+    ? await db.select({ n: sql<number>`count(*)::int` }).from(schema.vehicles).where(and(eq(schema.vehicles.status, "sold"), gte(schema.vehicles.soldAt, monthStart)))
     : [{ n: 0 }];
 
   const newLeads = seeLeads
     ? await db.select().from(schema.leads).where(eq(schema.leads.status, "new")).orderBy(desc(schema.leads.createdAt)).limit(6)
     : [];
-  const [leadCount] = seeLeads ? await db.select({ n: sql<number>`count(*)` }).from(schema.leads).where(eq(schema.leads.status, "new")) : [{ n: 0 }];
+  const [leadCount] = seeLeads ? await db.select({ n: sql<number>`count(*)::int` }).from(schema.leads).where(eq(schema.leads.status, "new")) : [{ n: 0 }];
 
   const preparing = seeVehicles
     ? await db.select().from(schema.vehicles).where(eq(schema.vehicles.status, "preparation")).orderBy(schema.vehicles.createdAt).limit(6)
@@ -47,20 +47,20 @@ export default async function Home() {
   startOfDay.setHours(0, 0, 0, 0);
   const weekAgo = new Date(Date.now() - 7 * 86_400_000);
   const countSince = async (d: Date) =>
-    Number((await db.select({ n: sql<number>`count(*)` }).from(schema.leads).where(gte(schema.leads.createdAt, d)))[0]?.n ?? 0);
+    Number((await db.select({ n: sql<number>`count(*)::int` }).from(schema.leads).where(gte(schema.leads.createdAt, d)))[0]?.n ?? 0);
   const contacts = seeLeads
     ? {
         today: await countSince(startOfDay),
         week: await countSince(weekAgo),
         month: await countSince(monthStart),
         sources: await db
-          .select({ source: sql<string>`coalesce(${schema.leads.utmSource}, ${schema.leads.source})`, n: sql<number>`count(*)` })
+          .select({ source: sql<string>`coalesce(${schema.leads.utmSource}, ${schema.leads.source})`, n: sql<number>`count(*)::int` })
           .from(schema.leads)
           .where(gte(schema.leads.createdAt, monthStart))
           .groupBy(sql`1`)
           .orderBy(sql`2 desc`)
           .limit(4),
-        won: Number((await db.select({ n: sql<number>`count(*)` }).from(schema.leads).where(and(eq(schema.leads.status, "won"), gte(schema.leads.updatedAt, monthStart))))[0]?.n ?? 0),
+        won: Number((await db.select({ n: sql<number>`count(*)::int` }).from(schema.leads).where(and(eq(schema.leads.status, "won"), gte(schema.leads.updatedAt, monthStart))))[0]?.n ?? 0),
       }
     : null;
   const ai = aiProvider();

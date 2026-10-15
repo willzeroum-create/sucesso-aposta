@@ -17,7 +17,7 @@ const tempPassword = () => `${randomBytes(8).toString("base64url")}7k`;
 
 async function activeAdmins(exceptUserId?: string): Promise<number> {
   const [{ n }] = await db
-    .select({ n: sql<number>`count(*)` })
+    .select({ n: sql<number>`count(*)::int` })
     .from(schema.users)
     .innerJoin(schema.roles, eq(schema.roles.id, schema.users.roleId))
     .where(and(eq(schema.users.active, true), eq(schema.roles.isSystem, true), exceptUserId ? ne(schema.users.id, exceptUserId) : undefined));
@@ -126,7 +126,7 @@ export async function deleteRole(id: string): Promise<ActionResult> {
     const [role] = await db.select().from(schema.roles).where(eq(schema.roles.id, id)).limit(1);
     if (!role) throw new UserError("Função não encontrada.");
     if (role.isSystem) throw new UserError("A função de administrador não pode ser apagada.");
-    const [{ n }] = await db.select({ n: sql<number>`count(*)` }).from(schema.users).where(eq(schema.users.roleId, id));
+    const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.users).where(eq(schema.users.roleId, id));
     if (Number(n) > 0) throw new UserError(`Há ${n} utilizador(es) com esta função. Mude-lhes a função primeiro.`);
     await db.delete(schema.roles).where(eq(schema.roles.id, id));
     await audit(admin, { action: "role.delete", entityType: "role", entityId: id, summary: `Apagou a função ${role.name}` });

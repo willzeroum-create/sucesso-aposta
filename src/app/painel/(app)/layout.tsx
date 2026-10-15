@@ -34,7 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     audit: can(user, "audit.view"),
   };
   const newLeads = perms.leads
-    ? Number((await db.select({ n: sql<number>`count(*)` }).from(schema.leads).where(eq(schema.leads.status, "new")))[0]?.n ?? 0)
+    ? Number((await db.select({ n: sql<number>`count(*)::int` }).from(schema.leads).where(eq(schema.leads.status, "new")))[0]?.n ?? 0)
     : 0;
 
   return (

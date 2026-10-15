@@ -1,45 +1,43 @@
 /**
- * Esquema relacional do backoffice (SQLite/libSQL).
- * Local: ficheiro em ./data/app.db. Produção: Turso (DATABASE_URL + DATABASE_AUTH_TOKEN).
+ * Esquema relacional do backoffice (PostgreSQL — Supabase).
+ * Ligação: DATABASE_URL (pooler de transações, porta 6543). Migrações: DATABASE_URL_MIGRATIONS (porta 5432).
  * Alterações: editar aqui, `npm.cmd run db:generate` e confirmar a migração gerada em ./drizzle.
  */
 import { sql } from "drizzle-orm";
 import {
+  bigint,
+  boolean,
+  doublePrecision,
   index,
   integer,
-  real,
-  sqliteTable,
+  jsonb,
+  pgTable,
   text,
+  timestamp,
   uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+} from "drizzle-orm/pg-core";
 
-const createdAt = () =>
-  integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .default(sql`(unixepoch('subsec') * 1000)`);
-const updatedAt = () =>
-  integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .default(sql`(unixepoch('subsec') * 1000)`);
+const createdAt = () => timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow();
+const updatedAt = () => timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow();
 
 /* ───────────────────────── Acesso ───────────────────────── */
 
-export const roles = sqliteTable("roles", {
+export const roles = pgTable("roles", {
   id: text("id").primaryKey(),
   name: text("name").notNull().unique(),
   description: text("description").notNull().default(""),
   /** Lista JSON de chaves de permissão (ver src/server/auth/permissions.ts). */
-  permissions: text("permissions", { mode: "json" })
+  permissions: jsonb("permissions")
     .$type<string[]>()
     .notNull()
-    .default(sql`'[]'`),
+    .default(sql`'[]'::jsonb`),
   /** O papel de administrador do sistema não pode ser apagado nem perder permissões. */
-  isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
+  isSystem: boolean("is_system").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-export const users = sqliteTable(
+export const users = pgTable(
   "users",
   {
     id: text("id").primaryKey(),
@@ -49,13 +47,13 @@ export const users = sqliteTable(
     roleId: text("role_id")
       .notNull()
       .references(() => roles.id),
-    active: integer("active", { mode: "boolean" }).notNull().default(true),
-    mustChangePassword: integer("must_change_password", { mode: "boolean" })
+    active: boolean("active").notNull().default(true),
+    mustChangePassword: boolean("must_change_password")
       .notNull()
       .default(false),
     failedLogins: integer("failed_logins").notNull().default(0),
-    lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
-    lastLoginAt: integer("last_login_at", { mode: "timestamp_ms" }),
+    lockedUntil: timestamp("locked_until", { withTimezone: true, mode: "date" }),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true, mode: "date" }),
     /** Número de WhatsApp (só algarismos, com indicativo) autorizado a usar o assistente da equipa. */
     whatsappPhone: text("whatsapp_phone"),
     createdAt: createdAt(),
@@ -64,7 +62,7 @@ export const users = sqliteTable(
   (t) => [uniqueIndex("users_email_unique").on(t.email)],
 );
 
-export const sessions = sqliteTable(
+export const sessions = pgTable(
   "sessions",
   {
     /** SHA-256 do token do cookie; o token em claro nunca é guardado. */
@@ -72,7 +70,7 @@ export const sessions = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
     ip: text("ip"),
     userAgent: text("user_agent"),
     createdAt: createdAt(),
@@ -80,7 +78,7 @@ export const sessions = sqliteTable(
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
-export const auditLogs = sqliteTable(
+export const auditLogs = pgTable(
   "audit_logs",
   {
     id: text("id").primaryKey(),
@@ -92,7 +90,7 @@ export const auditLogs = sqliteTable(
     entityId: text("entity_id"),
     summary: text("summary").notNull(),
     /** Alterações campo a campo { campo: [antes, depois] }; nunca dados de documentos de identificação. */
-    changes: text("changes", { mode: "json" }).$type<
+    changes: jsonb("changes").$type<
       Record<string, [unknown, unknown]>
     >(),
     ip: text("ip"),
@@ -107,7 +105,7 @@ export const auditLogs = sqliteTable(
 
 /* ───────────────────────── Ficheiros ───────────────────────── */
 
-export const files = sqliteTable(
+export const files = pgTable(
   "files",
   {
     id: text("id").primaryKey(),
@@ -129,9 +127,9 @@ export const files = sqliteTable(
 
 /* ───────────────────────── Stand ───────────────────────── */
 
-export const settings = sqliteTable("settings", {
+export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
-  value: text("value", { mode: "json" }).notNull(),
+  value: jsonb("value").notNull(),
   updatedBy: text("updated_by"),
   updatedAt: updatedAt(),
 });
@@ -144,7 +142,7 @@ export const VEHICLE_STATUSES = [
 ] as const;
 export type VehicleStatus = (typeof VEHICLE_STATUSES)[number];
 
-export const vehicles = sqliteTable(
+export const vehicles = pgTable(
   "vehicles",
   {
     id: text("id").primaryKey(),
@@ -153,7 +151,7 @@ export const vehicles = sqliteTable(
       .notNull()
       .default("preparation"),
     /** Só aparece no site quando published=true e status≠preparation. */
-    published: integer("published", { mode: "boolean" })
+    published: boolean("published")
       .notNull()
       .default(false),
     make: text("make").notNull(),
@@ -169,7 +167,7 @@ export const vehicles = sqliteTable(
     fuel: text("fuel", { enum: ["petrol", "diesel", "hybrid", "electric"] }),
     transmission: text("transmission", { enum: ["automatic", "manual"] }),
     powerHp: integer("power_hp"),
-    priceEur: real("price_eur"),
+    priceEur: doublePrecision("price_eur"),
     highlight: text("highlight"),
     description: text("description"),
     coverPhotoId: text("cover_photo_id"),
@@ -193,12 +191,12 @@ export const vehicles = sqliteTable(
     nextInspection: text("next_inspection"),
 
     // Dados internos (nunca públicos)
-    purchasePriceEur: real("purchase_price_eur"),
+    purchasePriceEur: doublePrecision("purchase_price_eur"),
     purchaseDate: text("purchase_date"),
     supplier: text("supplier"),
     internalNotes: text("internal_notes"),
-    soldAt: integer("sold_at", { mode: "timestamp_ms" }),
-    soldPriceEur: real("sold_price_eur"),
+    soldAt: timestamp("sold_at", { withTimezone: true, mode: "date" }),
+    soldPriceEur: doublePrecision("sold_price_eur"),
     buyerCustomerId: text("buyer_customer_id"),
 
     createdBy: text("created_by"),
@@ -212,7 +210,7 @@ export const vehicles = sqliteTable(
   ],
 );
 
-export const vehiclePhotos = sqliteTable(
+export const vehiclePhotos = pgTable(
   "vehicle_photos",
   {
     id: text("id").primaryKey(),
@@ -231,7 +229,7 @@ export const vehiclePhotos = sqliteTable(
 
 /* ───────────────────────── CRM ───────────────────────── */
 
-export const customers = sqliteTable(
+export const customers = pgTable(
   "customers",
   {
     id: text("id").primaryKey(),
@@ -272,7 +270,7 @@ export const LEAD_STATUSES = [
 ] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
-export const leads = sqliteTable(
+export const leads = pgTable(
   "leads",
   {
     id: text("id").primaryKey(),
@@ -288,7 +286,7 @@ export const leads = sqliteTable(
     vehicleId: text("vehicle_id"),
     /** Texto do consentimento apresentado, guardado como prova. */
     consentText: text("consent_text").notNull(),
-    consentAt: integer("consent_at", { mode: "timestamp_ms" }).notNull(),
+    consentAt: timestamp("consent_at", { withTimezone: true, mode: "date" }).notNull(),
     status: text("status", { enum: LEAD_STATUSES }).notNull().default("new"),
     source: text("source").notNull().default("site"),
     assignedTo: text("assigned_to"),
@@ -309,7 +307,7 @@ export const leads = sqliteTable(
   ],
 );
 
-export const leadEvents = sqliteTable(
+export const leadEvents = pgTable(
   "lead_events",
   {
     id: text("id").primaryKey(),
@@ -327,7 +325,7 @@ export const leadEvents = sqliteTable(
 
 /* ───────────────────────── Documentos ───────────────────────── */
 
-export const documents = sqliteTable(
+export const documents = pgTable(
   "documents",
   {
     id: text("id").primaryKey(),
@@ -339,7 +337,7 @@ export const documents = sqliteTable(
       .notNull()
       .references(() => files.id),
     /** Campos extraídos pela IA e confirmados (ou não) por uma pessoa. */
-    extracted: text("extracted", { mode: "json" }).$type<
+    extracted: jsonb("extracted").$type<
       Record<string, unknown>
     >(),
     extractionStatus: text("extraction_status", {
@@ -355,7 +353,7 @@ export const documents = sqliteTable(
 );
 
 /** Termos e declarações preenchidos a partir dos dados do stand, cliente e viatura. */
-export const generatedForms = sqliteTable(
+export const generatedForms = pgTable(
   "generated_forms",
   {
     id: text("id").primaryKey(),
@@ -363,7 +361,7 @@ export const generatedForms = sqliteTable(
     vehicleId: text("vehicle_id"),
     customerId: text("customer_id"),
     /** Valores exatos usados no preenchimento, para reprodução e auditoria. */
-    data: text("data", { mode: "json" })
+    data: jsonb("data")
       .$type<Record<string, string>>()
       .notNull(),
     fileId: text("file_id").references(() => files.id),
@@ -378,7 +376,7 @@ export const generatedForms = sqliteTable(
 
 /* ───────────────────────── Site / hero ───────────────────────── */
 
-export const heroSlides = sqliteTable("hero_slides", {
+export const heroSlides = pgTable("hero_slides", {
   id: text("id").primaryKey(),
   vehicleId: text("vehicle_id")
     .notNull()
@@ -399,13 +397,13 @@ export const heroSlides = sqliteTable("hero_slides", {
   headlineAccent: text("headline_accent"),
   description: text("description").notNull(),
   position: integer("position").notNull().default(0),
-  published: integer("published", { mode: "boolean" }).notNull().default(false),
+  published: boolean("published").notNull().default(false),
   updatedBy: text("updated_by"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-export const heroJobs = sqliteTable("hero_jobs", {
+export const heroJobs = pgTable("hero_jobs", {
   id: text("id").primaryKey(),
   vehicleId: text("vehicle_id").notNull(),
   status: text("status", {
@@ -422,57 +420,57 @@ export const heroJobs = sqliteTable("hero_jobs", {
   attempts: integer("attempts").notNull().default(0),
   requestedBy: text("requested_by").notNull(),
   reviewedBy: text("reviewed_by"),
-  reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "date" }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
 /* ───────────────────────── Infra ───────────────────────── */
 
-export const rateLimits = sqliteTable("rate_limits", {
+export const rateLimits = pgTable("rate_limits", {
   key: text("key").primaryKey(),
   count: integer("count").notNull(),
-  resetAt: integer("reset_at").notNull(),
+  resetAt: bigint("reset_at", { mode: "number" }).notNull(),
 });
 
 /* ───────────────────────── WhatsApp (assistente da equipa) ───────────────────────── */
 
 /** Caixa de entrada: cada mensagem recebida é gravada antes de responder à Meta (nada se perde). */
-export const waInbox = sqliteTable(
+export const waInbox = pgTable(
   "wa_inbox",
   {
     /** wamid da Meta (ou id do simulador): garante que a mesma mensagem não é tratada duas vezes. */
     id: text("id").primaryKey(),
     phone: text("phone").notNull(),
     type: text("type").notNull(),
-    payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
     status: text("status", { enum: ["pending", "done", "failed"] }).notNull().default("pending"),
     attempts: integer("attempts").notNull().default(0),
     error: text("error"),
     createdAt: createdAt(),
-    processedAt: integer("processed_at", { mode: "timestamp_ms" }),
+    processedAt: timestamp("processed_at", { withTimezone: true, mode: "date" }),
   },
   (t) => [index("wa_inbox_status_idx").on(t.status, t.createdAt)],
 );
 
 /** Estado da conversa com cada pessoa da equipa (o que o assistente está à espera de receber). */
-export const waSessions = sqliteTable("wa_sessions", {
+export const waSessions = pgTable("wa_sessions", {
   phone: text("phone").primaryKey(),
   state: text("state").notNull().default("idle"),
-  data: text("data", { mode: "json" }).$type<Record<string, unknown>>().notNull().default(sql`'{}'`),
-  lastMediaAt: integer("last_media_at", { mode: "timestamp_ms" }),
+  data: jsonb("data").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  lastMediaAt: timestamp("last_media_at", { withTimezone: true, mode: "date" }),
   updatedAt: updatedAt(),
 });
 
 /** Histórico das mensagens (entrada e saída), mostrado no painel. */
-export const waMessages = sqliteTable(
+export const waMessages = pgTable(
   "wa_messages",
   {
     id: text("id").primaryKey(),
     phone: text("phone").notNull(),
     direction: text("direction", { enum: ["in", "out"] }).notNull(),
     body: text("body").notNull(),
-    meta: text("meta", { mode: "json" }).$type<Record<string, unknown>>(),
+    meta: jsonb("meta").$type<Record<string, unknown>>(),
     createdAt: createdAt(),
   },
   (t) => [index("wa_messages_phone_idx").on(t.phone, t.createdAt)],

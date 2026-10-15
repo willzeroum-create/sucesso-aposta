@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, desc, eq, like, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { Search } from "lucide-react";
 import { db, schema } from "@/db";
 import { LEAD_STATUSES } from "@/db/schema";
@@ -23,7 +23,7 @@ export default async function CrmPage(props: PageProps<"/painel/crm">) {
   if (mine) where.push(eq(schema.leads.assignedTo, user.id));
   if (q) {
     const p = `%${q.replace(/[%_]/g, "")}%`;
-    where.push(or(like(schema.leads.fullName, p), like(schema.leads.email, p), like(schema.leads.phone, p), like(schema.leads.message, p))!);
+    where.push(or(ilike(schema.leads.fullName, p), ilike(schema.leads.email, p), ilike(schema.leads.phone, p), ilike(schema.leads.message, p))!);
   }
 
   const rows = await db
@@ -34,7 +34,7 @@ export default async function CrmPage(props: PageProps<"/painel/crm">) {
     .where(and(...where))
     .orderBy(desc(schema.leads.createdAt))
     .limit(300);
-  const counts = await db.select({ status: schema.leads.status, n: sql<number>`count(*)` }).from(schema.leads).groupBy(schema.leads.status);
+  const counts = await db.select({ status: schema.leads.status, n: sql<number>`count(*)::int` }).from(schema.leads).groupBy(schema.leads.status);
   const n = (s: string) => Number(counts.find((c) => c.status === s)?.n ?? 0);
   const open = LEAD_STATUSES.filter((s) => s !== "won" && s !== "lost").reduce((t, s) => t + n(s), 0);
   const href = (e: string) => `/painel/crm?estado=${e}${mine ? "&meus=1" : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`;

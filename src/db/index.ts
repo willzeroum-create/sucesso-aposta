@@ -1,23 +1,14 @@
 import "server-only";
-import type { Client } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql/http";
-import type { LibSQLDatabase } from "drizzle-orm/libsql/driver-core";
-import { createLibsqlClient } from "./client";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { createPgClient } from "./client";
 import * as schema from "./schema";
 
-export type Db = LibSQLDatabase<typeof schema>;
-const globalForDb = globalThis as unknown as { __saClient?: Client; __saDb?: Db };
+export type Db = PostgresJsDatabase<typeof schema>;
+const globalForDb = globalThis as unknown as { __saDb?: Db };
 
 function getDb(): Db {
   if (globalForDb.__saDb) return globalForDb.__saDb;
-  const client = globalForDb.__saClient ?? createLibsqlClient();
-  globalForDb.__saClient = client;
-  if (!client.protocol || client.protocol === "file") {
-    // WAL + chaves estrangeiras no ficheiro local (no Turso já estão ativas).
-    void client.execute("PRAGMA foreign_keys = ON").catch(() => {});
-    void client.execute("PRAGMA busy_timeout = 5000").catch(() => {});
-  }
-  const instance = drizzle(client, { schema });
+  const instance = drizzle(createPgClient("app"), { schema });
   globalForDb.__saDb = instance;
   return instance;
 }

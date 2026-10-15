@@ -8,7 +8,6 @@ import { requirePagePermission } from "@/server/auth/session";
 import { getTemplateFiles, getTemplates } from "@/server/forms";
 import { getCompanyInfo, getPrivacySettings } from "@/server/settings";
 import { storageDriver } from "@/server/storage";
-import { databaseConfig } from "@/db/config";
 
 export const metadata = { title: "Configurações" };
 
@@ -21,10 +20,9 @@ export default async function SettingsPage() {
   const [custom] = await db.select().from(schema.settings).where(eq(schema.settings.key, "templates")).limit(1);
   const customized = new Set(Object.keys((custom?.value ?? {}) as object));
   const ai = aiModelLabel();
-  const db_ = databaseConfig();
   const integrations = [
-    { name: "Base de dados", ok: true, detail: db_.remote ? "Remota (Turso/libSQL)" : "Ficheiro local (./data/app.db)" },
-    { name: "Armazenamento de ficheiros", ok: true, detail: storageDriver() === "blob" ? "Vercel Blob (privado)" : "Disco local (./data/uploads)" },
+    { name: "Base de dados", ok: true, detail: `PostgreSQL${process.env.DATABASE_URL?.includes("supabase") ? " (Supabase)" : ""}` },
+    { name: "Armazenamento de ficheiros", ok: true, detail: { supabase: "Supabase Storage (privado)", blob: "Vercel Blob (privado)", local: "Disco local (./data/uploads)" }[storageDriver()] },
     { name: "Leitura de documentos com IA", ok: Boolean(ai), detail: ai ?? "Defina GEMINI_API_KEY ou ANTHROPIC_API_KEY" },
     { name: "Pesquisa por VIN", ok: true, detail: vindecoderConfigured() ? "vindecoder.eu + NHTSA" : "NHTSA (gratuito). Para fichas europeias completas, VINDECODER_EU_API_KEY e _SECRET" },
     { name: "Meta Ads", ok: Boolean(process.env.META_ADS_ACCESS_TOKEN && process.env.META_AD_ACCOUNT_ID), detail: "META_ADS_ACCESS_TOKEN, META_AD_ACCOUNT_ID" },
