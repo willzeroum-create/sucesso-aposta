@@ -56,6 +56,8 @@ export const users = sqliteTable(
     failedLogins: integer("failed_logins").notNull().default(0),
     lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
     lastLoginAt: integer("last_login_at", { mode: "timestamp_ms" }),
+    /** Número de WhatsApp (só algarismos, com indicativo) autorizado a usar o assistente da equipa. */
+    whatsappPhone: text("whatsapp_phone"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -432,3 +434,46 @@ export const rateLimits = sqliteTable("rate_limits", {
   count: integer("count").notNull(),
   resetAt: integer("reset_at").notNull(),
 });
+
+/* ───────────────────────── WhatsApp (assistente da equipa) ───────────────────────── */
+
+/** Caixa de entrada: cada mensagem recebida é gravada antes de responder à Meta (nada se perde). */
+export const waInbox = sqliteTable(
+  "wa_inbox",
+  {
+    /** wamid da Meta (ou id do simulador): garante que a mesma mensagem não é tratada duas vezes. */
+    id: text("id").primaryKey(),
+    phone: text("phone").notNull(),
+    type: text("type").notNull(),
+    payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
+    status: text("status", { enum: ["pending", "done", "failed"] }).notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    error: text("error"),
+    createdAt: createdAt(),
+    processedAt: integer("processed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("wa_inbox_status_idx").on(t.status, t.createdAt)],
+);
+
+/** Estado da conversa com cada pessoa da equipa (o que o assistente está à espera de receber). */
+export const waSessions = sqliteTable("wa_sessions", {
+  phone: text("phone").primaryKey(),
+  state: text("state").notNull().default("idle"),
+  data: text("data", { mode: "json" }).$type<Record<string, unknown>>().notNull().default(sql`'{}'`),
+  lastMediaAt: integer("last_media_at", { mode: "timestamp_ms" }),
+  updatedAt: updatedAt(),
+});
+
+/** Histórico das mensagens (entrada e saída), mostrado no painel. */
+export const waMessages = sqliteTable(
+  "wa_messages",
+  {
+    id: text("id").primaryKey(),
+    phone: text("phone").notNull(),
+    direction: text("direction", { enum: ["in", "out"] }).notNull(),
+    body: text("body").notNull(),
+    meta: text("meta", { mode: "json" }).$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("wa_messages_phone_idx").on(t.phone, t.createdAt)],
+);
