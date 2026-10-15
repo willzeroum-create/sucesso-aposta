@@ -1,0 +1,80 @@
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  color: #292c29;
+}
+.page > a,
+.page article a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: #77283b;
+}
+.eyebrow {
+  margin-top: 70px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+.page h1 {
+  font-size: clamp(40px, 6vw, 72px);
+  margin: 20px 0;
+  letter-spacing: -0.06em;
+}
+.page h1 em {
+  color: #77283b;
+}
+.page p {
+  line-height: 1.8;
+  font-size: 14px;
+}
+.page > p {
+  max-width: 760px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+  margin: 44px 0;
+}
+.grid article {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #dfdfd6;
+  border-radius: 12px;
+}
+.grid img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1.7;
+  object-fit: contain;
+  background: #e8e7e2;
+}
+.grid article > div {
+  padding: 24px;
+}
+.page h2 {
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+.grid p + p {
+  margin-top: 10px;
+}
+.page section {
+  border-top: 1px solid #dfdfd6;
+  padding-top: 32px;
+}
+.page section p {
+  max-width: 800px;
+  margin-top: 14px;
+}
+@media (max-width: 650px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .page {
+    padding: 28px 20px 60px;
+  }
+  .eyebrow {
+    margin-top: 44px;
+  }
+}

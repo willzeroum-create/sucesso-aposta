@@ -1,0 +1,96 @@
+{
+  "createdAt": "2026-10-15T09:20:16.981Z",
+  "localOnly": true,
+  "backup": "backups/before-presentation-stock-2026-10-15.db",
+  "existingVehiclesPreserved": 1,
+  "imported": [
+    {
+      "id": "demo-mustang-red",
+      "photos": 4
+    },
+    {
+      "id": "demo-peugeot-3008",
+      "photos": 2
+    },
+    {
+      "id": "demo-nissan-qashqai",
+      "photos": 2
+    },
+    {
+      "id": "demo-peugeot-2008",
+      "photos": 4
+    },
+    {
+      "id": "demo-polestar-2",
+      "photos": 5
+    },
+    {
+      "id": "demo-mustang-silver",
+      "photos": 3
+    }
+  ],
+  "heroSlides": [
+    {
+      "id": "demo-hero-mustang",
+      "vehicleId": "demo-mustang-red",
+      "imageDesktop": "/media/2026-10/file_mv9bvpoottx0x46g20-63f996504d2e.webp",
+      "imageMobile": "/media/2026-10/file_mv9bvpshkzjb1snw35-4e7268a449f2.webp",
+      "objectPositionDesktop": "58% 58%",
+      "objectPositionMobile": "57% 50%",
+      "textTone": "dark",
+      "eyebrow": "100% ELÉTRICO. INCONFUNDIVELMENTE MUSTANG.",
+      "headline": "Uma nova",
+      "headlineAccent": "energia.",
+      "description": "O carácter de sempre. Uma nova forma de sentir o caminho. Conheça o Ford Mustang Mach-E."
+    },
+    {
+      "id": "demo-hero-polestar",
+      "vehicleId": "demo-polestar-2",
+      "imageDesktop": "/media/2026-10/file_mv9bvrwattsag5047k-e84fc0a3dbe1.webp",
+      "imageMobile": "/media/2026-10/file_mv9bvrzzepckmq7dy5-95a09a5bbad2.webp",
+      "objectPositionDesktop": "55% 55%",
+      "objectPositionMobile": "57% 50%",
+      "textTone": "light",
+      "eyebrow": "DESIGN ESCANDINAVO. ESPÍRITO ELÉTRICO.",
+      "headline": "Menos ruído.",
+      "headlineAccent": "Mais presença.",
+      "description": "Linhas depuradas, personalidade própria. O Polestar 2 convida a olhar para a estrada de outra forma."
+    },
+    {
+      "id": "demo-hero-peugeot",
+      "vehicleId": "demo-peugeot-2008",
+      "imageDesktop": "/media/2026-10/file_mv9bvrd39m29kcpay6-b87485c85c0e.webp",
+      "imageMobile": "/media/2026-10/file_mv9bvrhfhtvqxcmcmn-bec8eb70d416.webp",
+      "objectPositionDesktop": "52% 53%",
+      "objectPositionMobile": "57% 50%",
+      "textTone": "dark",
+      "eyebrow": "PEUGEOT 2008. À MEDIDA DOS SEUS DIAS.",
+      "headline": "A vida pede",
+      "headlineAccent": "outros planos.",
+      "description": "Da cidade ao próximo fim de semana. Um SUV com espaço para os seus planos e vontade de ir mais longe."
+    }
+  ],
+  "publicVehicleCount": 7,
+  "photos": {
+    "/images/stock/mustang-mach-e-red-commons.jpg": "/media/2026-10/file_mv9bvphr5qmstz87jf-923160d76264.webp",
+    "/images/stock/mustang-mach-e-red-user.jpg": "/media/2026-10/file_mv9bvpkp3et99k9e6x-af9bcb3d2a7d.webp",
+    "/images/hero/mustang-red-architecture.png": "/media/2026-10/file_mv9bvpoottx0x46g20-63f996504d2e.webp",
+    "/images/hero/mustang-red-architecture-mobile.png": "/media/2026-10/file_mv9bvpshkzjb1snw35-4e7268a449f2.webp",
+    "/images/stock/peugeot-3008-allure-grey-commons.jpg": "/media/2026-10/file_mv9bvq3n5vqwf1a7my-6b3ed80a522c.webp",
+    "/images/stock/peugeot-3008-grey-user.jpg": "/media/2026-10/file_mv9bvq9arwxumxte5e-d9431fc9fd9e.webp",
+    "/images/stock/nissan-qashqai-white-commons.jpg": "/media/2026-10/file_mv9bvqlyxxsanjno61-e7b987cf457a.webp",
+    "/images/stock/nissan-qashqai-white-user.jpg": "/media/2026-10/file_mv9bvqpbmjm5mhi9mn-8c940f40df65.webp",
+    "/images/stock/peugeot-2008-blue-commons.jpg": "/media/2026-10/file_mv9bvr567qnrka62de-bcbe13f9cba8.webp",
+    "/images/stock/peugeot-2008-blue-user.jpg": "/media/2026-10/file_mv9bvr93tnidz6y5zu-a096febcccdc.webp",
+    "/images/hero/peugeot-blue-terrace.png": "/media/2026-10/file_mv9bvrd39m29kcpay6-b87485c85c0e.webp",
+    "/images/hero/peugeot-blue-terrace-mobile.png": "/media/2026-10/file_mv9bvrhfhtvqxcmcmn-bec8eb70d416.webp",
+    "/images/stock/polestar-2-thunder-commons.jpg": "/media/2026-10/file_mv9bvrpwu570824cwv-78194886e3a2.webp",
+    "/images/stock/polestar-2-front-user.jpg": "/media/2026-10/file_mv9bvrrc64rwv8e2i3-c9eb1bccb231.webp",
+    "/images/stock/polestar-2-rear-user.jpg": "/media/2026-10/file_mv9bvrsnqu7tw2di8y-a0bf39349e46.webp",
+    "/images/hero/polestar-blue-hour.png": "/media/2026-10/file_mv9bvrwattsag5047k-e84fc0a3dbe1.webp",
+    "/images/hero/polestar-blue-hour-mobile.png": "/media/2026-10/file_mv9bvrzzepckmq7dy5-95a09a5bbad2.webp",
+    "/images/stock/mustang-mach-e-silver-commons.jpg": "/media/2026-10/file_mv9bvs86ajwc6za6c8-9076a5145725.webp",
+    "/images/stock/mustang-mach-e-silver-user.jpg": "/media/2026-10/file_mv9bvsafa0c34e0myu-08417c0486fc.webp",
+    "/images/stock/mustang-mach-e-silver-front-user.jpg": "/media/2026-10/file_mv9bvsce18th03f9mh-59d2f2d64aa7.webp"
+  }
+}

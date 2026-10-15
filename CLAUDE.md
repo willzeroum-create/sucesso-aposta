@@ -2,7 +2,7 @@
 
 Este projeto está dividido entre **Codex: landing page** e **Claude: backend/dashboard**. A prioridade é ligar conteúdo e operações reais à interface pública existente, preservando o desenho e os contratos preparados.
 
-Há duas propostas visuais em avaliação. A raiz `/` usa `drive-showroom.tsx` com CSS Module próprio; `/conceito-a` mantém `showroom.tsx` e os estilos originais. Ler `docs/CONCEITOS.md` e preservar ambas até a escolha do utilizador. Os contratos e o backend são partilhados.
+O utilizador escolheu Editorial. A raiz `/` e `/conceito-a` usam `showroom.tsx`, `globals.css` e as atualizações isoladas em `showroom-modern.css`. A alternativa Drive Studio está preservada em `/conceito-b`. Ler `docs/EDITORIAL-MUSTANG.md`; os contratos e o backend são partilhados.
 
 Antes de implementar, ler:
 
@@ -10,6 +10,7 @@ Antes de implementar, ler:
 2. `src/lib/contracts.ts` e `src/lib/catalog.ts` — tipos e adapter que a landing já utiliza.
 3. `src/data/demo.ts` — exemplos de estrutura; não são dados de produção.
 4. `docs/DESIGN.md` e `docs/ASSETS.md` — composição, recortes e créditos.
+5. `docs/HERO-WORKFLOW.md` — preparar hero a partir da ficha da viatura, celular primeiro e máximo de duas trocas semanais por stand.
 
 ## Estado (14/10/2026)
 
@@ -28,7 +29,7 @@ O nome provisório é **Sucesso Aposta**. A configuração pública deve continu
 
 Manter o layout em `src/components/showroom.tsx` e `src/app/globals.css` durante a integração. Introduzir alterações visuais apenas quando necessárias à funcionalidade acordada, verificando os três heroes e os formatos desktop/mobile.
 
-Cada `HeroSlide` contém imagem desktop/mobile, pontos focais, tom de texto, texto editorial e ligação à viatura. Não substituir este contrato por uma imagem global ou aplicar o mesmo recorte a todos os automóveis. No telemóvel, a fotografia tem uma faixa própria para preservar o carro.
+Cada `HeroSlide` contém imagem desktop/mobile, pontos focais, tom de texto, texto editorial e ligação à viatura. Não substituir este contrato por uma imagem global ou aplicar o mesmo recorte a todos os automóveis. O utilizador rejeitou a imagem separada abaixo do texto no telemóvel: usar uma única composição, com fotografia ao fundo, texto e controlos sobrepostos. O telemóvel é o formato principal; as imagens verticais preparadas preservam o carro inteiro.
 
 Os componentes do cliente recebem dados públicos. Chaves, SDKs de base de dados, tokens administrativos e chamadas ao gerador pertencem ao servidor. `src/lib/catalog.ts` já usa `server-only`; os tipos de `src/lib/contracts.ts` podem ser partilhados. Nunca colocar segredos em variáveis `NEXT_PUBLIC_`.
 

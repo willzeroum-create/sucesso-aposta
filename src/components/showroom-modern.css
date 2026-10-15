@@ -1,0 +1,1419 @@
+/* Editorial selected by the owner. Every change is scoped away from the dashboard. */
+.modern-showroom {
+  --paper: #f8f7f3;
+  --cream: #efede6;
+  --wine: #77283b;
+  --wine-dark: #522031;
+  --ink: #292c29;
+  --line: #dfdfd6;
+  background: var(--paper);
+  overflow: clip;
+}
+.modern-showroom .page-width,
+.modern-showroom .header-inner {
+  max-width: 1440px;
+  width: calc(100% - 112px);
+}
+.modern-showroom .site-header {
+  background: #f8f7f3f5;
+}
+.modern-showroom .header-inner {
+  height: 94px;
+}
+.modern-showroom .brand-type {
+  letter-spacing: 0.04em;
+  font-size: 17px;
+}
+.modern-showroom .brand-type > span {
+  letter-spacing: 0.2em;
+}
+.modern-showroom .main-nav {
+  gap: 30px;
+}
+.modern-showroom .main-nav > a {
+  font-size: 12px;
+}
+.modern-showroom .header-contact {
+  border: 1px solid #d5d4cb;
+  border-radius: 30px;
+  padding: 13px 19px;
+  gap: 22px;
+}
+.modern-showroom .header-contact:hover {
+  background: var(--cream);
+}
+.modern-showroom .button {
+  border-radius: 6px;
+  font-size: 12px;
+}
+.modern-showroom .hero {
+  margin: 0 20px;
+  height: min(780px, calc(100svh - 114px));
+  min-height: 640px;
+  border-radius: 18px;
+  background: #182330;
+}
+.modern-showroom .hero-dark {
+  background: #eeebe2;
+}
+.modern-showroom .hero .page-width {
+  width: calc(100% - 80px);
+}
+.modern-showroom .hero-content {
+  padding-top: clamp(50px, 6vw, 96px);
+  pointer-events: none;
+}
+.modern-showroom .hero-content button,
+.modern-showroom .hero-content a {
+  pointer-events: auto;
+}
+.modern-showroom .hero h1 {
+  font-size: clamp(60px, 5.5vw, 88px);
+  max-width: 46%;
+  font-weight: 420;
+  letter-spacing: -0.07em;
+  margin-top: 24px;
+  text-shadow: none;
+}
+.modern-showroom .hero h1 em {
+  font-size: 1.1em;
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+}
+.modern-showroom .hero-dark h1 em {
+  color: var(--wine);
+}
+.modern-showroom .hero-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  max-width: 42%;
+  line-height: 1.7;
+}
+.modern-showroom .hero-dark .hero-eyebrow {
+  color: #4b4c43;
+}
+.modern-showroom .hero-dark .tiny-square {
+  background: var(--wine);
+}
+.modern-showroom .hero-description {
+  font-size: 13px;
+  line-height: 1.8;
+  max-width: 290px;
+  margin-top: 24px;
+}
+.modern-showroom .hero-dark .hero-description {
+  color: #55564e;
+}
+.modern-showroom .hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 28px;
+}
+.modern-showroom .hero-actions > a {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  font-size: 11px;
+}
+.modern-showroom .hero-specification {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 27px;
+  font-size: 10px;
+  opacity: 0.8;
+}
+.modern-showroom .hero-specification > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.modern-showroom .hero-specification > span + span {
+  padding-left: 15px;
+  border-left: 1px solid currentColor;
+}
+.modern-showroom .hero-shade {
+  background: linear-gradient(90deg, #08142150, transparent 55%);
+}
+.modern-showroom .hero-dark .hero-shade {
+  background: linear-gradient(90deg, #f6f3eabe, #f6f3ea18 34%, transparent 47%);
+}
+.modern-showroom .hero-bottom {
+  bottom: 35px;
+  align-items: center;
+  gap: 24px;
+}
+.modern-showroom .hero-switcher {
+  display: flex;
+  gap: 0;
+  min-width: 0;
+  border: 1px solid #ffffff40;
+  border-radius: 8px;
+  background: #15202b80;
+  backdrop-filter: blur(16px);
+  overflow: auto;
+  max-width: 65%;
+  scrollbar-width: thin;
+}
+.modern-showroom .hero-switcher button {
+  flex: 0 0 auto;
+  gap: 14px;
+  min-height: 70px;
+  min-width: 160px;
+  padding: 14px 18px;
+  color: #ffffff9c;
+  border-bottom: 2px solid transparent;
+  justify-content: space-between;
+}
+.modern-showroom .hero-switcher button + button {
+  border-left: 1px solid #ffffff20;
+}
+.modern-showroom .hero-switcher button > span {
+  font-size: 9px;
+  opacity: 0.6;
+}
+.modern-showroom .hero-switcher button > strong {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.modern-showroom .hero-switcher .is-active {
+  color: white;
+  background: #ffffff12;
+  border-bottom-color: #d3aaa4;
+}
+.modern-showroom .hero-dark .hero-switcher {
+  background: #fbfaf4d9;
+  border-color: #fff9;
+}
+.modern-showroom .hero-dark .hero-switcher button {
+  color: #79796d;
+}
+.modern-showroom .hero-dark .hero-switcher button + button {
+  border-left-color: #dbd8cf;
+}
+.modern-showroom .hero-dark .hero-switcher .is-active {
+  background: #fff9;
+  color: var(--wine);
+  border-bottom-color: var(--wine);
+}
+.modern-showroom .hero-car {
+  gap: 20px;
+}
+.modern-showroom .hero-car strong {
+  font-size: 26px;
+  letter-spacing: -0.045em;
+}
+.modern-showroom .hero-car small {
+  font-size: 8px;
+}
+.modern-showroom .hero-car span > span {
+  font-size: 11px;
+}
+.modern-showroom .hero-scroll {
+  display: none;
+}
+.modern-showroom .hero-photo-note {
+  bottom: 12px;
+  right: 40px;
+  font-size: 8px;
+  opacity: 0.8;
+}
+.modern-showroom .editorial-strip {
+  min-height: 150px;
+  border-bottom: 0;
+  gap: 30px;
+  padding-block: 35px;
+}
+.modern-showroom .editorial-strip > p {
+  font-size: 21px;
+}
+.modern-showroom .editorial-strip > p em {
+  font-size: 29px;
+  color: var(--wine);
+}
+.modern-showroom .editorial-strip > div {
+  gap: 35px;
+}
+.modern-showroom .editorial-strip > div > span {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+.modern-showroom .editorial-strip > div > span svg {
+  color: var(--wine);
+  stroke-width: 1.3;
+}
+.modern-showroom .edition-stamp {
+  border-left: 1px solid var(--line);
+  padding-left: 30px;
+}
+.modern-showroom .collection {
+  background: #eeeee8;
+  padding-block: 85px 80px;
+}
+.modern-showroom .section-heading h2 {
+  font-size: clamp(38px, 3.4vw, 58px);
+}
+.modern-showroom .section-heading h2 em {
+  font-size: 1.02em;
+  color: var(--wine);
+}
+.modern-showroom .section-intro {
+  font-size: 13px;
+  max-width: 285px;
+}
+.modern-showroom .collection-toolbar {
+  border: 0;
+  margin-bottom: 0;
+  align-items: center;
+  min-height: 66px;
+  gap: 18px;
+}
+.modern-showroom .filters {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.modern-showroom .filter {
+  border: 1px solid #d8d9d0;
+  border-radius: 30px;
+  min-height: 44px;
+  padding: 10px 19px;
+  color: #696d63;
+  font-size: 11px;
+}
+.modern-showroom .filter.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  font-weight: 500;
+}
+.modern-showroom .filter sup {
+  font-size: 8px;
+}
+.modern-showroom .search-field {
+  border: 1px solid #d8d9d0;
+  border-radius: 30px;
+  min-height: 44px;
+  padding: 0 15px;
+  background: #f8f8f240;
+}
+.modern-showroom .search-field input {
+  width: 155px;
+  font-size: 11px;
+}
+.modern-showroom .favorites-filter {
+  padding: 0 8px 0 14px;
+}
+.modern-showroom .collection-refinements {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 0 25px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.modern-showroom .collection-refinements > span strong {
+  color: var(--ink);
+  font-weight: 600;
+  margin-right: 5px;
+}
+.modern-showroom .collection-refinements > div {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+.modern-showroom .collection-refinements label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.modern-showroom .collection-refinements select {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  padding: 10px 18px 10px 0;
+  min-height: 44px;
+  cursor: pointer;
+  max-width: 180px;
+}
+.modern-showroom .vehicle-grid {
+  gap: 25px;
+}
+.modern-showroom .vehicle-card {
+  background: var(--paper);
+  border: 1px solid #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  transition:
+    box-shadow 0.25s,
+    transform 0.25s;
+}
+.modern-showroom .vehicle-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 35px #27281c0c;
+}
+.modern-showroom .vehicle-image-wrap {
+  aspect-ratio: 1.7;
+  background: #dedfd5;
+  margin: 7px;
+  border-radius: 7px;
+}
+.modern-showroom .vehicle-image {
+  object-fit: contain;
+}
+.modern-showroom .vehicle-card:hover .vehicle-image {
+  transform: none;
+}
+.modern-showroom .vehicle-badge {
+  border-radius: 20px;
+  padding: 7px 10px;
+  background: #f9f8f2ed;
+  letter-spacing: 0;
+  left: 12px;
+  top: 12px;
+}
+.modern-showroom .favorite-button {
+  width: 44px;
+  height: 44px;
+  right: 9px;
+  top: 8px;
+}
+.modern-showroom .image-index {
+  font-size: 7px;
+  background: #2029248a;
+  padding: 5px 7px;
+  border-radius: 3px;
+  bottom: 10px;
+  left: 10px;
+}
+.modern-showroom .vehicle-info {
+  padding: 18px 20px 0;
+}
+.modern-showroom .vehicle-title {
+  align-items: flex-end;
+  gap: 12px;
+}
+.modern-showroom .vehicle-title h3 {
+  font-size: 25px;
+  letter-spacing: -0.05em;
+}
+.modern-showroom .vehicle-price {
+  font-size: 19px;
+  color: var(--wine);
+}
+.modern-showroom .vehicle-make {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+.modern-showroom .vehicle-version {
+  margin-top: 9px;
+  font-size: 10px;
+  min-height: 32px;
+  line-height: 1.6;
+}
+.modern-showroom .vehicle-specs {
+  margin: 0;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  padding: 14px 0;
+  font-size: 9px;
+}
+.modern-showroom .vehicle-specs span + span:before {
+  margin: 0 7px;
+}
+.modern-showroom .vehicle-link {
+  padding: 17px 0 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.modern-showroom .vehicle-link svg {
+  color: var(--wine);
+}
+.modern-showroom .collection-footer {
+  margin-top: 28px;
+}
+.modern-showroom .collection-footer > p {
+  font-size: 10px;
+}
+.modern-showroom .essence {
+  margin: 24px 20px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  grid-template-columns: 1fr 1fr;
+  background: #282e29;
+}
+.modern-showroom .essence-photo {
+  min-height: 600px;
+}
+.modern-showroom .essence-photo img {
+  transition: transform 0.8s;
+}
+.modern-showroom .essence:hover .essence-photo img {
+  transform: scale(1.025);
+}
+.modern-showroom .essence-copy {
+  background: transparent;
+  padding: 70px 70px 60px;
+}
+.modern-showroom .essence-copy h2 {
+  font-size: clamp(36px, 3.4vw, 55px);
+}
+.modern-showroom .essence-copy h2 em {
+  color: #cbbcac;
+}
+.modern-showroom .essence-copy > p {
+  font-size: 13px;
+  max-width: 380px;
+}
+.modern-showroom .essence-signature {
+  border-color: #ffffff25;
+}
+.modern-showroom .experience {
+  padding-block: 90px;
+}
+.modern-showroom .experience-grid {
+  gap: 24px;
+}
+.modern-showroom .experience-item {
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.modern-showroom .experience-item h3 {
+  font-size: 24px;
+  margin-top: 30px;
+  letter-spacing: -0.045em;
+}
+.modern-showroom .experience-item p {
+  font-size: 12px;
+  max-width: 320px;
+}
+.modern-showroom .step-number {
+  color: var(--wine);
+  font-size: 12px;
+}
+.modern-showroom .bespoke {
+  margin-inline: auto;
+  background: #ebe6db;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.modern-showroom .bespoke-copy {
+  padding: 55px 45px;
+}
+.modern-showroom .bespoke-copy h2 {
+  font-size: 40px;
+}
+.modern-showroom .bespoke-copy h2 em {
+  color: var(--wine);
+}
+.modern-showroom .bespoke-copy p {
+  font-size: 12px;
+}
+.modern-showroom .faq-section {
+  padding-block: 90px;
+}
+.modern-showroom .faq-list details {
+  border-color: var(--line);
+}
+.modern-showroom .faq-list summary {
+  font-size: 13px;
+  min-height: 76px;
+}
+.modern-showroom .faq-list details[open] {
+  background: #efeee7;
+  border-radius: 8px;
+  padding-inline: 18px;
+}
+.modern-showroom .contact {
+  margin: 0 20px 20px;
+  border-radius: 16px;
+  padding-block: 70px;
+  background: #edece5;
+}
+.modern-showroom .contact-copy h2 {
+  font-size: 58px;
+  letter-spacing: -0.055em;
+}
+.modern-showroom .contact-copy h2 em {
+  color: var(--wine);
+}
+.modern-showroom .inquiry-form {
+  background: var(--paper);
+  border: 1px solid #fff;
+  border-radius: 10px;
+  padding: 32px;
+}
+.modern-showroom .form-field input,
+.modern-showroom .form-field textarea,
+.modern-showroom .form-field select {
+  border-radius: 5px;
+}
+.modern-showroom .site-footer {
+  background: #242a26;
+}
+.modern-showroom .footer-utility {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.modern-showroom .footer-utility > a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.modern-showroom .dialog {
+  border-radius: 14px;
+  overflow: auto;
+}
+.modern-showroom .detail-photo {
+  position: relative;
+  min-height: 520px;
+}
+.modern-showroom .detail-photo > img {
+  object-fit: contain;
+  background: #e9eae3;
+  padding-bottom: 90px;
+}
+.modern-showroom .detail-gallery {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  z-index: 1;
+}
+.modern-showroom .detail-gallery button {
+  background: var(--paper);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 2px;
+  flex: 0 0 72px;
+  height: 56px;
+  overflow: hidden;
+}
+.modern-showroom .detail-gallery button[aria-pressed="true"] {
+  border-color: var(--wine);
+}
+.modern-showroom .detail-gallery button img {
+  position: static;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  padding: 0;
+}
+.modern-showroom .detail-photo-credit {
+  font-size: 9px !important;
+  line-height: 1.65;
+  margin: 14px 0;
+  color: var(--muted);
+}
+.modern-showroom .detail-photo-credit a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.modern-showroom .detail-content {
+  padding: 40px;
+}
+.modern-showroom .detail-price {
+  color: var(--wine);
+}
+.modern-showroom .detail-disclaimer {
+  border-left: 2px solid var(--wine);
+  padding-left: 12px;
+}
+@media (min-width: 1700px) {
+  .modern-showroom .hero {
+    max-width: 1800px;
+    margin-inline: auto;
+    height: 840px;
+    max-height: none;
+  }
+  .modern-showroom .hero-content {
+    padding-top: 110px;
+  }
+}
+@media (max-width: 1200px) {
+  .modern-showroom .page-width,
+  .modern-showroom .header-inner {
+    width: calc(100% - 64px);
+  }
+  .modern-showroom .hero .page-width {
+    width: calc(100% - 64px);
+  }
+  .modern-showroom .hero {
+    min-height: 630px;
+  }
+  .modern-showroom .hero h1 {
+    font-size: 66px;
+  }
+  .modern-showroom .hero-switcher button {
+    min-width: 140px;
+    padding-inline: 12px;
+    gap: 10px;
+  }
+  .modern-showroom .hero-car {
+    gap: 15px;
+  }
+  .modern-showroom .editorial-strip > div {
+    gap: 18px;
+  }
+  .modern-showroom .edition-stamp {
+    display: none;
+  }
+  .modern-showroom .vehicle-title {
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .modern-showroom .vehicle-price {
+    font-size: 18px;
+  }
+  .modern-showroom .essence-copy {
+    padding: 50px 38px;
+  }
+  .modern-showroom .essence-photo {
+    min-height: 550px;
+  }
+  .modern-showroom .bespoke-copy {
+    padding: 40px 30px;
+  }
+  .modern-showroom .bespoke-copy h2 {
+    font-size: 34px;
+  }
+  .modern-showroom .contact-copy h2 {
+    font-size: 50px;
+  }
+  .modern-showroom .filters {
+    gap: 5px;
+  }
+  .modern-showroom .filter {
+    padding-inline: 15px;
+  }
+}
+@media (max-width: 1000px) {
+  .modern-showroom .brand-type {
+    font-size: 15px;
+  }
+  .modern-showroom .main-nav {
+    gap: 20px;
+  }
+  .modern-showroom .main-nav > a {
+    font-size: 11px;
+  }
+  .modern-showroom .header-contact {
+    gap: 14px;
+    font-size: 10px;
+  }
+  .modern-showroom .hero h1 {
+    font-size: 59px;
+    max-width: 48%;
+  }
+  .modern-showroom .hero-description {
+    max-width: 260px;
+    font-size: 12px;
+  }
+  .modern-showroom .hero-actions {
+    gap: 16px;
+  }
+  .modern-showroom .hero-actions .button {
+    padding: 14px 16px;
+    gap: 16px;
+    font-size: 11px;
+  }
+  .modern-showroom .hero-content {
+    padding-top: 60px;
+  }
+  .modern-showroom .hero-switcher button {
+    min-width: 125px;
+  }
+  .modern-showroom .hero-switcher button > strong {
+    font-size: 11px;
+  }
+  .modern-showroom .hero-switcher button > svg {
+    display: none;
+  }
+  .modern-showroom .hero-car strong {
+    font-size: 23px;
+  }
+  .modern-showroom .hero-car .circle-arrow {
+    display: none;
+  }
+  .modern-showroom .collection-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .modern-showroom .collection-tools {
+    width: 100%;
+  }
+  .modern-showroom .search-field {
+    flex: 1;
+  }
+  .modern-showroom .search-field input {
+    width: 100%;
+  }
+  .modern-showroom .vehicle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .modern-showroom .vehicle-title {
+    flex-wrap: nowrap;
+  }
+  .modern-showroom .essence-copy {
+    padding: 40px 30px;
+  }
+  .modern-showroom .essence-copy h2 {
+    font-size: 38px;
+  }
+  .modern-showroom .experience-item {
+    padding: 22px;
+  }
+  .modern-showroom .experience-item h3 {
+    font-size: 22px;
+  }
+  .modern-showroom .inquiry-form {
+    padding: 25px;
+  }
+  .modern-showroom .contact-grid {
+    gap: 45px;
+  }
+}
+@media (max-width: 800px) {
+  .modern-showroom .header-inner {
+    height: 80px;
+  }
+  .modern-showroom .main-nav {
+    top: 80px;
+  }
+  .modern-showroom .hero {
+    height: auto;
+    aspect-ratio: 1 / 1.2;
+    min-height: 700px;
+    max-height: 900px;
+    margin-inline: 12px;
+    border-radius: 12px;
+  }
+  .modern-showroom .hero-image {
+    object-position: var(--hero-mobile-position, 50% 50%);
+  }
+  .modern-showroom .hero .page-width {
+    width: calc(100% - 48px);
+  }
+  .modern-showroom .hero-content {
+    padding-top: 50px;
+  }
+  .modern-showroom .hero-eyebrow {
+    font-size: 8px;
+    max-width: 50%;
+  }
+  .modern-showroom .hero h1 {
+    font-size: 53px;
+    max-width: 49%;
+  }
+  .modern-showroom .hero-description {
+    max-width: 240px;
+  }
+  .modern-showroom .hero-actions > a {
+    display: none;
+  }
+  .modern-showroom .hero-switcher {
+    max-width: 68%;
+  }
+  .modern-showroom .hero-switcher button {
+    min-width: 110px;
+    min-height: 62px;
+    gap: 8px;
+  }
+  .modern-showroom .hero-car strong {
+    font-size: 20px;
+  }
+  .modern-showroom .hero-car span > span {
+    font-size: 9px;
+  }
+  .modern-showroom .hero-bottom {
+    gap: 12px;
+    bottom: 40px;
+  }
+  .modern-showroom .hero-photo-note {
+    right: 24px;
+    font-size: 7px;
+  }
+  .modern-showroom .editorial-strip {
+    padding-block: 30px;
+    min-height: 140px;
+  }
+  .modern-showroom .editorial-strip > div {
+    display: none;
+  }
+  .modern-showroom .editorial-strip > p {
+    font-size: 23px;
+  }
+  .modern-showroom .edition-stamp {
+    display: flex;
+  }
+  .modern-showroom .collection {
+    padding-block: 64px;
+  }
+  .modern-showroom .essence {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin-inline: 12px;
+  }
+  .modern-showroom .essence-photo {
+    min-height: 440px;
+  }
+  .modern-showroom .essence-copy {
+    padding: 48px 35px;
+  }
+  .modern-showroom .essence-copy h2 {
+    font-size: 44px;
+  }
+  .modern-showroom .essence-copy > p {
+    max-width: 520px;
+  }
+  .modern-showroom .experience {
+    padding-block: 65px;
+  }
+  .modern-showroom .experience-grid {
+    grid-template-columns: 1fr;
+  }
+  .modern-showroom .experience-item h3 {
+    margin-top: 20px;
+  }
+  .modern-showroom .experience-item p {
+    max-width: 100%;
+  }
+  .modern-showroom .bespoke-copy {
+    padding: 40px 30px;
+  }
+  .modern-showroom .faq-section {
+    padding-block: 65px;
+  }
+  .modern-showroom .contact {
+    margin-inline: 12px;
+    padding-block: 50px;
+  }
+  .modern-showroom .contact-grid {
+    gap: 40px;
+  }
+  .modern-showroom .contact-copy h2 {
+    font-size: 51px;
+  }
+  .modern-showroom .detail-photo {
+    min-height: 380px;
+  }
+  .modern-showroom .detail-content {
+    padding: 35px;
+  }
+}
+@media (max-width: 600px) {
+  .modern-showroom .page-width,
+  .modern-showroom .header-inner {
+    width: calc(100% - 40px);
+  }
+  .modern-showroom .header-inner {
+    height: 76px;
+  }
+  .modern-showroom .brand-type {
+    font-size: 15px;
+  }
+  .modern-showroom .main-nav {
+    top: 76px;
+  }
+  .modern-showroom .hero {
+    margin: 0 10px;
+    height: auto;
+    aspect-ratio: 1 / 1.62;
+    min-height: 460px;
+    max-height: 720px;
+    border-radius: 12px;
+    display: block;
+  }
+  .modern-showroom .hero .page-width {
+    width: calc(100% - 40px);
+  }
+  .modern-showroom .hero-content {
+    padding-top: 30px;
+    padding-bottom: 0;
+    animation: none;
+    z-index: 2;
+  }
+  .modern-showroom .hero h1 {
+    font-size: clamp(42px, 11.8vw, 64px);
+    max-width: 100%;
+    margin-top: 16px;
+    letter-spacing: -0.055em;
+  }
+  .modern-showroom .hero h1 em {
+    font-size: 1.05em;
+  }
+  .modern-showroom .hero-eyebrow {
+    max-width: 100%;
+    font-size: 7px;
+    letter-spacing: 0.1em;
+  }
+  .modern-showroom .hero-description {
+    display: none;
+  }
+  .modern-showroom .hero-actions {
+    margin-top: 20px;
+    gap: 18px;
+  }
+  .modern-showroom .hero-actions > a {
+    display: flex;
+    font-size: 10px;
+  }
+  .modern-showroom .hero-actions .button {
+    min-height: 44px;
+    padding: 11px 14px;
+    font-size: 10px;
+  }
+  .modern-showroom .hero-specification {
+    font-size: 9px;
+    margin-top: 14px;
+    gap: 10px;
+  }
+  .modern-showroom .hero-specification > span + span {
+    padding-left: 10px;
+  }
+  .modern-showroom .hero-photograph,
+  .modern-showroom .hero-photograph picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .modern-showroom .hero-image {
+    object-position: var(--hero-mobile-position, 50% 55%);
+    animation: none;
+  }
+  .modern-showroom .hero-shade {
+    display: block;
+    background: linear-gradient(
+      180deg,
+      #07142148,
+      transparent 43%,
+      transparent 72%,
+      #071421d9 100%
+    );
+  }
+  .modern-showroom .hero-dark .hero-shade {
+    background: linear-gradient(
+      180deg,
+      #f4eee552,
+      transparent 43%,
+      transparent 72%,
+      #ece7dbeb 100%
+    );
+  }
+  .modern-showroom .hero-bottom {
+    position: absolute;
+    bottom: 32px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    z-index: 2;
+  }
+  .modern-showroom .hero-switcher {
+    order: 1;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 6px;
+  }
+  .modern-showroom .hero-switcher button {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    gap: 6px;
+    min-height: 46px;
+    padding: 10px 7px;
+  }
+  .modern-showroom .hero-switcher button > span {
+    font-size: 7px;
+  }
+  .modern-showroom .hero-switcher button > strong {
+    font-size: 10px;
+    white-space: normal;
+  }
+  .modern-showroom .hero-car {
+    order: 0;
+    margin-left: 0;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .modern-showroom .hero-car > span:first-child {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    align-items: center;
+  }
+  .modern-showroom .hero-car small {
+    display: none;
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 6px;
+    text-align: right;
+  }
+  .modern-showroom .hero-car strong {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 20px;
+    order: 1;
+    white-space: nowrap;
+  }
+  .modern-showroom .hero-car span > span {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 1;
+    max-width: 190px;
+  }
+  .modern-showroom .hero-car .circle-arrow {
+    display: none;
+  }
+  .modern-showroom .hero-photo-note {
+    position: absolute;
+    bottom: 13px;
+    left: 12px;
+    right: 12px;
+    text-align: center;
+    font-size: 7px;
+    z-index: 2;
+  }
+
+  .modern-showroom .editorial-strip {
+    min-height: 125px;
+    padding-block: 26px;
+    gap: 16px;
+  }
+  .modern-showroom .editorial-strip > p {
+    font-size: 18px;
+  }
+  .modern-showroom .editorial-strip > p em {
+    font-size: 25px;
+  }
+  .modern-showroom .edition-stamp {
+    display: none;
+  }
+  .modern-showroom .collection {
+    padding-block: 48px;
+  }
+  .modern-showroom .section-heading h2 {
+    font-size: 38px;
+  }
+  .modern-showroom .section-heading h2 em {
+    font-size: 1.02em;
+    line-height: 1.1;
+  }
+  .modern-showroom .section-intro {
+    font-size: 12px;
+    max-width: 100%;
+    margin-top: 20px;
+  }
+  .modern-showroom .text-caption {
+    margin-top: 14px;
+  }
+  .modern-showroom .filters {
+    width: 100%;
+    gap: 6px;
+  }
+  .modern-showroom .filter {
+    font-size: 10px;
+    min-height: 42px;
+    padding: 10px 13px;
+  }
+  .modern-showroom .collection-toolbar {
+    gap: 14px;
+  }
+  .modern-showroom .collection-tools {
+    gap: 10px;
+  }
+  .modern-showroom .search-field {
+    padding-inline: 13px;
+  }
+  .modern-showroom .search-field input {
+    font-size: 16px;
+  }
+  .modern-showroom .collection-refinements {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    padding: 18px 0;
+  }
+  .modern-showroom .collection-refinements > span {
+    font-size: 10px;
+  }
+  .modern-showroom .collection-refinements > div {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .modern-showroom .collection-refinements label {
+    gap: 3px;
+    font-size: 11px;
+    display: block;
+  }
+  .modern-showroom .collection-refinements select {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+    font-size: 16px;
+    padding-right: 5px;
+    min-height: 44px;
+  }
+  .modern-showroom .vehicle-grid {
+    grid-template-columns: 1fr;
+    gap: 19px;
+  }
+  .modern-showroom .vehicle-image-wrap {
+    aspect-ratio: 1.7;
+  }
+  .modern-showroom .vehicle-info {
+    padding: 17px 17px 0;
+  }
+  .modern-showroom .vehicle-title h3 {
+    font-size: 27px;
+  }
+  .modern-showroom .vehicle-price {
+    font-size: 20px;
+  }
+  .modern-showroom .vehicle-version {
+    font-size: 11px;
+    min-height: 24px;
+  }
+  .modern-showroom .vehicle-specs {
+    font-size: 10px;
+    row-gap: 5px;
+    padding: 14px 0;
+  }
+  .modern-showroom .vehicle-link {
+    font-size: 11px;
+    padding-bottom: 18px;
+  }
+  .modern-showroom .collection-footer {
+    gap: 15px;
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: 25px;
+  }
+  .modern-showroom .collection-footer > p {
+    font-size: 10px;
+  }
+  .modern-showroom .essence {
+    margin: 12px 10px 0;
+  }
+  .modern-showroom .essence-photo {
+    min-height: 340px;
+  }
+  .modern-showroom .essence-copy {
+    padding: 35px 24px 40px;
+  }
+  .modern-showroom .essence-copy h2 {
+    font-size: 38px;
+  }
+  .modern-showroom .essence-copy > p {
+    font-size: 12px;
+  }
+  .modern-showroom .essence-signature {
+    margin-top: 30px;
+  }
+  .modern-showroom .experience {
+    padding-block: 48px;
+  }
+  .modern-showroom .experience-item {
+    padding: 23px;
+  }
+  .modern-showroom .experience-item h3 {
+    font-size: 25px;
+  }
+  .modern-showroom .bespoke-copy {
+    padding: 34px 24px;
+  }
+  .modern-showroom .bespoke-copy h2 {
+    font-size: 34px;
+  }
+  .modern-showroom .bespoke-image {
+    min-height: 320px;
+  }
+  .modern-showroom .faq-section {
+    padding-block: 50px;
+  }
+  .modern-showroom .faq-list summary {
+    font-size: 12px;
+    padding-right: 5px;
+    gap: 14px;
+  }
+  .modern-showroom .contact {
+    margin: 0 10px 10px;
+    padding-block: 38px;
+  }
+  .modern-showroom .contact .page-width {
+    width: calc(100% - 36px);
+  }
+  .modern-showroom .contact-copy h2 {
+    font-size: 45px;
+  }
+  .modern-showroom .contact-copy p {
+    font-size: 12px;
+  }
+  .modern-showroom .contact-grid {
+    gap: 30px;
+  }
+  .modern-showroom .inquiry-form {
+    padding: 22px 18px;
+  }
+  .modern-showroom .inquiry-form input:not([type="checkbox"]),
+  .modern-showroom .inquiry-form select,
+  .modern-showroom .inquiry-form textarea {
+    font-size: 16px;
+    min-height: 48px;
+  }
+  .modern-showroom .form-field label {
+    font-size: 12px;
+  }
+  .modern-showroom .form-consent label {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .modern-showroom .form-note {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .modern-showroom .section-intro,
+  .modern-showroom .essence-copy > p,
+  .modern-showroom .experience-item p,
+  .modern-showroom .bespoke-copy p,
+  .modern-showroom .contact-copy p {
+    font-size: 14px;
+  }
+  .modern-showroom .collection-refinements > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .modern-showroom .filter {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .modern-showroom .footer-utility {
+    gap: 16px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .modern-showroom .detail-photo {
+    min-height: 310px;
+  }
+  .modern-showroom .detail-content {
+    padding: 28px 23px;
+  }
+  .modern-showroom .detail-gallery {
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+  }
+  .modern-showroom .detail-photo > img {
+    padding-bottom: 75px;
+  }
+  .modern-showroom .dialog {
+    border-radius: 10px;
+  }
+}
+@media (max-width: 370px) {
+  .modern-showroom .page-width,
+  .modern-showroom .header-inner {
+    width: calc(100% - 32px);
+  }
+  .modern-showroom .brand-type {
+    font-size: 13px;
+  }
+  .modern-showroom .brand-type > span {
+    font-size: 5.4px;
+  }
+  .modern-showroom .hero .page-width {
+    width: calc(100% - 32px);
+  }
+  .modern-showroom .hero h1 {
+    font-size: 38px;
+  }
+  .modern-showroom .hero-eyebrow {
+    font-size: 6.5px;
+  }
+  .modern-showroom .hero-content {
+    padding-top: 24px;
+  }
+  .modern-showroom .hero-bottom {
+    gap: 6px;
+    bottom: 24px;
+  }
+  .modern-showroom .hero-photo-note {
+    bottom: 10px;
+  }
+  .modern-showroom .hero-specification {
+    display: none;
+  }
+  .modern-showroom .hero-actions {
+    gap: 14px;
+  }
+  .modern-showroom .hero-actions .button {
+    font-size: 9px;
+    padding-inline: 13px;
+    gap: 10px;
+  }
+  .modern-showroom .hero-switcher button {
+    padding-inline: 6px;
+    gap: 4px;
+  }
+  .modern-showroom .hero-switcher button > strong {
+    font-size: 9px;
+  }
+  .modern-showroom .hero-car span > span {
+    font-size: 12px;
+  }
+  .modern-showroom .hero-car strong {
+    font-size: 18px;
+  }
+  .modern-showroom .filter {
+    padding-inline: 11px;
+    font-size: 11px;
+  }
+  .modern-showroom .vehicle-title h3 {
+    font-size: 24px;
+  }
+  .modern-showroom .vehicle-price {
+    font-size: 18px;
+  }
+  .modern-showroom .vehicle-specs {
+    font-size: 9px;
+  }
+  .modern-showroom .vehicle-specs span + span:before {
+    margin-inline: 6px;
+  }
+  .modern-showroom .section-heading h2 {
+    font-size: 34px;
+  }
+  .modern-showroom .essence-copy h2 {
+    font-size: 34px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modern-showroom *,
+  .modern-showroom *::before,
+  .modern-showroom *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

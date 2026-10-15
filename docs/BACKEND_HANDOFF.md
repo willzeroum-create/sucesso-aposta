@@ -1,5 +1,7 @@
 # Continuação do projeto — backend e dashboard
 
+**Pedido atual (15/10/2026):** a direção escolhida é Editorial, com prioridade ao celular. O fluxo de criação de hero a partir da ficha da viatura e o limite de duas trocas semanais estão detalhados em [HERO-WORKFLOW.md](HERO-WORKFLOW.md). O documento abaixo preserva os contratos de integração.
+
 O nome **Sucesso Aposta** é provisório, retirado da pasta do projeto. A landing é a parte do Codex. Claude irá implementar o backend, a persistência, a autenticação, o dashboard e a geração privada dos fundos do hero.
 
 ## O que já está preparado

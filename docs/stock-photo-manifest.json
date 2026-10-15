@@ -1,0 +1,103 @@
+{
+  "checkedAt": "2026-10-15",
+  "purpose": "Biblioteca de fotografias para stock demonstrativo; não comprova a identidade das unidades dos proprietários.",
+  "transformations": "Nenhuma edição dos ficheiros descarregados nesta pesquisa.",
+  "vehicles": [
+    {
+      "id": "mustang-mach-e-red",
+      "model": "Ford Mustang Mach-E",
+      "color": "Vermelho",
+      "image": "/images/stock/mustang-mach-e-red-commons.jpg",
+      "width": 5944,
+      "height": 3553,
+      "source": "https://commons.wikimedia.org/wiki/File:2021_Mustang_Mach-E_Red_Ford.jpg",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/f/f2/2021_Mustang_Mach-E_Red_Ford.jpg",
+      "author": "MrWalkr",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "userImages": ["/images/stock/mustang-mach-e-red-user.jpg"],
+      "note": "Modelo regular com grelha fechada; fundo de evento. A unidade enviada pelo utilizador tem jantes diferentes."
+    },
+    {
+      "id": "peugeot-3008-grey",
+      "model": "Peugeot 3008 II Allure",
+      "color": "Cinzento",
+      "image": "/images/stock/peugeot-3008-allure-grey-commons.jpg",
+      "width": 3414,
+      "height": 1921,
+      "source": "https://commons.wikimedia.org/wiki/File:Peugeot_3008_BlueHDi_150_Allure_(II)_%E2%80%93_Frontansicht,_2._Dezember_2017,_D%C3%BCsseldorf.jpg",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/4/44/Peugeot_3008_BlueHDi_150_Allure_%28II%29_%E2%80%93_Frontansicht%2C_2._Dezember_2017%2C_D%C3%BCsseldorf.jpg",
+      "author": "M 93",
+      "attribution": "© M 93 / Wikimedia Commons",
+      "license": "CC BY-SA 3.0 DE",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en",
+      "userImages": ["/images/stock/peugeot-3008-grey-user.jpg"],
+      "note": "Carroçaria anterior ao facelift, pintura cinzenta, iluminação exterior escura."
+    },
+    {
+      "id": "nissan-qashqai-white",
+      "model": "Nissan Qashqai J11 facelift",
+      "color": "Branco",
+      "image": "/images/stock/nissan-qashqai-white-commons.jpg",
+      "width": 4565,
+      "height": 2350,
+      "source": "https://commons.wikimedia.org/wiki/File:2017-2018_Nissan_Qashqai_(J11)_ST-L_wagon_(2018-07-30)_01.jpg",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/8/87/2017-2018_Nissan_Qashqai_%28J11%29_ST-L_wagon_%282018-07-30%29_01.jpg",
+      "author": "EurovisionNim",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "userImages": ["/images/stock/nissan-qashqai-white-user.jpg"],
+      "note": "Versão ST-L do mercado australiano; jantes e equipamento não equivalem à unidade enviada."
+    },
+    {
+      "id": "peugeot-2008-blue",
+      "model": "Peugeot 2008 II",
+      "color": "Azul Vertigo",
+      "image": "/images/stock/peugeot-2008-blue-commons.jpg",
+      "width": 3236,
+      "height": 1852,
+      "source": "https://commons.wikimedia.org/wiki/File:2023_Peugeot_2008_in_Vertigo_Blue,_front_left,_06-08-2025.jpg",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/f/f7/2023_Peugeot_2008_in_Vertigo_Blue%2C_front_left%2C_06-08-2025.jpg",
+      "author": "Cutlass",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "userImages": ["/images/stock/peugeot-2008-blue-user.jpg"],
+      "note": "Frente anterior ao facelift, grelha preta e cor azul próximas da referência."
+    },
+    {
+      "id": "polestar-2-thunder",
+      "model": "Polestar 2",
+      "color": "Thunder (cinzento azulado)",
+      "image": "/images/stock/polestar-2-thunder-commons.jpg",
+      "width": 3910,
+      "height": 2083,
+      "source": "https://commons.wikimedia.org/wiki/File:2022_Polestar_2_in_Thunder,_Front_Right,_08-04-2022.jpg",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/f/f4/2022_Polestar_2_in_Thunder%2C_Front_Right%2C_08-04-2022.jpg",
+      "author": "Elise240SX",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "userImages": ["/images/stock/polestar-2-front-user.jpg", "/images/stock/polestar-2-rear-user.jpg"],
+      "note": "Grelha preta anterior à atualização de 2024. Pintura semelhante, mais clara sob a luz exterior."
+    },
+    {
+      "id": "mustang-mach-e-silver",
+      "model": "Ford Mustang Mach-E Premium",
+      "color": "Prateado",
+      "image": "/images/stock/mustang-mach-e-silver-commons.jpg",
+      "width": 3006,
+      "height": 1737,
+      "source": "https://commons.wikimedia.org/wiki/File:2021_Ford_Mustang_Mach-E_Premium,_front_left,_12-17-2022.jpg",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/e/ef/2021_Ford_Mustang_Mach-E_Premium%2C_front_left%2C_12-17-2022.jpg",
+      "author": "MercurySable99",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "userImages": ["/images/stock/mustang-mach-e-silver-user.jpg", "/images/stock/mustang-mach-e-silver-front-user.jpg"],
+      "note": "Iconic Silver, modelo regular. Versão de mercado norte-americano."
+    }
+  ],
+  "userImageProvenance": {
+    "source": "Oito anexos fornecidos pelo utilizador no pedido de 2026-10-15.",
+    "license": "Não declarada; não presumir Creative Commons nem autoria do utilizador.",
+    "archive": "docs/references/"
+  }
+}

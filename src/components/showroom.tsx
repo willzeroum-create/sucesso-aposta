@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import {
   ArrowDown,
   ArrowRight,
@@ -13,10 +13,61 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  Zap,
   X,
 } from "lucide-react";
 import type { CatalogData, Vehicle } from "@/lib/contracts";
 import { InquiryForm } from "@/components/inquiry-form";
+import photoCredits from "@/data/photo-credits.json";
+import "./showroom-modern.css";
+
+const photoReferenceIds: Record<string, string> = {
+  "demo-mustang-red": "mustang-mach-e-red",
+  "demo-mustang-silver": "mustang-mach-e-silver",
+  "demo-peugeot-3008": "peugeot-3008-grey",
+  "demo-peugeot-2008": "peugeot-2008-blue",
+  "demo-nissan-qashqai": "nissan-qashqai-white",
+  "demo-polestar-2": "polestar-2-thunder",
+};
+
+function HeroPhotograph({
+  desktop,
+  mobile,
+  alt,
+}: {
+  desktop: string;
+  mobile: string;
+  alt: string;
+}) {
+  const shared = {
+    alt,
+    sizes: "100vw",
+    loading: "eager" as const,
+    fetchPriority: "high" as const,
+  };
+  const { props: desktopProps } = getImageProps({
+    ...shared,
+    src: desktop,
+    width: 1920,
+    height: 1080,
+  });
+  const { props: mobileProps } = getImageProps({
+    ...shared,
+    src: mobile,
+    width: 900,
+    height: 1200,
+  });
+  return (
+    <picture>
+      <source
+        media="(max-width: 800px)"
+        srcSet={mobileProps.srcSet}
+        sizes="100vw"
+      />
+      <img {...desktopProps} className="hero-image" />
+    </picture>
+  );
+}
 
 const currency = new Intl.NumberFormat("pt-PT", {
   style: "currency",
@@ -83,7 +134,7 @@ function Dialog({
     return () => {
       dialog?.close();
       document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
+      previousFocus?.focus({ preventScroll: true });
     };
   }, []);
   return (
@@ -116,10 +167,13 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
+  const [budget, setBudget] = useState("all");
+  const [sort, setSort] = useState("selection");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [favoritesReady, setFavoritesReady] = useState(false);
   const [detail, setDetail] = useState<Vehicle | null>(null);
+  const [detailImage, setDetailImage] = useState(0);
   const [selectedVehicle, setSelectedVehicle] = useState<{
     id: string;
     name: string;
@@ -127,6 +181,17 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
   const [legalOpen, setLegalOpen] = useState(false);
   const slide = heroSlides[activeHero] ?? heroSlides[0];
   const featured = vehicles.find((v) => v.id === slide?.vehicleId);
+  const isIllustrative = (v?: Vehicle) =>
+    source === "demo" || Boolean(v?.highlight?.startsWith("Demonstração"));
+  const hasExamples = source === "demo" || vehicles.some(isIllustrative);
+  const detailReference =
+    detail && isIllustrative(detail)
+      ? photoCredits.vehicles.find((p) => p.id === photoReferenceIds[detail.id])
+      : undefined;
+  const detailPhotos = detail
+    ? [detail.image, ...(detailReference?.userImages ?? [])]
+    : [];
+  useEffect(() => setDetailImage(0), [detail?.id]);
 
   useEffect(() => {
     try {
@@ -176,12 +241,19 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
   const normalizedQuery = query.trim().toLocaleLowerCase("pt-PT");
   const filtered = vehicles.filter(
     (v) =>
-      (category === "all" || v.category === category) &&
+      (category === "all" ||
+        (category === "electric"
+          ? v.fuel === "electric"
+          : v.category === category)) &&
+      (budget === "all" || v.priceEur <= Number(budget)) &&
       (!favoritesOnly || favorites.includes(v.id)) &&
       `${v.make} ${v.model} ${v.version}`
         .toLocaleLowerCase("pt-PT")
         .includes(normalizedQuery),
   );
+  if (sort === "price-asc") filtered.sort((a, b) => a.priceEur - b.priceEur);
+  if (sort === "price-desc") filtered.sort((a, b) => b.priceEur - a.priceEur);
+  if (sort === "year") filtered.sort((a, b) => b.year - a.year);
 
   function enquire(vehicle?: Vehicle) {
     setDetail(null);
@@ -191,14 +263,11 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
         : undefined,
     );
     requestAnimationFrame(() => {
-      document
-        .getElementById("contacto")
-        ?.scrollIntoView({
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
-            .matches
-            ? "instant"
-            : "smooth",
-        });
+      document.getElementById("contacto")?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+      });
       document
         .querySelector<HTMLInputElement>('#contacto input[name="fullName"]')
         ?.focus({ preventScroll: true });
@@ -206,11 +275,11 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
   }
 
   return (
-    <>
+    <div className="modern-showroom" id="inicio">
       <a className="skip-link" href="#conteudo">
         Saltar para o conteúdo
       </a>
-      <header className="site-header" id="inicio">
+      <header className="site-header">
         <div className="header-inner">
           <Wordmark name={site.name} />
           <nav
@@ -263,16 +332,15 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
             }
           >
             <div className="hero-photograph" key={slide.id}>
-              <picture>
-                <source media="(max-width: 600px)" srcSet={slide.imageMobile} />
-                {/* Fotografia e enquadramento pertencem ao destaque, não ao layout. */}
-                <img
-                  className="hero-image"
-                  src={slide.imageDesktop}
-                  alt={featured?.imageAlt ?? "Automóvel em destaque"}
-                  fetchPriority="high"
-                />
-              </picture>
+              <HeroPhotograph
+                desktop={slide.imageDesktop}
+                mobile={slide.imageMobile}
+                alt={
+                  featured
+                    ? `${featured.make} ${featured.model} — imagem de apresentação`
+                    : "Automóvel em destaque"
+                }
+              />
             </div>
             <div className="hero-shade" />
             <div className="hero-content page-width" key={`${slide.id}-copy`}>
@@ -285,9 +353,32 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                 <em>{slide.headlineAccent}</em>
               </h1>
               <p className="hero-description">{slide.description}</p>
-              <a className="button button-light" href="#colecao">
-                Descobrir a coleção <ArrowUpRight size={18} />
-              </a>
+              <div className="hero-actions">
+                <button
+                  className={`button ${slide.textTone === "dark" ? "button-primary" : "button-light"}`}
+                  onClick={() => featured && setDetail(featured)}
+                  disabled={!featured}
+                >
+                  Conhecer a viatura <ArrowUpRight size={18} />
+                </button>
+                <a href="#colecao">
+                  Ver coleção <ArrowDown size={16} />
+                </a>
+              </div>
+              {featured && (
+                <div className="hero-specification">
+                  <span>
+                    {featured.fuel === "electric" ? (
+                      <Zap size={15} />
+                    ) : (
+                      <Gauge size={15} />
+                    )}
+                    {fuels[featured.fuel]}
+                  </span>
+                  <span>{featured.powerHp} cv</span>
+                  <span>{featured.year}</span>
+                </div>
+              )}
             </div>
             <div className="hero-bottom page-width">
               <div
@@ -299,11 +390,19 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                     key={item.id}
                     className={index === activeHero ? "is-active" : ""}
                     onClick={() => setActiveHero(index)}
-                    aria-label={`Destaque ${index + 1}: ${vehicles.find((v) => v.id === item.vehicleId)?.make ?? "viatura"}`}
+                    aria-label={`Destaque ${index + 1}: ${vehicles.find((v) => v.id === item.vehicleId)?.make ?? "viatura"} ${vehicles.find((v) => v.id === item.vehicleId)?.model ?? ""}`}
                     aria-pressed={index === activeHero}
                   >
                     <span>{String(index + 1).padStart(2, "0")}</span>
-                    <i />
+                    <strong>
+                      {vehicles.find((v) => v.id === item.vehicleId)?.make ===
+                      "Polestar"
+                        ? "Polestar 2"
+                        : (vehicles
+                            .find((v) => v.id === item.vehicleId)
+                            ?.model.replace("Mustang ", "") ?? "Viatura")}
+                    </strong>
+                    <ArrowUpRight size={16} />
                   </button>
                 ))}
               </div>
@@ -313,11 +412,15 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                   onClick={() => setDetail(featured)}
                 >
                   <span>
-                    <small>NESTA EDIÇÃO</small>
-                    <strong>
+                    <small>
+                      {isIllustrative(featured)
+                        ? "PREÇO ILUSTRATIVO"
+                        : "EM DESTAQUE"}
+                    </small>
+                    <strong>{currency.format(featured.priceEur)}</strong>
+                    <span>
                       {featured.make} {featured.model}
-                    </strong>
-                    <span>{featured.version}</span>
+                    </span>
                   </span>
                   <span className="circle-arrow">
                     <ArrowUpRight size={23} />
@@ -333,9 +436,9 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                 <ArrowDown size={16} />
               </a>
             </div>
-            {source === "demo" && (
+            {isIllustrative(featured) && (
               <span className="hero-photo-note">
-                Fotografia ilustrativa · seleção demonstrativa
+                Imagem de apresentação · dados fictícios
               </span>
             )}
           </section>
@@ -343,14 +446,17 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
 
         <div className="editorial-strip page-width">
           <p>
-            O automóvel certo sente-se.
+            Uma escolha com presença.
             <br />
-            <em>Em cada detalhe.</em>
+            <em>Em todos os sentidos.</em>
           </p>
           <div>
-            <span>DESIGN QUE INSPIRA.</span>
-            <span>ESCOLHAS COM PERSONALIDADE.</span>
-            <span>O PRAZER DE IR MAIS LONGE.</span>
+            <span>
+              <Zap size={17} /> ELÉTRICOS & OUTRAS POSSIBILIDADES
+            </span>
+            <span>
+              <Heart size={17} /> ESCOLHIDOS PARA SI
+            </span>
           </div>
           <span className="edition-stamp">
             A PRIMEIRA
@@ -368,9 +474,9 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                   <span className="tiny-square" /> A NOSSA SELEÇÃO
                 </span>
                 <h2>
-                  Extraordinários.
+                  O próximo é seu.
                   <br />
-                  <em>Cada um à sua maneira.</em>
+                  <em>Encontre a sua combinação.</em>
                 </h2>
               </div>
               <div className="section-intro">
@@ -379,9 +485,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                   descoberta começa aqui.
                 </p>
                 <span className="text-caption">
-                  {source === "demo"
-                    ? "COLEÇÃO DEMONSTRATIVA"
-                    : "EXPLORE A COLEÇÃO"}{" "}
+                  {hasExamples ? "COLEÇÃO DEMONSTRATIVA" : "EXPLORE A COLEÇÃO"}{" "}
                   <ArrowDown size={15} />
                 </span>
               </div>
@@ -390,9 +494,14 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
               <div className="filters" aria-label="Filtrar tipo de viatura">
                 {[
                   { id: "all", label: "Todos" },
-                  { id: "coupe", label: "Desportivos" },
-                  { id: "saloon", label: "Berlinas" },
+                  { id: "electric", label: "Elétricos" },
                   { id: "suv", label: "SUV" },
+                  ...(vehicles.some((v) => v.category === "saloon")
+                    ? [{ id: "saloon", label: "Berlinas" }]
+                    : []),
+                  ...(vehicles.some((v) => v.category === "coupe")
+                    ? [{ id: "coupe", label: "Desportivos" }]
+                    : []),
                   ...(vehicles.some((v) => v.category === "estate")
                     ? [{ id: "estate", label: "Carrinhas" }]
                     : []),
@@ -444,8 +553,47 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                 </button>
               </div>
             </div>
+            <div className="collection-refinements">
+              <span>
+                <strong>{String(filtered.length).padStart(2, "0")}</strong>{" "}
+                {filtered.length === 1
+                  ? "viatura para descobrir"
+                  : "viaturas para descobrir"}
+              </span>
+              <div>
+                <label>
+                  Orçamento{" "}
+                  <select
+                    aria-label="Preço máximo"
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                  >
+                    <option value="all">Todos os preços</option>
+                    <option value="25000">Até 25 000 €</option>
+                    <option value="35000">Até 35 000 €</option>
+                    <option value="45000">Até 45 000 €</option>
+                  </select>
+                </label>
+                <label className="sort-label">
+                  Ordenar{" "}
+                  <select
+                    aria-label="Ordenar viaturas"
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                  >
+                    <option value="selection">A nossa seleção</option>
+                    <option value="price-asc">Preço crescente</option>
+                    <option value="price-desc">Preço decrescente</option>
+                    <option value="year">Mais recentes</option>
+                  </select>
+                </label>
+              </div>
+            </div>
             <p className="sr-only" role="status">
-              {filtered.length} viaturas encontradas
+              {filtered.length}{" "}
+              {filtered.length === 1
+                ? "viatura encontrada"
+                : "viaturas encontradas"}
               {favoritesOnly ? " nos favoritos" : ""}.
             </p>
             <div className="vehicle-grid">
@@ -470,7 +618,9 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                         ? vehicle.status === "sold"
                           ? "Vendido"
                           : "Reservado"
-                        : (vehicle.highlight ?? categories[vehicle.category])}
+                        : isIllustrative(vehicle)
+                          ? "Exemplo de stock"
+                          : (vehicle.highlight ?? categories[vehicle.category])}
                     </span>
                     <button
                       className={`favorite-button ${favorites.includes(vehicle.id) ? "is-favorite" : ""}`}
@@ -497,7 +647,9 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                         <span className="vehicle-make">{vehicle.make}</span>
                         <h3>
                           <button onClick={() => setDetail(vehicle)}>
-                            {vehicle.model}
+                            {vehicle.make === "Polestar"
+                              ? "Polestar 2"
+                              : vehicle.model}
                           </button>
                         </h3>
                       </div>
@@ -545,6 +697,8 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                     setCategory("all");
                     setQuery("");
                     setFavoritesOnly(false);
+                    setBudget("all");
+                    setSort("selection");
                   }}
                 >
                   Explorar todas as viaturas <ArrowRight size={17} />
@@ -553,7 +707,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
             )}
             <div className="collection-footer">
               <p>
-                {source === "demo"
+                {hasExamples
                   ? "Modelos, preços e características apresentados como exemplo. Não constituem uma oferta de venda."
                   : "Disponibilidade e características sujeitas a confirmação."}
               </p>
@@ -728,10 +882,9 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
               },
               {
                 question: "Os automóveis e os preços apresentados são reais?",
-                answer:
-                  source === "demo"
-                    ? "Esta é a primeira versão do projeto. As fotografias são ilustrativas e o catálogo, os preços e as características são demonstrativos. O stock real será disponibilizado após a ligação ao sistema de gestão."
-                    : "A coleção é apresentada a partir do catálogo do stand. Confirme sempre a disponibilidade, o preço e os equipamentos da viatura com a equipa antes de tomar uma decisão.",
+                answer: hasExamples
+                  ? "As viaturas marcadas como exemplo usam preços, quilometragens e características fictícios. As fotografias pesquisadas representam modelos semelhantes e as capas incluem cenários compostos. Os responsáveis pelo stand podem substituir todos estes dados e fotografias no painel antes de os apresentar como stock real."
+                  : "A coleção é apresentada a partir do catálogo do stand. Confirme sempre a disponibilidade, o preço e os equipamentos da viatura com a equipa antes de tomar uma decisão.",
               },
             ].map((faq, index) => (
               <details key={faq.question}>
@@ -821,9 +974,15 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
               {source === "demo" &&
                 " Nome provisório · projeto em demonstração."}
             </span>
-            <button onClick={() => setLegalOpen(true)}>
-              Privacidade & informações
-            </button>
+            <div className="footer-utility">
+              <a href="/creditos">Fotografias & créditos</a>
+              <a href="/painel/site">
+                Área do stand <ArrowUpRight size={13} />
+              </a>
+              <button onClick={() => setLegalOpen(true)}>
+                Privacidade & informações
+              </button>
+            </div>
           </div>
         </div>
       </footer>
@@ -837,18 +996,41 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
           <div className="vehicle-detail">
             <div className="detail-photo">
               <Image
-                src={detail.image}
-                alt={detail.imageAlt}
+                src={detailPhotos[detailImage] ?? detail.image}
+                alt={
+                  detailImage === 0
+                    ? detail.imageAlt
+                    : `${detail.make} ${detail.model} — referência enviada, vista ${detailImage}`
+                }
                 fill
                 sizes="(max-width: 750px) 95vw, 540px"
               />
-              {source === "demo" && <span>FOTOGRAFIA ILUSTRATIVA</span>}
+              {isIllustrative(detail) && <span>FOTOGRAFIA DE REFERÊNCIA</span>}
+              {detailPhotos.length > 1 && (
+                <div
+                  className="detail-gallery"
+                  aria-label="Fotografias da viatura"
+                >
+                  {detailPhotos.map((photo, i) => (
+                    <button
+                      key={photo}
+                      aria-label={`Ver fotografia ${i + 1}`}
+                      aria-pressed={detailImage === i}
+                      onClick={() => setDetailImage(i)}
+                    >
+                      <Image src={photo} alt="" width={84} height={60} />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="detail-content">
               <span className="eyebrow">
                 {categories[detail.category]} · {detail.make}
               </span>
-              <h2>{detail.model}</h2>
+              <h2>
+                {detail.make === "Polestar" ? "Polestar 2" : detail.model}
+              </h2>
               <p>{detail.version}</p>
               <strong className="detail-price">
                 {currency.format(detail.priceEur)}
@@ -881,7 +1063,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                 <div>
                   <dt>Estado</dt>
                   <dd>
-                    {source === "demo"
+                    {isIllustrative(detail)
                       ? "Demonstrativo"
                       : detail.status === "available"
                         ? "Disponível"
@@ -891,10 +1073,31 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                   </dd>
                 </div>
               </dl>
-              {source === "demo" && (
+              {isIllustrative(detail) && (
                 <p className="detail-disclaimer">
                   Exemplo de apresentação. Preço e características fictícios;
                   não corresponde a uma viatura disponível para venda.
+                </p>
+              )}
+              {detailReference && (
+                <p className="detail-photo-credit">
+                  Fotografia de referência:{" "}
+                  <a
+                    href={detailReference.source}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {detailReference.author}
+                  </a>{" "}
+                  ·{" "}
+                  <a
+                    href={detailReference.licenseUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {detailReference.license}
+                  </a>
+                  . Outras vistas fornecidas pelo cliente.
                 </p>
               )}
               <button
@@ -971,6 +1174,6 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
           </div>
         </Dialog>
       )}
-    </>
+    </div>
   );
 }

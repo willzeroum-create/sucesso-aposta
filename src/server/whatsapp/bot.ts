@@ -454,7 +454,7 @@ export async function handleMessage(msg: Incoming & { fileId?: string }): Promis
     return;
   }
   if (reply === "menu:stock" || /^stock$/i.test(text)) {
-    const rows = await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)` }).from(schema.vehicles).groupBy(schema.vehicles.status);
+    const rows = await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)::int` }).from(schema.vehicles).groupBy(schema.vehicles.status);
     const n = (s: string) => Number(rows.find((r) => r.status === s)?.n ?? 0);
     await send(phone, { text: `📊 Stock\nEm preparação: ${n("preparation")}\nDisponíveis: ${n("available")}\nReservadas: ${n("reserved")}\nVendidas: ${n("sold")}` });
     return;

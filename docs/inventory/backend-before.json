@@ -1,0 +1,346 @@
+[
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\admin.css",
+    "Hash": "EEA4955089AD7F5FAE650286763A6429BC530FFAA136DA37C133DEF5477D7144"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\layout.tsx",
+    "Hash": "B2CD6CD88E06A66319602C1823B7AF78602E836C00A2047C927CD1F94856C089"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\layout.tsx",
+    "Hash": "7BAC41C9A5D2FBD0B14C551F3200A42B6891301A42927AF5227E5D8293C3636A"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\page.tsx",
+    "Hash": "4E5E1B47CBCD2BF1AE0C722465F95AFB56AB81F990BBC3272B309C2091324F0C"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\anuncios\\page.tsx",
+    "Hash": "0D3D140E363C101A973A21C6085DBDA63427AA7DA9DF5B8FBBA6560F9A2ECC1D"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\atividade\\page.tsx",
+    "Hash": "95C3E39B578F877A511E47AEF225F0A94B13D03E78D8077B9CDEC0A2D9D2E161"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\clientes\\page.tsx",
+    "Hash": "49BF96190DD16FB074CDEE5AC5D74C50EC2D835239741AD2166A32D68CEB887C"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\clientes\\novo\\page.tsx",
+    "Hash": "91CE12245B35FDFDDEDD446DF7CE55056D63B238BAE786E10FFA55764A29AB39"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\clientes\\[id]\\page.tsx",
+    "Hash": "6197AC4910F2D87C8CF3A85E73319898B33909321E8EA2C2E6E592EA6F43A509"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\configuracoes\\page.tsx",
+    "Hash": "252989CC7CBB9F2771EBBAF430CEF37CE3B8E886A38FAF8F87256A75C27C7C56"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\conta\\page.tsx",
+    "Hash": "4FC36E93F7EB8B3A58D89F1A6A7602AAD3CED32F30D56CE70911FA1E1133F8B1"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\crm\\page.tsx",
+    "Hash": "7D7DB9E465E760E117F46F2C6955FC7482D12E66E71CC0B4B86F999DB3BA70D4"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\crm\\[id]\\page.tsx",
+    "Hash": "5AA5151D045C5A0E7F31E4E854D77C5F440465F6BA441D612AB8FF789AC0699B"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\equipa\\page.tsx",
+    "Hash": "F311D06CCC41EE486560CAC74811BE44602A49888D0002F8C21BF9214261615F"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\site\\page.tsx",
+    "Hash": "8D50E0810F2CE527BBA12CFFFC0EC32FB9DC4487DBEB76EE6196593BA7D5B5DA"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\termos\\page.tsx",
+    "Hash": "7681FDDEC1119E848BDD6D2D7A79EDBF90BE211D88D9C36BEF16D98AF415BFD4"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\viaturas\\page.tsx",
+    "Hash": "180071AA4858354952B4FD39F83555C60CF35621A548CF858735B5BD01B6166D"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\viaturas\\nova\\page.tsx",
+    "Hash": "1E24BBE458307ED2F42082C71746B708B7FC030FBA58B1BA3D18AC10CF8AA3A3"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\viaturas\\[id]\\page.tsx",
+    "Hash": "77BED175222BE53156ABE0949516CEE783CA74545B16D800F6D87529873B0D7F"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\entrar\\login-form.tsx",
+    "Hash": "55E65448775ED53BD2807EC5AA2B3B35668AEA73A6EB7147170FA74B542EAB54"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\entrar\\page.tsx",
+    "Hash": "5ED8C8A2EADA58DE21C7636D44961D9BF75F2AC8D2CCA500D67C3D4B97DE1AFA"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\sem-acesso\\page.tsx",
+    "Hash": "8470A05BE971D3B0B047FE0F2830CAAEB8702555C7DCF58C976061C7128E01A3"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\auth.ts",
+    "Hash": "F6516B476954D8B54ED8B066CD8E847860270963652D3D000F85C7667A89D9F6"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\customers.ts",
+    "Hash": "69A13CF1452023D0C11769AAAFA6DCAFDE0D33E58CD97BC51DAAEA18F6F36828"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\forms.ts",
+    "Hash": "05287D14AB203C1B0ECAD0A7BF3F92C7461313D42F142DED2BB5F25EE9D97E2A"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\leads.ts",
+    "Hash": "7FB2EFCBECCA7FA797FF3FD0DF2893ABE7B1DF84310FD07E1BA4966097877E52"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\sales.ts",
+    "Hash": "51A1EEB69C9847B7EF56484C07047C8AD8DC6E13C91588CAED784D384050D92D"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\site.ts",
+    "Hash": "414780CBB9A22CD49332D180798DDFB92CA3631F7A5AE1E2BB349B908B9CFB89"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\team.ts",
+    "Hash": "EA711F87C1356A1614E4CCFB1A16B1B2E0E35942E4C9B7BD46CBC1BC9C45FEBA"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\vehicles.ts",
+    "Hash": "425B9088AD359BEAD0A12CF8E7858E6B9517643D6344EE5EDFB647213782FA08"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\api\\admin\\ai\\read\\route.ts",
+    "Hash": "FD7FD0D9BF92DB409A9DB1E5A3EC266DFC6ACAAD048BBBCA551640F10C1F8440"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\api\\admin\\documents\\route.ts",
+    "Hash": "46D8EBBD413C39DF73B9F92BE2B5081217E243AC9B41623586C2BDFCE33B9C8E"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\api\\admin\\files\\[id]\\route.ts",
+    "Hash": "11F6E34289B46C67B625053650B5249A64F56332C44B86837DACBB595B985B93"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\api\\admin\\templates\\[id]\\route.ts",
+    "Hash": "A8EFAE7908C161E383954100013FA8DB80ED8DCFDFF7D98A92446CB3D5F7515D"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\api\\admin\\vehicles\\[id]\\photos\\route.ts",
+    "Hash": "32D583A6AFE3F600AFB6B9ECD51F0BD0D9B578178FB3C4BDEB6793EA9E8E6FC5"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\api\\leads\\route.ts",
+    "Hash": "1AE4122FDE022B63A5DE0A3407066A1A95CAA9A588673DE4B91F3CB2E2F5CE58"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\api\\public\\catalog\\route.ts",
+    "Hash": "53D09BAC4738438FF25563EFBF08E0D431823B6E8F3C09B9A4C9BC0EF8B92AD1"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\media\\[...key]\\route.ts",
+    "Hash": "6D34CE004952AC831B1E36F21B8A5F70E8465D740F96EE7E0371F288B396E22F"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\action.ts",
+    "Hash": "5872EE79C2F4BA0F9A3DF6524F72F817D76703B4A3CF3BBCD32A3ED78AD1CA68"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\ads.ts",
+    "Hash": "A8A598B5816083A8D532CCD5EB9F8E69360049F65145E45D5EADACB0F3783DA6"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\audit.ts",
+    "Hash": "AF34776D713E04B0FFFB89BDCBF615FF88875C02A855A7441D2DE92918D6BDAC"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\docx-template.ts",
+    "Hash": "4445CBFF5D4D92A58D479DAA7312B113CB86AC80353CF8F6CE8396B698F04057"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\forms.ts",
+    "Hash": "653E9D5B920A40D7F618D0B6429227F1E94106658C4F7E913061686707D62FEA"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\http.ts",
+    "Hash": "C2445D8E91588D4B4E8DB2DDBA6A8D5D981651A5AAAA0AB4DBCEC36629611E79"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\ids.ts",
+    "Hash": "BF2A1EAE9EBCD4CAF67E4D1577090A491D5582C46C58588E66F998383D882CAD"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\leads.ts",
+    "Hash": "1B49D820F5125949A68D0524584FB45F485E14EDEC26BEF97455530B6C930F0F"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\public-catalog.ts",
+    "Hash": "DDC09C3435C9DDF823C094393D4DF0220609EDA29F29ABDF1EA9BDEA43FB2C43"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\queries.ts",
+    "Hash": "B6D97A0B851844FD683B0E76D250116FCAFEB599E3263F7A153F6F11EDA69EE7"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\rate-limit.ts",
+    "Hash": "6B5A538C125F70BDA513077648ACFDAF763AF7021A8B0F02AD103FA3A10F4857"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\settings.ts",
+    "Hash": "9E4091E7F428D842261F993F1FD1A1A6C30531DF215E37F09ED2113B9F87BBCD"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\storage.ts",
+    "Hash": "22D8284FAC15E9A60EDD4F85E4F6DD38D0CF4763EC725AC2BBEF0D5640EE6A7E"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\vin.ts",
+    "Hash": "CC120A32DD19CCB5D8897F1F34A0524279900677581653ECF7EE49B946DB3A7B"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\ai\\documents.ts",
+    "Hash": "CA8D363CCBD27611A96C2638BC2497484F3A034154A8766E90E4566A28F68A3C"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\ai\\provider.ts",
+    "Hash": "C49586CFEB59E6948ADB15F7FE14F61C7AEA7678AB1DB641E8284FFF3E2C45EE"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\auth\\password.ts",
+    "Hash": "C625D90C2AF125C283BCC93545115984D768C7FA8A259DD9CD735B6756352264"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\auth\\permissions.ts",
+    "Hash": "3CA7638DA5C6AE0EC626122A9A3410486B04920954F7F9642D2B24BC92B9AA3C"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\auth\\session.ts",
+    "Hash": "B36E3E5FE4B18EFFEC33AB822DA68E07F412F244EC9CF78903AD00881881EC57"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\db\\client.ts",
+    "Hash": "91B30FD61106AE476487C1D49A3A48D9D950D10543B781C3D67EFD2AB22EB969"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\db\\config.ts",
+    "Hash": "BCF3F948E59DA71A3D6D698EB7EB28CA0C98437AA89B0A9DBED1BBCAF161C94D"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\db\\index.ts",
+    "Hash": "A1378CDF9D4432D04971EA99BBC684A520FB3A2B7D9C94A5B1CD71432837C9F1"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\db\\schema.ts",
+    "Hash": "3904BC30B89A4117E3BF421EAD888B87A30B3D028CE812A98DE9769D81426757"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\drizzle\\0000_init.sql",
+    "Hash": "7043595F5A8E36DC900FF8354EA2B777C963EA988D4989C5E476D30707737E5F"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\drizzle\\meta\\_journal.json",
+    "Hash": "35BF1577728229D43E440DE1C0987F6DFDFB930F9D98960F48FC54AD23B06CD2"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\drizzle\\meta\\0000_snapshot.json",
+    "Hash": "3E27C6EDDF6C6388A0757D856EACF122236351E457F601FCBB008F26768179C6"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\scripts\\create-admin.mts",
+    "Hash": "C7F324875DFE12410071B89289B08449C295B4A87BB746DF93E3DEA91E0AB7A8"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\scripts\\migrate.mts",
+    "Hash": "1E94BFB4ACA05515CCFB77ACBC193291D32AB922601893AB301885E4A52E2C38"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\lib\\catalog.ts",
+    "Hash": "F433758B4FC7CDF7464047DB5D4A65EAB700EDA23D69B36EC80275D3317E5C09"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\lib\\contracts.ts",
+    "Hash": "BBD189E928A70EDB225D9050A7C3DCEFC20FC449CA626C51C30EE5D980A58782"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\ai-reader.tsx",
+    "Hash": "9320CB628887EB2D721FC8F7DB6A9899AC343477A4FDBD890F3507F8B21C5829"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\customer-form.tsx",
+    "Hash": "1473CAB987FD393F4F11C7E292B9917F91C2D9285BF0426E21AD2C226168A2DD"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\delete-customer.tsx",
+    "Hash": "D632B0E71EFB183B3554FBDCCD524D3B8648252449A70DDAE56E9C3A9548B8B1"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\delete-vehicle.tsx",
+    "Hash": "B5C0D4D8CC4F3D765CB9A9DB9CE585DDAF5D311225C059BFDB59F9B702E6DD72"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\documents-panel.tsx",
+    "Hash": "BB0C2EBE6EE05CE917162880490AA861CAF7BAA59F77539F7ABBFC81E7E942E0"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\form-generator.tsx",
+    "Hash": "E8B89C832A025725532B2AC19CBA2F43C21F7FCA8A18BB28E8F4E0E08A2ADB51"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\lead-panel.tsx",
+    "Hash": "20ED5A48078979ED068669315F296E4629C2CCD823179933DDE743960DDAAC4E"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\password-form.tsx",
+    "Hash": "0E265A538F90A44F9F66C214CD6AD467EB9DF546428B4419CB68916B7B69FEDB"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\photo-manager.tsx",
+    "Hash": "6CF20D49027E63BBF21C43ECFA7FC9EE1E39B1D9D7D620BC437722858763B79B"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\sale-panel.tsx",
+    "Hash": "CB11369AF063C04D62B9043DA6BD0908D6CEC84425BD8780517841EF1BD7B4D7"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\settings-forms.tsx",
+    "Hash": "E7EA6D09DB889D3A7447A1048A0834D64549997AE774EC692B2D68C3CB731FE1"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\sidebar.tsx",
+    "Hash": "94250088CF91935B29D9B9E2187E96C3905F22B38DFEB9E8DC17ABB2365BD1A4"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\site-forms.tsx",
+    "Hash": "07E29F06CA0DCE023AA0F1BC27F05A006CCAA1025F0750EFE7BE3EC61E85847E"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\status-track.tsx",
+    "Hash": "92C7DF75F2F68BB3C7E26AAD0B22243DE3338E3EB327D526188D6D8667950109"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\team-manager.tsx",
+    "Hash": "27CCE8A916C92021AE5E3A7E6838D8ABE5EE6AED69FFEF5FBDBF409672800589"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\ui.tsx",
+    "Hash": "BA30AB9A4210E25E14BE0A893CCA8C60B2042783AB769B699A198A01C39205CF"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\upload.ts",
+    "Hash": "AAD17ED687CE325B072878B1D7AE47D5FEFBCE7E7A2EFAE7CD8B6E41B22AF32C"
+  },
+  {
+    "Path": "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\components\\painel\\vehicle-form.tsx",
+    "Hash": "521850FDFBCD7DDE8A3EBD37E0216C0370D3F10474B5C3B4BFE2DEFA9BF99568"
+  }
+]

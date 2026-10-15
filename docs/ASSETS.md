@@ -1,5 +1,11 @@
 # Fotografias e créditos
 
+## Atualização de 15/10/2026
+
+A landing Editorial atual usa a coleção documentada em `STOCK_PHOTO_SOURCES.md` e `stock-photo-manifest.json`, fotografias fornecidas pelo utilizador e seis composições ilustrativas geradas para o hero (três carros, versões celular/computador). Ver `EDITORIAL-MUSTANG.md`, `inventory/hero-prompts.json` e a página pública `/creditos`. As orientações e fotografias abaixo são o registo histórico da primeira versão; o hero móvel atual usa uma única composição com imagem ao fundo, e os cards preservam o carro inteiro com `object-fit: contain`.
+
+## Registo da primeira versão
+
 Seleção realizada em 14 de outubro de 2026. Todas as imagens desta primeira versão são fotografias reais e **ilustrativas**; não representam stock confirmado, instalações, clientes ou serviços já prestados pelo stand. As fotografias foram inspecionadas visualmente antes da inclusão. Não foram reutilizados ficheiros do site de referência Alves Imports.
 
 Os ficheiros estão guardados localmente em `public/images`, sem dependência de hotlink. Foram redimensionados e comprimidos em JPEG com Sharp, mantendo as proporções e sem gerar ou alterar automóveis. Os recortes do BMW e Audi apenas removem espaço exterior.

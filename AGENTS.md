@@ -12,7 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Nome provisório: Sucesso Aposta. O briefing original está em `codex part.txt`.
 - Codex é responsável pela landing; Claude continuará backend e dashboard.
-- Existem duas propostas em avaliação: Drive Studio em `/` e Editorial em `/conceito-a`. Consultar `docs/CONCEITOS.md` e preservar ambas até à escolha do utilizador.
+- O utilizador escolheu Editorial: `/` e `/conceito-a` usam a versão modernizada. Drive Studio permanece em `/conceito-b`. Consultar `docs/CONCEITOS.md`.
+- O telemóvel é a prioridade (99% do tráfego previsto): hero com fotografia e texto na mesma composição, nunca blocos separados. Verificar 320–430 px e usar a imagem vertical própria de cada destaque.
 - Antes da integração, ler `CLAUDE.md` e `docs/BACKEND_HANDOFF.md`.
 - O backend e o painel (`/painel`) estão implementados pelo Claude: não editar `src/app/painel/`, `src/app/api/`, `src/app/media/`, `src/server/`, `src/db/`, `drizzle/`, `scripts/` nem `src/lib/catalog.ts`. Ver `docs/PAINEL.md`.
 - Com `CATALOG_MODE=database` a landing recebe viaturas reais (imagens em `/media/...`, estados `available`/`reserved`/`sold`) e o formulário grava em `POST /api/leads`. Manter os contratos de `src/lib/contracts.ts`.

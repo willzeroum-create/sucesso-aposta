@@ -9,6 +9,9 @@ out/
 coverage/
 
 # Dados locais do backoffice (base de dados e ficheiros carregados)
-data/
+/data/
+/backups/*.db
+/.tmp/
 
 tests/output/
+/backups/*.zip

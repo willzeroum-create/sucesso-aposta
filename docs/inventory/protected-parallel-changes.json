@@ -1,0 +1,28 @@
+{
+  "Checked": 86,
+  "ParallelChanges": [
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\layout.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\page.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\anuncios\\page.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\atividade\\page.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\clientes\\page.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\configuracoes\\page.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\crm\\page.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\equipa\\page.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\(app)\\viaturas\\page.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\entrar\\login-form.tsx",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\auth.ts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\app\\painel\\_actions\\team.ts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\rate-limit.ts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\server\\storage.ts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\db\\client.ts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\db\\config.ts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\db\\index.ts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\src\\db\\schema.ts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\drizzle\\0000_init.sql",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\drizzle\\meta\\_journal.json",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\drizzle\\meta\\0000_snapshot.json",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\scripts\\create-admin.mts",
+    "C:\\Users\\willz\\Desktop\\sucesso aposta\\scripts\\migrate.mts"
+  ]
+}
