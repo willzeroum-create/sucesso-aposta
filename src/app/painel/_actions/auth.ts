@@ -18,7 +18,7 @@ export async function login(_prev: ActionResult | null, form: FormData): Promise
   const email = String(form.get("email") ?? "").trim().toLowerCase().slice(0, 254);
   const password = String(form.get("password") ?? "").slice(0, 200);
   const next = String(form.get("next") ?? "");
-  if (!email || !password) return { ok: false, error: "Indique o e-mail e a palavra-passe." };
+  if (!email || !password) return { ok: false, error: "Indique o e-mail (ou utilizador) e a palavra-passe." };
 
   const ip = (await clientIp()) ?? "local";
   const limit = await rateLimit(`login:${ip}`, 20, 15 * 60 * 1000);
@@ -27,7 +27,7 @@ export async function login(_prev: ActionResult | null, form: FormData): Promise
   const [user] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
   if (!user) {
     await verifyPassword(password, await dummyHash()); // tempo constante
-    return { ok: false, error: "E-mail ou palavra-passe incorretos." };
+    return { ok: false, error: "Utilizador ou palavra-passe incorretos." };
   }
   if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
     return { ok: false, error: "Conta bloqueada temporariamente por tentativas falhadas. Tente daqui a 15 minutos ou peça ao administrador." };
@@ -40,7 +40,7 @@ export async function login(_prev: ActionResult | null, form: FormData): Promise
       .set({ failedLogins: fails >= MAX_FAILS ? 0 : fails, lockedUntil: fails >= MAX_FAILS ? new Date(Date.now() + LOCK_MS) : null })
       .where(eq(schema.users.id, user.id));
     if (fails >= MAX_FAILS) await audit({ id: user.id, name: user.name }, { action: "auth.locked", entityType: "user", entityId: user.id, summary: `Conta bloqueada 15 min após ${MAX_FAILS} tentativas falhadas` });
-    return { ok: false, error: user.active ? "E-mail ou palavra-passe incorretos." : "Esta conta está desativada. Fale com o administrador." };
+    return { ok: false, error: user.active ? "Utilizador ou palavra-passe incorretos." : "Esta conta está desativada. Fale com o administrador." };
   }
   await db.update(schema.users).set({ failedLogins: 0, lockedUntil: null, lastLoginAt: new Date() }).where(eq(schema.users.id, user.id));
   await createSession(user.id);

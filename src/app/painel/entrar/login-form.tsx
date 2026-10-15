@@ -11,8 +11,8 @@ export function LoginForm({ next }: { next: string }) {
     <form action={action} className="a-form" style={{ gap: 14 }}>
       <input type="hidden" name="next" value={next} />
       <div className="a-field">
-        <label htmlFor="email">E-mail</label>
-        <input id="email" name="email" type="email" autoComplete="username" required autoFocus />
+        <label htmlFor="email">E-mail ou utilizador</label>
+        <input id="email" name="email" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required autoFocus />
       </div>
       <div className="a-field">
         <label htmlFor="password">Palavra-passe</label>
