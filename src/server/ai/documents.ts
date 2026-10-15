@@ -210,7 +210,7 @@ export async function readVehicleDocuments(parts: AiPart[]): Promise<VehicleProp
 
 const PERSON_FIELDS = [
   "nome", "tipo_documento", "numero_documento", "validade_documento", "entidade_emissora", "nif",
-  "data_nascimento", "nacionalidade", "morada", "codigo_postal", "localidade", "pais", "carta_conducao",
+  "data_nascimento", "nacionalidade", "morada", "codigo_postal", "localidade", "pais", "carta_conducao", "carta_emissao",
   "niss", "sexo",
 ] as const;
 export type PersonExtraction = Record<(typeof PERSON_FIELDS)[number], string>;
@@ -254,7 +254,7 @@ Regras para "dados" ("" quando não constar):
 - nif: número de identificação fiscal português (9 algarismos), se constar. niss: se constar. sexo: "M" ou "F".
 - nacionalidade em português ("Portuguesa", "Brasileira"…).
 - MORADA: preenche morada (rua, número, andar), codigo_postal ("0000-000"), localidade e pais SÓ a partir de um documento que tenha a morada (título de residência, comprovativo de morada, carta de condução com morada). Nunca inventes morada a partir do local de nascimento.
-- carta_conducao: nº da carta de condução, se houver.
+- carta_conducao: nº da carta de condução, se houver. carta_emissao: data de emissão da carta (campo 4a) em AAAA-MM-DD.
 - legivel: true só se os dados principais se leem por completo; senão "problema" diz exatamente onde.
 - resumo: UMA linha para a equipa, ex.: "CC de Ana Silva (frente e verso) + fatura da EDP com morada".`;
 
@@ -267,7 +267,7 @@ export interface PersonProposal {
   fields: Partial<{
     fullName: string; idDocumentType: string; idDocumentNumber: string; idDocumentExpiry: string;
     idDocumentIssuer: string; nif: string; birthDate: string; nationality: string; address: string;
-    postalCode: string; city: string; country: string; drivingLicenseNumber: string;
+    postalCode: string; city: string; country: string; drivingLicenseNumber: string; drivingLicenseIssuedAt: string;
   }>;
   warnings: string[];
 }
@@ -300,6 +300,8 @@ export function normalizePersonExtraction(json: Record<string, unknown>): Person
   if (raw.pais) fields.country = raw.pais;
   else if (raw.morada && /^\d{4}-\d{3}$/.test(fields.postalCode ?? "")) fields.country = "Portugal";
   if (raw.carta_conducao) fields.drivingLicenseNumber = raw.carta_conducao;
+  const licenseIssued = normalizeDate(raw.carta_emissao);
+  if (licenseIssued) fields.drivingLicenseIssuedAt = licenseIssued;
   if (!raw.morada) warnings.push("Nenhum documento enviado tem morada. Peça o título de residência ou um comprovativo de morada.");
 
   const legible = json.legivel === true;

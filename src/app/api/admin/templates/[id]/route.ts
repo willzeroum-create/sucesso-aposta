@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
 import { DOCX_MIME, inspectDocx, TemplateFileError } from "@/server/docx-template";
-import { getTemplateFiles } from "@/server/forms";
+import { bundledDocx, getTemplateFiles } from "@/server/forms";
 import { assertSameOrigin, jsonError, readFiles } from "@/server/http";
 import { writeSetting } from "@/server/settings";
 import { storeTemplateFile } from "@/server/storage";
@@ -14,11 +12,6 @@ import { UserError } from "@/server/action";
 
 export const dynamic = "force-dynamic";
 
-/** Exemplos em Word incluídos no projeto (docs/modelos), para descarregar, adaptar e voltar a carregar. */
-const EXAMPLES: Partial<Record<TemplateId, string>> = {
-  contrato_compra_venda: "contrato-compra-venda.docx",
-  termo_responsabilidade: "termo-responsabilidade.docx",
-};
 
 function templateId(id: string): TemplateId {
   if (!TEMPLATE_IDS.includes(id as TemplateId)) throw new UserError("Modelo inválido.");
@@ -31,9 +24,10 @@ export async function GET(req: Request, ctx: RouteContext<"/api/admin/templates/
     await assertPermission("forms.generate");
     const id = templateId((await ctx.params).id);
     if (new URL(req.url).searchParams.has("exemplo")) {
-      const name = EXAMPLES[id];
-      if (!name) throw new UserError("Não há exemplo em Word para este documento.");
-      const data = await readFile(path.join(process.cwd(), "docs", "modelos", name));
+      // Modelo Word incluído no painel (recriado do original do stand), para adaptar e voltar a carregar.
+      const data = await bundledDocx(id);
+      if (!data) throw new UserError("Não há modelo Word incluído para este documento.");
+      const name = `${id}.docx`;
       return new Response(new Uint8Array(data), {
         headers: { "Content-Type": DOCX_MIME, "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "no-store" },
       });

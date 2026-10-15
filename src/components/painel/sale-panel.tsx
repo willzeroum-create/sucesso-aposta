@@ -6,7 +6,7 @@ import { CheckCircle2, ClipboardCheck, FileDown, Search, UserPlus, Users } from 
 import { completeSale, reviewSale, type ContractField } from "@/app/painel/_actions/sales";
 import { createCustomer } from "@/app/painel/_actions/customers";
 import { isValidNif } from "@/lib/pt-validation";
-import type { TemplateId } from "@/lib/form-templates";
+import { DEAL_DOCUMENTS, type DealMode, type TemplateId } from "@/lib/form-templates";
 import { AiReader, type FieldMeta } from "./ai-reader";
 import { Alert, Field, Spinner, useAction } from "./ui";
 
@@ -26,11 +26,13 @@ const NEW_FIELDS: FieldMeta[] = [
   { key: "city", label: "Localidade", important: true },
   { key: "country", label: "País" },
   { key: "drivingLicenseNumber", label: "Carta de condução" },
+  { key: "drivingLicenseIssuedAt", label: "Emissão da carta" },
 ];
 
-const DEFAULT_DOCS: TemplateId[] = ["contrato_compra_venda", "termo_responsabilidade"];
+const RENT_PAYMENT = "Pago por transferência bancária MBWAY/IBAN ou em dinheiro no ato da assinatura.";
 
 export function SalePanel({
+  mode: deal = "sale",
   vehicleId,
   vehicleLabel,
   customers,
@@ -40,6 +42,7 @@ export function SalePanel({
   canMarkSold,
   canCreateCustomer,
 }: {
+  mode?: DealMode;
   vehicleId: string;
   vehicleLabel: string;
   customers: CustomerOption[];
@@ -67,8 +70,22 @@ export function SalePanel({
     place: "",
     notes: "",
   });
-  const [docs, setDocs] = useState<Set<TemplateId>>(new Set(DEFAULT_DOCS.filter((d) => documents.some((x) => x.id === d))));
-  const [markSold, setMarkSold] = useState(canMarkSold && !sold);
+  const [docs, setDocs] = useState<Set<TemplateId>>(new Set(DEAL_DOCUMENTS[deal].filter((d) => documents.some((x) => x.id === d))));
+  const [markSold, setMarkSold] = useState(deal === "sale" && canMarkSold && !sold);
+  const isRent = deal === "rent";
+  const who = isRent ? "locatário" : "comprador";
+  const Who = isRent ? "Locatário" : "Comprador";
+  const [warranty, setWarranty] = useState({ months: "18", number: "", extras: "" });
+  const inAWeek = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const [rental, setRental] = useState({
+    startDate: now.toISOString().slice(0, 10),
+    startTime: "17:00",
+    endDate: inAWeek,
+    endTime: "17:00",
+    kmOut: defaults.km != null ? String(defaults.km) : "",
+    totalEur: "",
+    paymentMethod: RENT_PAYMENT,
+  });
   const [done, setDone] = useState<{ title: string; url: string; format: "docx" | "pdf" }[] | null>(null);
 
   const filtered = useMemo(() => {
@@ -86,7 +103,7 @@ export function SalePanel({
   async function createNew() {
     const form = new FormData();
     for (const [k, v] of Object.entries(newC)) form.set(k, v);
-    form.set("source", "Venda");
+    form.set("source", isRent ? "Aluguer" : "Venda");
     const res = await run(() => createCustomer(form, attach));
     if (res.ok) {
       const c = { id: res.data.id, fullName: newC.fullName, nif: newC.nif || null, label: newC.nif ? `${newC.fullName} · NIF ${newC.nif.replace(/\D/g, "")}` : newC.fullName };
@@ -104,16 +121,31 @@ export function SalePanel({
   const [edited, setEdited] = useState<Record<string, string>>({});
   const [saveToRecords, setSaveToRecords] = useState(true);
   const [saved, setSaved] = useState<string[]>([]);
-  const saleKey = JSON.stringify([customerId, sale, [...docs].sort()]);
+  const saleKey = JSON.stringify([customerId, sale, warranty, rental, [...docs].sort()]);
   // Qualquer alteração nos passos 1–3 obriga a rever de novo.
   useEffect(() => {
     setReview(null);
     setEdited({});
   }, [saleKey]);
 
+  const money = (v: string) => Number(v.replace(/\s|€/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")) || 0;
   const baseInput = () => ({
+    mode: deal,
     customerId,
-    priceEur: Number(sale.priceEur.replace(/\s|€/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")) || 0,
+    priceEur: isRent ? null : money(sale.priceEur),
+    ...(isRent
+      ? {
+          rental: {
+            startDate: rental.startDate,
+            startTime: rental.startTime,
+            endDate: rental.endDate,
+            endTime: rental.endTime,
+            kmOut: rental.kmOut ? Number(rental.kmOut.replace(/\D/g, "")) : null,
+            totalEur: rental.totalEur ? money(rental.totalEur) : null,
+            paymentMethod: rental.paymentMethod,
+          },
+        }
+      : { warranty: { months: Number(warranty.months) || null, number: warranty.number, extras: warranty.extras } }),
     date: sale.date,
     time: sale.time,
     deliveryKm: sale.km ? Number(sale.km.replace(/\D/g, "")) : null,
@@ -153,7 +185,7 @@ export function SalePanel({
   if (done)
     return (
       <section className="a-card a-card-pad" style={{ display: "grid", gap: 16 }}>
-        <Alert kind="ok" title={markSold ? `${vehicleLabel} vendido a ${selected?.fullName ?? "cliente"}` : "Documentos gerados"}>
+        <Alert kind="ok" title={isRent ? `${vehicleLabel} alugado a ${selected?.fullName ?? "cliente"}` : markSold ? `${vehicleLabel} vendido a ${selected?.fullName ?? "cliente"}` : "Documentos gerados"}>
           <p>Abra, confira e imprima para assinar. Ficam guardados no separador Termos da viatura e na ficha do cliente.</p>
           {saved.length > 0 && <p className="muted" style={{ fontSize: 13 }}>Os dados completados foram guardados em: {saved.join(", ")}.</p>}
         </Alert>
@@ -186,7 +218,7 @@ export function SalePanel({
       <section className="a-card">
         <div className="a-card-head">
           <div>
-            <h2>1. Comprador</h2>
+            <h2>1. {Who}</h2>
             <p>Escolha um cliente da lista ou crie um novo a partir do documento de identificação.</p>
           </div>
           {canCreateCustomer && (
@@ -206,7 +238,7 @@ export function SalePanel({
               {selected && (
                 <Alert kind="ok">
                   <p>
-                    Comprador: <strong>{selected.fullName}</strong>
+                    {Who}: <strong>{selected.fullName}</strong>
                     {selected.nif ? ` · NIF ${selected.nif}` : ""}
                   </p>
                 </Alert>
@@ -276,6 +308,9 @@ export function SalePanel({
                 {nf("idDocumentType", "Tipo de documento")}
                 {nf("idDocumentNumber", "Nº do documento")}
                 {nf("idDocumentExpiry", "Validade", { type: "date" })}
+                {nf("birthDate", "Data de nascimento", { type: "date" })}
+                {nf("drivingLicenseNumber", "Nº da carta de condução")}
+                {nf("drivingLicenseIssuedAt", "Emissão da carta", { type: "date" })}
                 {nf("address", "Morada", {}, true)}
                 {nf("postalCode", "Código postal", { placeholder: "0000-000" })}
                 {nf("city", "Localidade")}
@@ -284,7 +319,7 @@ export function SalePanel({
               </div>
               <div className="a-actions">
                 <button type="button" className="a-btn a-btn-primary" onClick={createNew} disabled={pending || !newC.fullName?.trim()}>
-                  {pending ? <Spinner /> : <UserPlus size={16} />} Criar cliente e usar como comprador
+                  {pending ? <Spinner /> : <UserPlus size={16} />} Criar cliente e usar como {who}
                 </button>
                 {attach.length > 0 && <span className="muted" style={{ fontSize: 13 }}>{attach.length} documento(s) ficam na ficha do cliente.</span>}
               </div>
@@ -293,40 +328,80 @@ export function SalePanel({
         </div>
       </section>
 
-      <section className="a-card">
-        <div className="a-card-head">
-          <div>
-            <h2>2. Dados da venda</h2>
-            <p>Os dados da viatura já estão preenchidos a partir da ficha.</p>
+      {isRent ? (
+        <section className="a-card">
+          <div className="a-card-head">
+            <div>
+              <h2>2. Dados do aluguer</h2>
+              <p>Prazo, quilometragem e valor que vão para o contrato de locação.</p>
+            </div>
           </div>
-        </div>
-        <div className="a-card-body a-fields">
-          <Field label="Preço de venda (€) *" name="sale-price" error={errors.priceEur}>
-            <input id="f-sale-price" inputMode="decimal" value={sale.priceEur} onChange={(e) => setSale((s) => ({ ...s, priceEur: e.target.value }))} />
-          </Field>
-          <Field label="Data da venda" name="sale-date" error={errors.date}>
-            <input id="f-sale-date" type="date" value={sale.date} onChange={(e) => setSale((s) => ({ ...s, date: e.target.value }))} />
-          </Field>
-          <Field label="Hora da entrega" name="sale-time" error={errors.time}>
-            <input id="f-sale-time" type="time" value={sale.time} onChange={(e) => setSale((s) => ({ ...s, time: e.target.value }))} />
-          </Field>
-          <Field label="Km na entrega" name="sale-km">
-            <input id="f-sale-km" inputMode="numeric" value={sale.km} onChange={(e) => setSale((s) => ({ ...s, km: e.target.value }))} />
-          </Field>
-          <Field label="Localidade" name="sale-place" hint="Por omissão, a do stand.">
-            <input id="f-sale-place" value={sale.place} onChange={(e) => setSale((s) => ({ ...s, place: e.target.value }))} />
-          </Field>
-          <Field label="Observações (garantia, chaves, extras…)" name="sale-notes" wide>
-            <textarea id="f-sale-notes" rows={2} maxLength={2000} value={sale.notes} onChange={(e) => setSale((s) => ({ ...s, notes: e.target.value }))} placeholder="ex.: Garantia de 18 meses. Entregue com 2 chaves e livro de revisões." />
-          </Field>
-        </div>
-      </section>
+          <div className="a-card-body a-fields">
+            <Field label="Início (dia)" name="r-start">
+              <input id="f-r-start" type="date" value={rental.startDate} onChange={(e) => setRental((r) => ({ ...r, startDate: e.target.value }))} />
+            </Field>
+            <Field label="Início (hora)" name="r-start-time">
+              <input id="f-r-start-time" type="time" value={rental.startTime} onChange={(e) => setRental((r) => ({ ...r, startTime: e.target.value }))} />
+            </Field>
+            <Field label="Termo (dia)" name="r-end" error={errors.rental}>
+              <input id="f-r-end" type="date" value={rental.endDate} onChange={(e) => setRental((r) => ({ ...r, endDate: e.target.value }))} />
+            </Field>
+            <Field label="Termo (hora)" name="r-end-time">
+              <input id="f-r-end-time" type="time" value={rental.endTime} onChange={(e) => setRental((r) => ({ ...r, endTime: e.target.value }))} />
+            </Field>
+            <Field label="Quilometragem atual" name="r-km">
+              <input id="f-r-km" inputMode="numeric" value={rental.kmOut} onChange={(e) => setRental((r) => ({ ...r, kmOut: e.target.value }))} />
+            </Field>
+            <Field label="Valor total / renda (€)" name="r-total">
+              <input id="f-r-total" inputMode="decimal" value={rental.totalEur} onChange={(e) => setRental((r) => ({ ...r, totalEur: e.target.value }))} placeholder="ex.: 525" />
+            </Field>
+            <Field label="Forma de pagamento" name="r-pay" wide>
+              <input id="f-r-pay" value={rental.paymentMethod} onChange={(e) => setRental((r) => ({ ...r, paymentMethod: e.target.value }))} />
+            </Field>
+            <Field label="Localidade" name="sale-place" hint="Por omissão, a da empresa.">
+              <input id="f-sale-place" value={sale.place} onChange={(e) => setSale((s) => ({ ...s, place: e.target.value }))} />
+            </Field>
+          </div>
+        </section>
+      ) : (
+        <section className="a-card">
+          <div className="a-card-head">
+            <div>
+              <h2>2. Dados da venda</h2>
+              <p>Os dados da viatura já estão preenchidos a partir da ficha.</p>
+            </div>
+          </div>
+          <div className="a-card-body a-fields">
+            <Field label="Preço de venda (€) *" name="sale-price" error={errors.priceEur}>
+              <input id="f-sale-price" inputMode="decimal" value={sale.priceEur} onChange={(e) => setSale((s) => ({ ...s, priceEur: e.target.value }))} />
+            </Field>
+            <Field label="Data da venda e entrega" name="sale-date" error={errors.date}>
+              <input id="f-sale-date" type="date" value={sale.date} onChange={(e) => setSale((s) => ({ ...s, date: e.target.value }))} />
+            </Field>
+            <Field label="Km na entrega" name="sale-km">
+              <input id="f-sale-km" inputMode="numeric" value={sale.km} onChange={(e) => setSale((s) => ({ ...s, km: e.target.value }))} />
+            </Field>
+            <Field label="Localidade" name="sale-place" hint="Por omissão, a da empresa.">
+              <input id="f-sale-place" value={sale.place} onChange={(e) => setSale((s) => ({ ...s, place: e.target.value }))} />
+            </Field>
+            <Field label="Prazo da garantia (meses)" name="w-months">
+              <input id="f-w-months" inputMode="numeric" value={warranty.months} onChange={(e) => setWarranty((w) => ({ ...w, months: e.target.value }))} />
+            </Field>
+            <Field label="Nº da garantia" name="w-number">
+              <input id="f-w-number" value={warranty.number} onChange={(e) => setWarranty((w) => ({ ...w, number: e.target.value }))} />
+            </Field>
+            <Field label="Complementos e opções da garantia" name="w-extras" wide>
+              <input id="f-w-extras" value={warranty.extras} onChange={(e) => setWarranty((w) => ({ ...w, extras: e.target.value }))} />
+            </Field>
+          </div>
+        </section>
+      )}
 
       <section className="a-card">
         <div className="a-card-head">
           <div>
             <h2>3. Documentos</h2>
-            <p>Gerados já preenchidos com a viatura, o comprador e o stand. Os textos editam-se em Configurações → Modelos.</p>
+            <p>Gerados já preenchidos com a viatura, o {who} e a empresa. Os modelos Word trocam-se em Configurações → Modelos.</p>
           </div>
         </div>
         <div className="a-card-body" style={{ display: "grid", gap: 10 }}>
@@ -350,7 +425,7 @@ export function SalePanel({
               </span>
             </label>
           ))}
-          {canMarkSold && (
+          {!isRent && canMarkSold && (
             <label className="a-check" style={{ marginTop: 6, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
               <input type="checkbox" checked={markSold} onChange={(e) => setMarkSold(e.target.checked)} />
               <span>
@@ -366,7 +441,7 @@ export function SalePanel({
           <button type="button" className="a-btn a-btn-primary" onClick={prepare} disabled={pending || !customerId || !docs.size}>
             {pending && !review ? <Spinner /> : <ClipboardCheck size={16} />} Rever dados do contrato
           </button>
-          {!customerId && <span className="muted" style={{ fontSize: 13 }}>Escolha ou crie o comprador primeiro.</span>}
+          {!customerId && <span className="muted" style={{ fontSize: 13 }}>Escolha ou crie o {who} primeiro.</span>}
         </div>
       </section>
 
@@ -412,14 +487,14 @@ export function SalePanel({
             <label className="a-check">
               <input type="checkbox" checked={saveToRecords} onChange={(e) => setSaveToRecords(e.target.checked)} />
               <span>
-                Guardar o que completar aqui na ficha do cliente, na viatura e nos dados do stand
-                <span className="muted" style={{ display: "block", fontSize: 13 }}>Assim não é preciso voltar a escrever na próxima venda.</span>
+                Guardar o que completar aqui na ficha do cliente, na viatura e nos dados da empresa
+                <span className="muted" style={{ display: "block", fontSize: 13 }}>Assim não é preciso voltar a escrever da próxima vez.</span>
               </span>
             </label>
           </div>
           <div className="a-form-foot" style={{ margin: 0 }}>
             <button type="button" className="a-btn a-btn-primary" onClick={submit} disabled={pending || missing.length > 0}>
-              {pending ? <Spinner /> : <CheckCircle2 size={16} />} {markSold ? "Registar venda e gerar documentos" : "Gerar documentos"}
+              {pending ? <Spinner /> : <CheckCircle2 size={16} />} {isRent ? "Registar aluguer e gerar contrato" : markSold ? "Registar venda e gerar documentos" : "Gerar documentos"}
             </button>
             {missing.length > 0 && <span className="muted" style={{ fontSize: 13 }}>Falta preencher: {missing.map((f) => f.label).join(", ")}.</span>}
           </div>

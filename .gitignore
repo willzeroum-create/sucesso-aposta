@@ -15,3 +15,6 @@ coverage/
 
 tests/output/
 /backups/*.zip
+
+.vercel
+.env*

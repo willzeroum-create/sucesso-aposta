@@ -13,7 +13,8 @@ export const metadata = { title: "Configurações" };
 
 export default async function SettingsPage() {
   await requirePagePermission("site.edit");
-  const company = await getCompanyInfo();
+  const company = await getCompanyInfo("sale");
+  const companyRent = await getCompanyInfo("rent");
   const privacy = await getPrivacySettings();
   const templates = await getTemplates();
   const wordFiles = await getTemplateFiles();
@@ -42,25 +43,48 @@ export default async function SettingsPage() {
       <section className="a-card">
         <div className="a-card-head">
           <div>
-            <h2>Empresa (vendedor nos termos)</h2>
-            <p>Usado em contratos, termos e declarações. Não aparece no site.</p>
+            <h2>Empresa de vendas</h2>
+            <p>Emitente do termo de garantia e da declaração de circulação.</p>
           </div>
         </div>
         <div className="a-card-body">
-          <SimpleSettingsForm
-            kind="company"
-            initial={company as unknown as Record<string, string>}
-            inputs={[
-              { name: "legalName", label: "Denominação social", wide: true, hint: "ex.: Sucesso Aposta, Lda." },
-              { name: "nipc", label: "NIPC" },
-              { name: "licenseNumber", label: "Alvará / licença (opcional)" },
-              { name: "address", label: "Sede", wide: true },
+          <SimpleSettingsForm kind="company" initial={company as unknown as Record<string, string>} inputs={[
+              { name: "legalName", label: "Denominação social", wide: true },
+              { name: "nipc", label: "NIF / NIPC" },
+              { name: "phone", label: "Telefone" },
+              { name: "email", label: "E-mail" },
+              { name: "address", label: "Morada (rua)", wide: true },
               { name: "postalCode", label: "Código postal" },
               { name: "city", label: "Localidade" },
+              { name: "instagram", label: "Instagram" },
               { name: "representativeName", label: "Representante legal" },
               { name: "representativeRole", label: "Cargo" },
-            ]}
-          />
+              { name: "licenseNumber", label: "Alvará / licença (opcional)" },
+            ]} />
+        </div>
+      </section>
+
+      <section className="a-card">
+        <div className="a-card-head">
+          <div>
+            <h2>Empresa de aluguer</h2>
+            <p>Emitente do contrato de locação.</p>
+          </div>
+        </div>
+        <div className="a-card-body">
+          <SimpleSettingsForm kind="company_rent" initial={companyRent as unknown as Record<string, string>} inputs={[
+              { name: "legalName", label: "Denominação social", wide: true },
+              { name: "nipc", label: "NIF / NIPC" },
+              { name: "phone", label: "Telefone" },
+              { name: "email", label: "E-mail" },
+              { name: "address", label: "Morada (rua)", wide: true },
+              { name: "postalCode", label: "Código postal" },
+              { name: "city", label: "Localidade" },
+              { name: "instagram", label: "Instagram" },
+              { name: "representativeName", label: "Representante legal" },
+              { name: "representativeRole", label: "Cargo" },
+              { name: "licenseNumber", label: "Alvará / licença (opcional)" },
+            ]} />
         </div>
       </section>
 
@@ -97,8 +121,8 @@ export default async function SettingsPage() {
             body={t.body}
             customized={customized.has(t.id)}
             word={wordFiles[t.id] ? { name: wordFiles[t.id]!.name, uploadedAt: wordFiles[t.id]!.uploadedAt, uploadedBy: wordFiles[t.id]!.uploadedBy, fields: wordFiles[t.id]!.fields } : null}
-            hasExample={t.id === "contrato_compra_venda" || t.id === "termo_responsabilidade"}
-            open={t.id === "contrato_compra_venda" || t.id === "termo_responsabilidade"}
+            hasExample={["termo_garantia", "declaracao_circulacao", "contrato_locacao"].includes(t.id)}
+            open={["termo_garantia", "declaracao_circulacao", "contrato_locacao"].includes(t.id)}
           />
         ))}
       </div>

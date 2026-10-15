@@ -21,6 +21,13 @@ export async function getTemplateFiles(): Promise<Partial<Record<TemplateId, Tem
 }
 
 type Customer = typeof schema.customers.$inferSelect;
+
+/** Documentos Word incluídos no painel (recriados dos originais do stand). */
+export async function bundledDocx(templateId: string): Promise<Buffer | null> {
+  const { BUNDLED_DOCX } = await import("./templates/bundled");
+  const b64 = BUNDLED_DOCX[templateId];
+  return b64 ? Buffer.from(b64, "base64") : null;
+}
 type VehicleRow = typeof schema.vehicles.$inferSelect;
 
 export async function getTemplates(): Promise<Record<TemplateId, FormTemplate>> {
@@ -46,8 +53,57 @@ export interface SaleInput {
   notes?: string;
 }
 
-export async function buildValues(customer: Customer | null, vehicle: VehicleRow | null, sale: SaleInput): Promise<Record<string, string>> {
-  const company = await getCompanyInfo();
+export interface WarrantyInput {
+  months?: number | null;
+  number?: string;
+  start?: string;
+  delivery?: string;
+  extras?: string;
+}
+
+export interface RentalInput {
+  startDate?: string;
+  startTime?: string;
+  endDate?: string;
+  endTime?: string;
+  kmOut?: number | null;
+  totalEur?: number | null;
+  paymentMethod?: string;
+  condition?: string;
+}
+
+export const DEFAULT_RENT_PAYMENT = "Pago por transferência bancária MBWAY/IBAN ou em dinheiro no ato da assinatura.";
+export const DEFAULT_RENT_CONDITION =
+  "O veículo é entregue em bom estado de funcionamento, limpo e sem danos aparentes, salvo os desgastes normais já anotados em auto de vistoria próprio.";
+
+const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+/** "2026-09-17" → "17 de setembro de 2026". */
+export function dateLong(iso?: string | null): string {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]} de ${MONTHS[Number(m[2]) - 1]} de ${m[1]}` : "";
+}
+/** "2026-09-17" → "17-09-2026". */
+const dateDash = (iso?: string | null) => {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+};
+function addMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1 + months, d));
+  return date.toISOString().slice(0, 10);
+}
+/** "17:00" → "17"; "17:30" → "17:30". */
+const hourText = (t?: string) => (t ? t.replace(/:00$/, "") : "");
+const amount = (v: number) => v.toFixed(2);
+
+export async function buildValues(
+  customer: Customer | null,
+  vehicle: VehicleRow | null,
+  sale: SaleInput,
+  ctx: { mode?: "sale" | "rent"; warranty?: WarrantyInput; rental?: RentalInput } = {},
+): Promise<Record<string, string>> {
+  const mode = ctx.mode ?? "sale";
+  const company = await getCompanyInfo(mode);
   const now = new Date();
   const companyAddress = [company.address, [company.postalCode, company.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   const customerAddress = customer
@@ -57,38 +113,82 @@ export async function buildValues(customer: Customer | null, vehicle: VehicleRow
     : "";
   const price = sale.priceEur ?? vehicle?.soldPriceEur ?? vehicle?.priceEur ?? null;
   const date = sale.date || now.toISOString().slice(0, 10);
+  const km = sale.deliveryKm ?? vehicle?.mileageKm ?? null;
+  const vehicleType = (vehicle?.vehicleType ?? "").toLowerCase();
+  const fourByFour = /4x4|awd|4wd|4matic|xdrive|quattro|4motion|all4|dual motor/i.test(`${vehicle?.version ?? ""} ${vehicle?.vehicleType ?? ""}`);
+
+  const w = ctx.warranty ?? {};
+  const wStart = w.start || date;
+  const wMonths = w.months ?? 18;
+  const r = ctx.rental ?? {};
+
   return {
     "empresa.nome": company.legalName,
     "empresa.nipc": company.nipc,
     "empresa.morada": companyAddress,
+    "empresa.morada_rua": company.address,
+    "empresa.codigo_postal": company.postalCode,
+    "empresa.localidade": company.city,
+    "empresa.telefone": company.phone,
+    "empresa.email": company.email,
+    "empresa.instagram": company.instagram,
     "empresa.representante": company.representativeName,
     "empresa.cargo": company.representativeRole,
     "cliente.nome": customer?.fullName ?? "",
     "cliente.nif": customer?.nif ?? "",
-    "cliente.documento": customer ? [customer.idDocumentType, customer.idDocumentNumber].filter(Boolean).join(" nº ") : "",
+    "cliente.documento": customer ? [customer.idDocumentType, customer.idDocumentNumber].filter(Boolean).join(" ") : "",
+    "cliente.numero_documento": customer?.idDocumentNumber ?? "",
     "cliente.validade_documento": formatDatePt(customer?.idDocumentExpiry),
     "cliente.morada": customerAddress,
+    "cliente.morada_rua": customer?.address ?? "",
+    "cliente.codigo_postal": customer?.postalCode ?? "",
+    "cliente.localidade": customer?.city ?? "",
     "cliente.telefone": customer?.phone ?? "",
     "cliente.email": customer?.email ?? "",
     "cliente.carta": customer?.drivingLicenseNumber ?? "",
+    "cliente.carta_emissao": formatDatePt(customer?.drivingLicenseIssuedAt),
     "cliente.nascimento": formatDatePt(customer?.birthDate),
     "cliente.nacionalidade": customer?.nationality ?? "",
     "viatura.marca": vehicle?.make ?? "",
-    "viatura.modelo": vehicle ? [vehicle.model, vehicle.version].filter(Boolean).join(" ") : "",
+    "viatura.modelo": vehicle?.model ?? "",
+    "viatura.versao": vehicle?.version ?? "",
+    "viatura.marca_modelo": vehicle ? [vehicle.make, vehicle.model].filter(Boolean).join(" ") : "",
     "viatura.matricula": vehicle?.plate ? formatPlate(vehicle.plate) : "",
     "viatura.vin": vehicle?.vin ?? "",
     "viatura.ano": vehicle?.year ? String(vehicle.year) : "",
     "viatura.primeira_matricula": formatDatePt(vehicle?.firstRegistration),
-    "viatura.km": vehicle?.mileageKm != null ? `${vehicle.mileageKm.toLocaleString("pt-PT")}` : "",
+    "viatura.primeiro_registo": dateDash(vehicle?.firstRegistration),
+    "viatura.km": vehicle?.mileageKm != null ? String(vehicle.mileageKm) : "",
     "viatura.cor": vehicle?.color ?? "",
     "viatura.combustivel": vehicle?.fuel ? fuelPt[vehicle.fuel] : "",
+    "viatura.transmissao": vehicle?.transmission ? (vehicle.transmission === "automatic" ? "Automática" : "Manual") : "",
+    "viatura.cilindrada": vehicle?.engineCc ? String(vehicle.engineCc) : "",
+    "viatura.potencia_kw": vehicle?.powerHp ? String(Math.round(vehicle.powerHp / 1.35962)) : "",
+    "viatura.tracao_4x4": vehicle ? (fourByFour ? "Sim" : "Não") : "",
+    "viatura.categoria_pt": vehicle ? (vehicle.grossWeightKg && vehicle.grossWeightKg > 3500 ? "Pesados" : "Ligeiros") : "",
+    "viatura.tipo_pt": vehicle ? (/mercad|n1|n2|n3/.test(vehicleType) ? "Mercadorias" : "Passageiros") : "",
+    "viatura.lugares": vehicle?.seats ? String(vehicle.seats) : "",
     "venda.preco": price ? eur.format(price) : "",
     "venda.data": formatDatePt(date),
+    "venda.data_extenso": dateLong(date),
     "venda.hora": sale.time || now.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" }),
     "venda.local": sale.place || company.city,
-    "venda.km_entrega":
-      sale.deliveryKm != null ? sale.deliveryKm.toLocaleString("pt-PT") : vehicle?.mileageKm != null ? vehicle.mileageKm.toLocaleString("pt-PT") : "",
+    "venda.km_entrega": km != null ? String(km) : "",
     "venda.observacoes": sale.notes?.trim() ?? "",
+    "garantia.prazo": wMonths ? String(wMonths) : "",
+    "garantia.numero": w.number?.trim() ?? "",
+    "garantia.inicio": dateDash(wStart),
+    "garantia.fim": wMonths ? dateDash(addMonths(wStart, wMonths)) : "",
+    "garantia.entrega": dateDash(w.delivery || date),
+    "garantia.complementos": w.extras?.trim() ?? "",
+    "aluguer.inicio": dateLong(r.startDate),
+    "aluguer.inicio_hora": hourText(r.startTime),
+    "aluguer.fim": dateLong(r.endDate),
+    "aluguer.fim_hora": hourText(r.endTime),
+    "aluguer.km_saida": r.kmOut != null ? String(r.kmOut) : vehicle?.mileageKm != null ? String(vehicle.mileageKm) : "",
+    "aluguer.valor": r.totalEur != null ? amount(r.totalEur) : "",
+    "aluguer.forma_pagamento": r.paymentMethod?.trim() || DEFAULT_RENT_PAYMENT,
+    "aluguer.estado_geral": r.condition?.trim() || DEFAULT_RENT_CONDITION,
   };
 }
 
@@ -96,6 +196,11 @@ export async function buildValues(customer: Customer | null, vehicle: VehicleRow
 export async function templateFieldKeys(templateId: TemplateId): Promise<string[]> {
   const word = (await getTemplateFiles())[templateId];
   if (word) return word.fields;
+  const bundled = await bundledDocx(templateId);
+  if (bundled) {
+    const { inspectDocx } = await import("./docx-template");
+    return inspectDocx(bundled).fields;
+  }
   const template = (await getTemplates())[templateId];
   const used = new Set<string>();
   const scan = (t: string) => t.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, k: string) => (used.add(k), ""));
@@ -238,6 +343,7 @@ export async function createFormDocument(
   vehicle: VehicleRow | null,
   sale: SaleInput,
   overrides: Record<string, string> = {},
+  ctx: { mode?: "sale" | "rent"; warranty?: WarrantyInput; rental?: RentalInput } = {},
 ): Promise<{ id: string; fileId: string; title: string; url: string; format: "docx" | "pdf" }> {
   const { getSiteConfig } = await import("./settings");
   const { storeGenerated } = await import("./storage");
@@ -246,7 +352,7 @@ export async function createFormDocument(
   const templates = await getTemplates();
   const template = templates[templateId as keyof typeof templates];
   if (!template) throw new Error(`Modelo desconhecido: ${templateId}`);
-  const values = { ...(await buildValues(customer, vehicle, sale)) };
+  const values = { ...(await buildValues(customer, vehicle, sale, { ...ctx, mode: ctx.mode ?? (template.mode === "rent" ? "rent" : "sale") })) };
   // Valores revistos/completados pela pessoa antes de gerar.
   for (const [k, v] of Object.entries(overrides)) if (typeof v === "string" && v.trim()) values[k] = v.trim();
   const id = newId("frm");
@@ -254,13 +360,17 @@ export async function createFormDocument(
   const site = await getSiteConfig();
   const who = customer?.fullName ?? vehicle?.plate ?? id;
   const wordTemplate = (await getTemplateFiles())[templateId as TemplateId];
+  const bundled = wordTemplate ? null : await bundledDocx(templateId);
   let stored;
-  if (wordTemplate) {
-    // Documento real do stand (Word): preenche os campos e mantém o formato original.
+  if (wordTemplate || bundled) {
+    // Documento do stand em Word: preenche os campos e mantém o formato original.
     const { getObject } = await import("./storage");
     const { fillDocx, DOCX_MIME } = await import("./docx-template");
-    const [file] = await db.select().from(schema.files).where(eq(schema.files.id, wordTemplate.fileId)).limit(1);
-    const original = file ? await getObject(file.storageKey) : null;
+    let original = bundled;
+    if (wordTemplate) {
+      const [file] = await db.select().from(schema.files).where(eq(schema.files.id, wordTemplate.fileId)).limit(1);
+      original = file ? await getObject(file.storageKey) : null;
+    }
     if (!original) throw new Error("O modelo Word deste documento não foi encontrado. Volte a carregá-lo em Configurações.");
     const docx = fillDocx(original, values);
     stored = await storeGenerated(docx, DOCX_MIME, `${template.title} - ${who}.docx`.replace(/[\\/:*?"<>|]/g, ""), user.id);
@@ -275,5 +385,5 @@ export async function createFormDocument(
     entityId: vehicle?.id ?? customer?.id ?? null,
     summary: `Gerou "${template.title}"${customer ? ` para ${customer.fullName}` : ""}${vehicle ? ` — ${vehicle.make} ${vehicle.model}${vehicle.plate ? ` ${vehicle.plate}` : ""}` : ""}`,
   });
-  return { id, fileId: stored.id, title: template.title, url: `/api/admin/files/${stored.id}`, format: wordTemplate ? "docx" : "pdf" };
+  return { id, fileId: stored.id, title: template.title, url: `/api/admin/files/${stored.id}`, format: wordTemplate || bundled ? "docx" : "pdf" };
 }

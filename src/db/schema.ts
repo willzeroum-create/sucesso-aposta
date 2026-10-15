@@ -248,6 +248,7 @@ export const customers = pgTable(
     city: text("city"),
     country: text("country"),
     drivingLicenseNumber: text("driving_license_number"),
+    drivingLicenseIssuedAt: text("driving_license_issued_at"),
     notes: text("notes"),
     source: text("source"),
     createdBy: text("created_by"),
@@ -372,6 +373,32 @@ export const generatedForms = pgTable(
     index("forms_vehicle_idx").on(t.vehicleId),
     index("forms_customer_idx").on(t.customerId),
   ],
+);
+
+/** Alugueres: quem alugou, prazo, km de saída/entrega e valor. */
+export const rentals = pgTable(
+  "rentals",
+  {
+    id: text("id").primaryKey(),
+    vehicleId: text("vehicle_id")
+      .notNull()
+      .references(() => vehicles.id, { onDelete: "cascade" }),
+    customerId: text("customer_id")
+      .notNull()
+      .references(() => customers.id),
+    startAt: timestamp("start_at", { withTimezone: true, mode: "date" }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true, mode: "date" }).notNull(),
+    kmOut: integer("km_out"),
+    kmIn: integer("km_in"),
+    totalEur: doublePrecision("total_eur"),
+    paymentMethod: text("payment_method"),
+    notes: text("notes"),
+    status: text("status", { enum: ["active", "closed", "cancelled"] }).notNull().default("active"),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("rentals_vehicle_idx").on(t.vehicleId, t.startAt)],
 );
 
 /* ───────────────────────── Site / hero ───────────────────────── */

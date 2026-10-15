@@ -1,12 +1,13 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { LEGACY_TITLES } from "@/lib/form-templates";
 import { formatPlate } from "@/lib/pt-validation";
 import { getTemplates } from "./forms";
 
 export async function templateInfos() {
   const all = await getTemplates();
-  return Object.values(all).map(({ id, title, description, needsCustomer, needsVehicle }) => ({ id, title, description, needsCustomer, needsVehicle }));
+  return Object.values(all).map(({ id, title, description, needsCustomer, needsVehicle, mode }) => ({ id, title, description, needsCustomer, needsVehicle, mode }));
 }
 
 export async function customerOptions() {
@@ -53,7 +54,7 @@ export async function formHistory(filter: { vehicleId?: string; customerId?: str
     .limit(filter.limit ?? 50);
   return rows.map((r) => ({
     id: r.id,
-    title: templates[r.template as keyof typeof templates]?.title ?? r.template,
+    title: templates[r.template as keyof typeof templates]?.title ?? LEGACY_TITLES[r.template] ?? r.template,
     who: [r.customer, r.make ? `${r.make} ${r.model}${r.plate ? ` ${formatPlate(r.plate)}` : ""}` : null].filter(Boolean).join(" — "),
     createdAt: r.createdAt.toISOString(),
     fileId: r.fileId,

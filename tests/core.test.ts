@@ -149,27 +149,34 @@ test("termos: preenchimento e PDF", async () => {
     "venda.local": "Lisboa",
     "venda.km_entrega": "64 500",
     "venda.observacoes": "Garantia de 18 meses. Entregue com 2 chaves.",
+    "aluguer.inicio": "17/09/2026",
+    "aluguer.inicio_hora": "18:30",
+    "aluguer.fim": "24/09/2026",
+    "aluguer.fim_hora": "17:00",
+    "aluguer.valor": "525,00",
   };
-  const text = fillPlaceholders(DEFAULT_TEMPLATES.termo_responsabilidade.body, values);
+  const text = fillPlaceholders(DEFAULT_TEMPLATES.contrato_locacao.body, values);
   assert.ok(text.includes("Ana Silva") && text.includes("18:30") && !text.includes("{{"));
   assert.ok(fillPlaceholders("{{cliente.carta}}", {}).includes("____"));
-  const pdf = await renderPdf(DEFAULT_TEMPLATES.termo_responsabilidade, values, { reference: "TESTE", standName: "Sucesso Aposta" });
+  const pdf = await renderPdf(DEFAULT_TEMPLATES.contrato_locacao, values, { reference: "TESTE", standName: "Sucesso Aposta" });
   assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
   mkdirSync("tests/output", { recursive: true });
   writeFileSync("tests/output/termo-exemplo.pdf", pdf);
 });
 
 test("modelos Word: campos e preenchimento", async () => {
-  const { readFileSync } = await import("node:fs");
   const PizZip = (await import("pizzip")).default;
   const { inspectDocx, fillDocx } = await import("../src/server/docx-template");
-  const original = readFileSync("docs/modelos/contrato-compra-venda.docx");
-  const { fields, unknown } = inspectDocx(original);
-  assert.ok(fields.includes("cliente.nome") && fields.includes("viatura.vin"));
-  assert.deepEqual(unknown, []);
-  const filled = fillDocx(original, { "cliente.nome": "Ana Silva", "viatura.vin": "WBA8E1C50JA123456" });
-  const xml = new PizZip(filled).file("word/document.xml")!.asText();
-  assert.ok(xml.includes("Ana Silva") && xml.includes("WBA8E1C50JA123456"));
-  assert.ok(!xml.includes("{{"));
+  const { BUNDLED_DOCX } = await import("../src/server/templates/bundled");
+  for (const id of ["contrato_locacao", "termo_garantia", "declaracao_circulacao"] as const) {
+    const original = Buffer.from(BUNDLED_DOCX[id], "base64");
+    const { fields, unknown } = inspectDocx(original);
+    assert.ok(fields.includes("cliente.nome") && fields.includes("viatura.matricula"), id);
+    assert.deepEqual(unknown, [], id);
+    const filled = fillDocx(original, { "cliente.nome": "Ana Silva", "viatura.matricula": "AA-12-BB" });
+    const xml = new PizZip(filled).file("word/document.xml")!.asText();
+    assert.ok(xml.includes("Ana Silva") && xml.includes("AA-12-BB"), id);
+    assert.ok(!xml.includes("{{"), id);
+  }
   assert.throws(() => inspectDocx(Buffer.from("isto não é word")), /Word/);
 });

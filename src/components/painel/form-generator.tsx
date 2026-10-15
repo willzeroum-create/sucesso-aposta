@@ -38,7 +38,7 @@ export function FormGenerator({
   const router = useRouter();
   const { pending, run } = useAction();
   const available = templates.filter((t) => (fixedCustomerId ? true : true) && (!fixedCustomerId || !t.needsVehicle || vehicles.length > 0));
-  const [template, setTemplate] = useState<TemplateId>(available[0]?.id ?? "termo_responsabilidade");
+  const [template, setTemplate] = useState<TemplateId>(available[0]?.id ?? "termo_garantia");
   const [customerId, setCustomerId] = useState(fixedCustomerId ?? defaultCustomerId ?? "");
   const [vehicleId, setVehicleId] = useState(fixedVehicleId ?? "");
   const now = new Date();

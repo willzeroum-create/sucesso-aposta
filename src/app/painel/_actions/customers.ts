@@ -29,6 +29,7 @@ const customerSchema = z
     city: optText(100),
     country: optText(60),
     drivingLicenseNumber: optText(60),
+    drivingLicenseIssuedAt: optDate(),
     notes: optText(4000),
     source: optText(60),
   })

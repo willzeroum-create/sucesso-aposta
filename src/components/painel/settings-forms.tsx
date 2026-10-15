@@ -9,7 +9,7 @@ import { Spinner, useAction, useToast } from "./ui";
 
 type Input = { name: string; label: string; wide?: boolean; hint?: string; type?: string };
 
-export function SimpleSettingsForm({ kind, initial, inputs }: { kind: "company" | "privacy"; initial: Record<string, string>; inputs: Input[] }) {
+export function SimpleSettingsForm({ kind, initial, inputs }: { kind: "company" | "company_rent" | "privacy"; initial: Record<string, string>; inputs: Input[] }) {
   const router = useRouter();
   const { pending, fields, run } = useAction();
   return (
@@ -18,7 +18,7 @@ export function SimpleSettingsForm({ kind, initial, inputs }: { kind: "company" 
       onSubmit={async (e) => {
         e.preventDefault();
         const form = new FormData(e.currentTarget);
-        const res = await run(() => (kind === "company" ? saveCompany(form) : savePrivacy(form)));
+        const res = await run(() => (kind === "company" ? saveCompany(form, "sale") : kind === "company_rent" ? saveCompany(form, "rent") : savePrivacy(form)));
         if (res.ok) router.refresh();
       }}
     >

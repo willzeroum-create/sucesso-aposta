@@ -4,17 +4,23 @@ import { db, schema } from "@/db";
 import type { SiteConfig } from "@/lib/contracts";
 import { demoSiteConfig } from "@/data/demo";
 
-/** Dados legais do stand usados nos termos (vendedor). Nunca públicos por si só. */
+/** Dados legais da empresa emitente dos documentos. Nunca públicos por si só. */
 export interface CompanyInfo {
   legalName: string;
   nipc: string;
   address: string;
   postalCode: string;
   city: string;
+  phone: string;
+  email: string;
+  instagram: string;
   representativeName: string;
   representativeRole: string;
   licenseNumber: string;
 }
+
+/** Duas empresas: vendas (termo de garantia, declaração de circulação) e aluguer (contrato de locação). */
+export type CompanyKind = "sale" | "rent";
 
 export interface PrivacySettings {
   /** Texto do consentimento mostrado no formulário e guardado com cada pedido. */
@@ -25,15 +31,34 @@ export interface PrivacySettings {
   leadRetentionMonths: number;
 }
 
-const DEFAULT_COMPANY: CompanyInfo = {
-  legalName: "",
-  nipc: "",
-  address: "",
-  postalCode: "",
-  city: "",
-  representativeName: "",
-  representativeRole: "Gerente",
-  licenseNumber: "",
+// Dados das empresas tal como constam nos documentos originais do stand (editáveis em Configurações).
+const DEFAULT_COMPANY: Record<CompanyKind, CompanyInfo> = {
+  sale: {
+    legalName: "Sucesso Prudente, Unipessoal Lda",
+    nipc: "514904372",
+    address: "Rua Marechal Gomes da Costa, Vivenda VJP",
+    postalCode: "1685-901",
+    city: "Famões",
+    phone: "960346671",
+    email: "apostapromissoracar@gmail.com",
+    instagram: "",
+    representativeName: "",
+    representativeRole: "Gerente",
+    licenseNumber: "",
+  },
+  rent: {
+    legalName: "Aposta Promissora Unipessoal Lda",
+    nipc: "515319147",
+    address: "Rua Marechal Gomes da Costa nº123",
+    postalCode: "",
+    city: "Famões/Odivelas - Lisboa",
+    phone: "923321054",
+    email: "apostapromissoracar@gmail.com",
+    instagram: "@apostapromissora",
+    representativeName: "",
+    representativeRole: "Gerente",
+    licenseNumber: "",
+  },
 };
 
 const DEFAULT_PRIVACY: PrivacySettings = {
@@ -60,8 +85,8 @@ export function getSiteConfig(): Promise<SiteConfig> {
   return read<SiteConfig>("site", { ...demoSiteConfig, contacts: undefined });
 }
 
-export function getCompanyInfo(): Promise<CompanyInfo> {
-  return read("company", DEFAULT_COMPANY);
+export function getCompanyInfo(kind: CompanyKind = "sale"): Promise<CompanyInfo> {
+  return read(kind === "sale" ? "company" : "company_rent", DEFAULT_COMPANY[kind]);
 }
 
 export function getPrivacySettings(): Promise<PrivacySettings> {

@@ -49,18 +49,27 @@ const companySchema = z.object({
   address: z.string().trim().max(300),
   postalCode: z.string().trim().max(20),
   city: z.string().trim().max(100),
+  phone: z.string().trim().max(40),
+  email: z.string().trim().max(254).refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "E-mail inválido."),
+  instagram: z.string().trim().max(80),
   representativeName: z.string().trim().max(160),
   representativeRole: z.string().trim().max(80),
   licenseNumber: z.string().trim().max(60),
 });
 
-export async function saveCompany(form: FormData): Promise<ActionResult> {
+export async function saveCompany(form: FormData, kind: "sale" | "rent" = "sale"): Promise<ActionResult> {
   return run(async () => {
     const user = await assertPermission("site.edit");
     const data = companySchema.parse(Object.fromEntries(form.entries()));
-    const before = await getCompanyInfo();
-    await writeSetting("company", data, user.id);
-    await audit(user, { action: "settings.company", entityType: "settings", entityId: "company", summary: "Atualizou os dados legais do stand", changes: diff(before as unknown as Record<string, unknown>, data) });
+    const before = await getCompanyInfo(kind);
+    await writeSetting(kind === "sale" ? "company" : "company_rent", data, user.id);
+    await audit(user, {
+      action: "settings.company",
+      entityType: "settings",
+      entityId: kind === "sale" ? "company" : "company_rent",
+      summary: `Atualizou os dados da empresa de ${kind === "sale" ? "vendas" : "aluguer"}`,
+      changes: diff(before as unknown as Record<string, unknown>, data),
+    });
   }, "Dados da empresa guardados.");
 }
 

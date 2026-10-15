@@ -22,6 +22,7 @@ const AI_FIELDS: FieldMeta[] = [
   { key: "city", label: "Localidade", important: true },
   { key: "country", label: "País" },
   { key: "drivingLicenseNumber", label: "Carta de condução" },
+  { key: "drivingLicenseIssuedAt", label: "Emissão da carta" },
 ];
 
 const ID_TYPES = ["Cartão de Cidadão", "Título de Residência", "Passaporte", "Bilhete de Identidade", "Outro"];
@@ -98,6 +99,7 @@ export function CustomerForm({ id, initial }: { id?: string; initial: Record<str
             {f("birthDate", "Data de nascimento", { type: "date" })}
             {f("nationality", "Nacionalidade")}
             {f("drivingLicenseNumber", "Nº da carta de condução")}
+            {f("drivingLicenseIssuedAt", "Emissão da carta", { type: "date" })}
           </div>
         </fieldset>
         <fieldset className="a-fieldset">
