@@ -605,3 +605,23 @@ export const waMessages = pgTable(
   },
   (t) => [index("wa_messages_phone_idx").on(t.phone, t.createdAt)],
 );
+
+/**
+ * Fotografar com o telemóvel a partir do computador: o ecrã mostra um código QR com um link de uso único
+ * (válido poucos minutos); as fotos tiradas no telemóvel ficam aqui e aparecem no computador.
+ */
+export const captureSessions = pgTable("capture_sessions", {
+  id: text("id").primaryKey(),
+  /** SHA-256 do token do link (o token nunca é guardado). */
+  tokenHash: text("token_hash").notNull().unique(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** Para onde vão: documentos de uma viatura/cliente, soltos (leitura com IA) ou fotografias da viatura. */
+  ownerType: text("owner_type", { enum: ["vehicle", "customer", "none", "photos"] }).notNull().default("none"),
+  ownerId: text("owner_id"),
+  kind: text("kind").notNull().default("outro"),
+  fileIds: jsonb("file_ids").$type<string[]>().notNull().default([]),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+  createdAt: createdAt(),
+});

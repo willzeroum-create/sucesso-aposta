@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, FileText, FileUp, Sparkles, X } from "lucide-react";
 import { Alert, Spinner } from "./ui";
 import { readWithAi, uploadDocuments, type AiReadMode } from "./upload";
+import { CaptureDialog, useIsDesktop, type RemoteFile } from "./capture-dialog";
 
 export interface Proposal {
   documents: string[];
@@ -54,16 +55,27 @@ export function AiReader({
   const [result, setResult] = useState<{ filled: FieldMeta[]; conflicts: FieldMeta[]; missing: FieldMeta[] } | null>(null);
   const [lastFiles, setLastFiles] = useState<string[]>([]);
   // Documentos juntos antes da leitura (frente, verso, comprovativo…): a leitura só começa no botão.
-  const [queue, setQueue] = useState<{ file: File; url: string | null }[]>([]);
+  // "remote" = fotografia já enviada pelo telemóvel (código QR no computador).
+  const [queue, setQueue] = useState<{ file?: File; remote?: RemoteFile; url: string | null }[]>([]);
+  const desktop = useIsDesktop();
+  const [capturing, setCapturing] = useState(false);
   const MAX = 8;
 
   const queueRef = useRef(queue);
   queueRef.current = queue;
-  useEffect(() => () => queueRef.current.forEach((q) => q.url && URL.revokeObjectURL(q.url)), []);
+  useEffect(() => () => queueRef.current.forEach((q) => q.file && q.url && URL.revokeObjectURL(q.url)), []);
   const clear = () => {
-    queue.forEach((q) => q.url && URL.revokeObjectURL(q.url));
+    queue.forEach((q) => q.file && q.url && URL.revokeObjectURL(q.url));
     setQueue([]);
   };
+
+  function addRemote(files: RemoteFile[]) {
+    setError(null);
+    setProposal(null);
+    setResult(null);
+    setStage((s) => (s === "review" ? "idle" : s));
+    setQueue((q) => [...q, ...files.map((f) => ({ remote: f, url: f.mime.startsWith("image/") ? `/api/admin/files/${f.id}` : null }))].slice(0, MAX));
+  }
 
   function add(list: FileList | null) {
     // Copiar já: a FileList é "viva" e esvazia quando o input é limpo abaixo.
@@ -84,7 +96,7 @@ export function AiReader({
   function remove(i: number) {
     setQueue((q) => {
       const item = q[i];
-      if (item?.url) URL.revokeObjectURL(item.url);
+      if (item?.file && item.url) URL.revokeObjectURL(item.url);
       return q.filter((_, j) => j !== i);
     });
   }
@@ -95,9 +107,9 @@ export function AiReader({
     setProposal(null);
     try {
       setStage("uploading");
-      const list = queue.map((q) => q.file);
-      const uploaded = await uploadDocuments(list, target, (d, t) => setProgress(`A enviar ${d} de ${t}…`));
-      const ids = uploaded.map((u) => u.fileId);
+      const list = queue.flatMap((q) => (q.file ? [q.file] : []));
+      const uploaded = list.length ? await uploadDocuments(list, target, (d, t) => setProgress(`A enviar ${d} de ${t}…`)) : [];
+      const ids = [...queue.flatMap((q) => (q.remote ? [q.remote.id] : [])), ...uploaded.map((u) => u.fileId)];
       setLastFiles(ids);
       onUploaded?.(ids);
       clear();
@@ -145,7 +157,7 @@ export function AiReader({
         <div className="a-actions">
           <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => add(e.target.files)} />
           <input ref={input} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => add(e.target.files)} />
-          <button type="button" className="a-btn a-btn-sm" onClick={() => camera.current?.click()} disabled={stage === "uploading" || stage === "reading" || queue.length >= MAX}>
+          <button type="button" className="a-btn a-btn-sm" onClick={() => (desktop ? setCapturing(true) : camera.current?.click())} disabled={stage === "uploading" || stage === "reading" || queue.length >= MAX}>
             <Camera size={15} /> Fotografar
           </button>
           <button type="button" className="a-btn a-btn-sm" onClick={() => input.current?.click()} disabled={stage === "uploading" || stage === "reading" || queue.length >= MAX}>
@@ -162,7 +174,7 @@ export function AiReader({
               </p>
               <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {queue.map((q, i) => (
-                  <li key={`${q.file.name}-${i}`} style={{ position: "relative", width: 112, display: "grid", gap: 4 }}>
+                  <li key={`${q.file?.name ?? q.remote?.id}-${i}`} style={{ position: "relative", width: 112, display: "grid", gap: 4 }}>
                     {q.url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={q.url} alt="" style={{ width: 112, height: 84, objectFit: "cover", borderRadius: 6, border: "1px solid var(--line)" }} />
@@ -172,13 +184,13 @@ export function AiReader({
                       </span>
                     )}
                     <span className="muted" style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {q.file.name}
+                      {q.file?.name ?? q.remote?.name}
                     </span>
                     <button
                       type="button"
                       className="a-icon-btn"
                       onClick={() => remove(i)}
-                      aria-label={`Retirar ${q.file.name}`}
+                      aria-label={`Retirar ${q.file?.name ?? q.remote?.name}`}
                       style={{ position: "absolute", top: 4, right: 4, width: 26, height: 26, background: "var(--surface)", border: "1px solid var(--line)" }}
                     >
                       <X size={14} />
@@ -270,6 +282,13 @@ export function AiReader({
           )}
         </div>
       )}
+      <CaptureDialog
+        open={capturing}
+        onClose={() => setCapturing(false)}
+        target={target}
+        onRemoteFiles={addRemote}
+        onWebcamFile={(f) => setQueue((q) => (q.length >= MAX ? q : [...q, { file: f, url: URL.createObjectURL(f) }]))}
+      />
     </section>
   );
 }

@@ -29,6 +29,13 @@
       "when": 1792088009318,
       "tag": "0003_custos_cobrancas",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792089439825,
+      "tag": "0004_captura_telemovel",
+      "breakpoints": true
     }
   ]
 }

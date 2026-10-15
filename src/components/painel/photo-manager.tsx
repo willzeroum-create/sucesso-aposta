@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, ImagePlus, Star, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImagePlus, Smartphone, Star, Trash2 } from "lucide-react";
 import { deletePhoto, reorderPhotos, setCoverPhoto, updatePhotoAlt } from "@/app/painel/_actions/vehicles";
 import { uploadPhotos } from "./upload";
+import { CaptureDialog, useIsDesktop } from "./capture-dialog";
 import { Spinner, useAction, useToast } from "./ui";
 
 type Photo = { id: string; url: string; alt: string };
@@ -19,6 +20,8 @@ export function PhotoManager({ vehicleId, photos: initial, coverId, canEdit }: {
   const [dropActive, setDropActive] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const desktop = useIsDesktop();
+  const [capturing, setCapturing] = useState(false);
   useEffect(() => setPhotos(initial), [initial]);
 
   async function upload(list: FileList | File[] | null) {
@@ -54,6 +57,23 @@ export function PhotoManager({ vehicleId, photos: initial, coverId, canEdit }: {
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
+      {canEdit && desktop && (
+        <div className="a-actions">
+          <button type="button" className="a-btn a-btn-sm" onClick={() => setCapturing(true)}>
+            <Smartphone size={15} /> Fotografar com o telemóvel
+          </button>
+          <CaptureDialog
+            open={capturing}
+            onClose={() => setCapturing(false)}
+            target={{ ownerType: "photos", ownerId: vehicleId }}
+            onRemoteFiles={(files) => {
+              toast("ok", `${files.length} fotografia(s) recebida(s) do telemóvel.`);
+              router.refresh();
+            }}
+            onWebcamFile={(f) => void upload([f])}
+          />
+        </div>
+      )}
       {canEdit && (
         <div
           className="a-drop"

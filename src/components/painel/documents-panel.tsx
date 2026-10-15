@@ -7,6 +7,7 @@ import { deleteDocument, setDocumentKind } from "@/app/painel/_actions/customers
 import { DOCUMENT_KINDS, type DocumentKind } from "@/lib/document-kinds";
 import { dateOnly, dateTime } from "@/lib/labels";
 import { uploadDocuments } from "./upload";
+import { CaptureDialog, useIsDesktop } from "./capture-dialog";
 import { Spinner, useAction, useToast } from "./ui";
 
 export type DocRow = {
@@ -42,7 +43,10 @@ export function DocumentsPanel({
   const [kind, setKind] = useState<DocumentKind>(kinds[0]);
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function upload(files: FileList | null) {
+  const desktop = useIsDesktop();
+  const [capturing, setCapturing] = useState(false);
+
+  async function upload(files: FileList | File[] | null) {
     if (!files?.length) return;
     try {
       await uploadDocuments([...files], { ownerType: owner.type, ownerId: owner.id, kind }, (d, t) => setBusy(`A enviar ${d} de ${t}…`));
@@ -80,12 +84,22 @@ export function DocumentsPanel({
             </select>
             <input ref={input} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => upload(e.target.files)} />
             <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => upload(e.target.files)} />
-            <button type="button" className="a-btn a-btn-sm" onClick={() => camera.current?.click()} disabled={!!busy}>
+            <button type="button" className="a-btn a-btn-sm" onClick={() => (desktop ? setCapturing(true) : camera.current?.click())} disabled={!!busy}>
               <Camera size={15} /> Fotografar
             </button>
             <button type="button" className="a-btn a-btn-sm" onClick={() => input.current?.click()} disabled={!!busy}>
               {busy ? <Spinner size={14} /> : <Upload size={15} />} {busy ?? "Carregar"}
             </button>
+            <CaptureDialog
+              open={capturing}
+              onClose={() => setCapturing(false)}
+              target={{ ownerType: owner.type, ownerId: owner.id, kind }}
+              onRemoteFiles={(files) => {
+                toast("ok", `${files.length} documento(s) recebido(s) do telemóvel.`);
+                router.refresh();
+              }}
+              onWebcamFile={(f) => void upload([f])}
+            />
           </div>
         )}
       </div>
