@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ClipboardCheck, FileDown, Search, UserPlus, Users } from "lucide-react";
-import { completeSale, reviewSale, type ContractField } from "@/app/painel/_actions/sales";
+import { CheckCircle2, ClipboardCheck, FileDown, Pencil, Search, UserPlus, Users } from "lucide-react";
+import { completeSale, dealCustomer, reviewSale, type ContractField } from "@/app/painel/_actions/sales";
 import { createCustomer } from "@/app/painel/_actions/customers";
 import { isValidNif } from "@/lib/pt-validation";
 import { DEAL_DOCUMENTS, type DealMode, type TemplateId } from "@/lib/form-templates";
@@ -27,6 +27,25 @@ const NEW_FIELDS: FieldMeta[] = [
   { key: "country", label: "País" },
   { key: "drivingLicenseNumber", label: "Carta de condução" },
   { key: "drivingLicenseIssuedAt", label: "Emissão da carta" },
+];
+
+/** Ficha do cliente escolhido, mostrada já preenchida para conferir (ex.: contrato com outra morada). */
+const BUYER_FIELDS: [key: string, label: string, props?: React.InputHTMLAttributes<HTMLInputElement>, wide?: boolean][] = [
+  ["fullName", "Nome completo *", {}, true],
+  ["nif", "NIF", { inputMode: "numeric", maxLength: 11 }],
+  ["idDocumentType", "Tipo de documento"],
+  ["idDocumentNumber", "Nº do documento"],
+  ["idDocumentExpiry", "Validade", { type: "date" }],
+  ["birthDate", "Data de nascimento", { type: "date" }],
+  ["nationality", "Nacionalidade"],
+  ["drivingLicenseNumber", "Nº da carta de condução"],
+  ["drivingLicenseIssuedAt", "Emissão da carta", { type: "date" }],
+  ["address", "Morada", {}, true],
+  ["postalCode", "Código postal", { placeholder: "0000-000" }],
+  ["city", "Localidade"],
+  ["country", "País"],
+  ["phone", "Telefone", { type: "tel" }],
+  ["email", "E-mail", { type: "email" }],
 ];
 
 const RENT_PAYMENT = "Pago por transferência bancária MBWAY/IBAN ou em dinheiro no ato da assinatura.";
@@ -56,6 +75,10 @@ export function SalePanel({
   const { pending, fields: errors, run } = useAction();
   const [mode, setMode] = useState<"existing" | "new">(defaults.customerId || !canCreateCustomer ? "existing" : customers.length ? "existing" : "new");
   const [customerId, setCustomerId] = useState(defaults.customerId ?? "");
+  const [picking, setPicking] = useState(!defaults.customerId);
+  const [buyer, setBuyer] = useState<Record<string, string> | null>(null);
+  const [buyerOrig, setBuyerOrig] = useState<Record<string, string>>({});
+  const [buyerError, setBuyerError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [list, setList] = useState(customers);
   const [newC, setNewC] = useState<Record<string, string>>({ country: "Portugal" });
@@ -93,6 +116,27 @@ export function SalePanel({
     return q ? list.filter((c) => c.label.toLowerCase().includes(q)) : list;
   }, [list, query]);
   const selected = list.find((c) => c.id === customerId);
+
+  // Ao escolher o cliente, a ficha aparece logo preenchida para conferir e corrigir.
+  useEffect(() => {
+    let live = true;
+    setBuyer(null);
+    setBuyerError(null);
+    if (!customerId) return;
+    dealCustomer(customerId)
+      .then((res) => {
+        if (!live) return;
+        if (res.ok) {
+          setBuyer(res.data);
+          setBuyerOrig(res.data);
+        } else setBuyerError(res.error);
+      })
+      .catch(() => live && setBuyerError("Sem ligação ao servidor. Tente de novo."));
+    return () => {
+      live = false;
+    };
+  }, [customerId]);
+  const buyerChanged = buyer ? BUYER_FIELDS.filter(([k]) => (buyer[k] ?? "") !== (buyerOrig[k] ?? "")).map(([, label]) => label.replace(" *", "")) : [];
   const nifWarn = newC.nif && newC.nif.replace(/\D/g, "").length === 9 && !isValidNif(newC.nif);
 
   const setNew = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,6 +153,7 @@ export function SalePanel({
       const c = { id: res.data.id, fullName: newC.fullName, nif: newC.nif || null, label: newC.nif ? `${newC.fullName} · NIF ${newC.nif.replace(/\D/g, "")}` : newC.fullName };
       setList((l) => [c, ...l]);
       setCustomerId(c.id);
+      setPicking(false);
       setMode("existing");
       setNewC({ country: "Portugal" });
       setSuggested(new Set());
@@ -121,7 +166,7 @@ export function SalePanel({
   const [edited, setEdited] = useState<Record<string, string>>({});
   const [saveToRecords, setSaveToRecords] = useState(true);
   const [saved, setSaved] = useState<string[]>([]);
-  const saleKey = JSON.stringify([customerId, sale, warranty, rental, [...docs].sort()]);
+  const saleKey = JSON.stringify([customerId, buyer, sale, warranty, rental, [...docs].sort()]);
   // Qualquer alteração nos passos 1–3 obriga a rever de novo.
   useEffect(() => {
     setReview(null);
@@ -132,6 +177,7 @@ export function SalePanel({
   const baseInput = () => ({
     mode: deal,
     customerId,
+    ...(buyer ? { customer: buyer } : {}),
     priceEur: isRent ? null : money(sale.priceEur),
     ...(isRent
       ? {
@@ -185,7 +231,7 @@ export function SalePanel({
   if (done)
     return (
       <section className="a-card a-card-pad" style={{ display: "grid", gap: 16 }}>
-        <Alert kind="ok" title={isRent ? `${vehicleLabel} alugado a ${selected?.fullName ?? "cliente"}` : markSold ? `${vehicleLabel} vendido a ${selected?.fullName ?? "cliente"}` : "Documentos gerados"}>
+        <Alert kind="ok" title={isRent ? `${vehicleLabel} alugado a ${buyer?.fullName || selected?.fullName || "cliente"}` : markSold ? `${vehicleLabel} vendido a ${buyer?.fullName || selected?.fullName || "cliente"}` : "Documentos gerados"}>
           <p>Abra, confira e imprima para assinar. Ficam guardados no separador Termos da viatura e na ficha do cliente.</p>
           {saved.length > 0 && <p className="muted" style={{ fontSize: 13 }}>Os dados completados foram guardados em: {saved.join(", ")}.</p>}
         </Alert>
@@ -235,57 +281,108 @@ export function SalePanel({
         <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
           {mode === "existing" ? (
             <>
-              {selected && (
-                <Alert kind="ok">
-                  <p>
-                    {Who}: <strong>{selected.fullName}</strong>
-                    {selected.nif ? ` · NIF ${selected.nif}` : ""}
-                  </p>
-                </Alert>
-              )}
-              <div className="a-search" style={{ maxWidth: "none" }}>
-                <Search size={16} aria-hidden="true" />
-                <input className="a-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Procurar por nome ou NIF" aria-label="Procurar cliente" />
-              </div>
-              <div style={{ maxHeight: 260, overflowY: "auto", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }} role="listbox" aria-label="Clientes">
-                {filtered.length ? (
-                  filtered.slice(0, 200).map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      role="option"
-                      aria-selected={c.id === customerId}
-                      onClick={() => setCustomerId(c.id)}
-                      style={{
-                        display: "flex",
-                        width: "100%",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        padding: "10px 12px",
-                        border: 0,
-                        borderBottom: "1px solid var(--line)",
-                        background: c.id === customerId ? "var(--accent-soft)" : "transparent",
-                        color: "inherit",
-                        font: "inherit",
-                        textAlign: "left",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <span style={{ fontWeight: c.id === customerId ? 650 : 500 }}>{c.fullName}</span>
-                      <span className="muted num">{c.nif ? `NIF ${c.nif}` : ""}</span>
+              {customerId && !picking ? (
+                <>
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <p style={{ margin: 0 }}>
+                      {Who}: <strong>{buyer?.fullName || selected?.fullName}</strong>
+                    </p>
+                    <button type="button" className="a-btn a-btn-sm" onClick={() => setPicking(true)}>
+                      <Users size={15} /> Trocar cliente
                     </button>
-                  ))
-                ) : (
-                  <div className="a-empty">
-                    <strong>Nenhum cliente encontrado.</strong>
-                    {canCreateCustomer && (
-                      <button type="button" className="a-btn a-btn-sm" onClick={() => setMode("new")}>
-                        <UserPlus size={15} /> Criar novo cliente
-                      </button>
+                  </div>
+                  {buyerError ? (
+                    <Alert kind="danger">{buyerError}</Alert>
+                  ) : !buyer ? (
+                    <p className="muted" style={{ margin: 0 }}>
+                      <Spinner /> A carregar a ficha…
+                    </p>
+                  ) : (
+                    <>
+                      <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                        <Pencil size={13} aria-hidden="true" /> Confira os dados. O que corrigir aqui (ex.: outra morada) vai para os documentos e, com a opção do fim ligada, também para a ficha do cliente.
+                      </p>
+                      <div className="a-fields">
+                        {BUYER_FIELDS.map(([k, label, props, wide]) => (
+                          <Field key={k} label={label} name={`buyer-${k}`} wide={wide} error={errors[`customer.${k}`]}>
+                            <input
+                              id={`f-buyer-${k}`}
+                              value={buyer[k] ?? ""}
+                              onChange={(e) => setBuyer((b) => (b ? { ...b, [k]: e.target.value } : b))}
+                              aria-invalid={Boolean(errors[`customer.${k}`])}
+                              {...props}
+                            />
+                          </Field>
+                        ))}
+                      </div>
+                      {buyerChanged.length > 0 && (
+                        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                          Alterado: {buyerChanged.join(", ")}.{" "}
+                          <button type="button" className="a-btn a-btn-sm a-btn-ghost" onClick={() => setBuyer(buyerOrig)}>
+                            Desfazer
+                          </button>
+                        </p>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="a-search" style={{ maxWidth: "none" }}>
+                    <Search size={16} aria-hidden="true" />
+                    <input className="a-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Procurar por nome ou NIF" aria-label="Procurar cliente" />
+                  </div>
+                  <div style={{ maxHeight: 260, overflowY: "auto", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }} role="listbox" aria-label="Clientes">
+                    {filtered.length ? (
+                      filtered.slice(0, 200).map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          role="option"
+                          aria-selected={c.id === customerId}
+                          onClick={() => {
+                            setCustomerId(c.id);
+                            setPicking(false);
+                          }}
+                          style={{
+                            display: "flex",
+                            width: "100%",
+                            justifyContent: "space-between",
+                            gap: 10,
+                            padding: "10px 12px",
+                            border: 0,
+                            borderBottom: "1px solid var(--line)",
+                            background: c.id === customerId ? "var(--accent-soft)" : "transparent",
+                            color: "inherit",
+                            font: "inherit",
+                            textAlign: "left",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <span style={{ fontWeight: c.id === customerId ? 650 : 500 }}>{c.fullName}</span>
+                          <span className="muted num">{c.nif ? `NIF ${c.nif}` : ""}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="a-empty">
+                        <strong>Nenhum cliente encontrado.</strong>
+                        {canCreateCustomer && (
+                          <button type="button" className="a-btn a-btn-sm" onClick={() => setMode("new")}>
+                            <UserPlus size={15} /> Criar novo cliente
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
+                  {customerId && (
+                    <div>
+                      <button type="button" className="a-btn a-btn-sm a-btn-ghost" onClick={() => setPicking(false)}>
+                        Manter {buyer?.fullName || selected?.fullName}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
               {errors.customerId && <span className="a-error" style={{ color: "var(--danger)", fontSize: 13 }}>{errors.customerId}</span>}
             </>
           ) : (

@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
 import { PLACEHOLDERS, TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
-import { formatPlate, isValidNif, normalizeDate, normalizeVin } from "@/lib/pt-validation";
+import { formatPlate, formatPostalCodePt, isValidNif, normalizeDate, normalizeVin } from "@/lib/pt-validation";
 import { audit, diff } from "@/server/audit";
 import { assertPermission, can } from "@/server/auth/session";
 import { buildValues, createFormDocument, templateFieldKeys } from "@/server/forms";
@@ -16,6 +16,51 @@ import { run, UserError } from "@/server/action";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida.");
 const hhmm = z.string().regex(/^\d{2}:\d{2}$/, "Hora inválida.");
+
+/** Dados do comprador/locatário mostrados no passo 1 e corrigíveis antes do contrato (ex.: outra morada). */
+const CUSTOMER_KEYS = [
+  "fullName", "nif", "idDocumentType", "idDocumentNumber", "idDocumentExpiry", "birthDate", "nationality",
+  "drivingLicenseNumber", "drivingLicenseIssuedAt", "address", "postalCode", "city", "country", "phone", "email",
+] as const;
+type CustomerKey = (typeof CUSTOMER_KEYS)[number];
+type CustomerRow = typeof schema.customers.$inferSelect;
+const txt = (max: number) => z.string().trim().max(max);
+const optIso = z.string().trim().refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), "Data inválida.");
+const customerOverride = z
+  .object({
+    fullName: z.string().trim().min(2, "Indique o nome.").max(160),
+    nif: txt(20).refine((v) => !v || isValidNif(v.replace(/\D/g, "")), "NIF inválido (dígito de controlo)."),
+    idDocumentType: txt(60),
+    idDocumentNumber: txt(60),
+    idDocumentExpiry: optIso,
+    birthDate: optIso,
+    nationality: txt(60),
+    drivingLicenseNumber: txt(60),
+    drivingLicenseIssuedAt: optIso,
+    address: txt(300),
+    postalCode: txt(20),
+    city: txt(100),
+    country: txt(60),
+    phone: txt(30).refine((v) => !v || /^[+\d\s().-]{7,30}$/.test(v), "Telefone inválido."),
+    email: txt(254).refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "E-mail inválido."),
+  })
+  .partial();
+
+/** Aplica as correções do passo 1 à ficha lida da base de dados; devolve a ficha final e o que mudou. */
+function withOverrides(customer: CustomerRow, override?: z.infer<typeof customerOverride>) {
+  const patch: Partial<Record<CustomerKey, string | null>> = {};
+  for (const k of CUSTOMER_KEYS) {
+    const raw = override?.[k];
+    if (raw === undefined) continue;
+    let v: string | null = raw.trim() || null;
+    if (v && k === "nif") v = v.replace(/\D/g, "");
+    if (v && k === "postalCode") v = formatPostalCodePt(v);
+    if (k === "fullName" && !v) continue;
+    if ((customer[k] ?? null) !== v) patch[k] = v;
+  }
+  // fullName nunca fica vazio (ignorado acima).
+  return { customer: { ...customer, ...patch } as CustomerRow, patch: patch as Partial<typeof schema.customers.$inferInsert> };
+}
 
 const baseSchema = z
   .object({
@@ -28,6 +73,7 @@ const baseSchema = z
     place: z.string().trim().max(100),
     notes: z.string().trim().max(2000),
     documents: z.array(z.enum(TEMPLATE_IDS as [TemplateId, ...TemplateId[]])).max(5),
+    customer: customerOverride.optional(),
     warranty: z
       .object({
         months: z.number().int().min(0).max(120).nullable().optional(),
@@ -97,6 +143,16 @@ const savesTo = (key: string): string | null => {
   return null;
 };
 
+/** Ficha completa do cliente escolhido, para conferir e corrigir no passo 1. */
+export async function dealCustomer(id: string): Promise<ActionResult<Record<CustomerKey, string>>> {
+  return run(async () => {
+    await assertPermission("forms.generate");
+    const [c] = await db.select().from(schema.customers).where(eq(schema.customers.id, id)).limit(1);
+    if (!c) throw new UserError("Cliente não encontrado.");
+    return Object.fromEntries(CUSTOMER_KEYS.map((k) => [k, c[k] ?? ""])) as Record<CustomerKey, string>;
+  });
+}
+
 async function loadParties(vehicleId: string, customerId: string) {
   const [vehicle] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, vehicleId)).limit(1);
   if (!vehicle) throw new UserError("Viatura não encontrada.");
@@ -125,7 +181,9 @@ export async function reviewSale(vehicleId: string, raw: ReviewInput): Promise<A
     await assertPermission("forms.generate");
     const input = baseSchema.parse(raw);
     if (!input.documents.length) throw new UserError("Escolha pelo menos um documento.");
-    const { vehicle, customer } = await loadParties(vehicleId, input.customerId);
+    const parties = await loadParties(vehicleId, input.customerId);
+    const { vehicle } = parties;
+    const { customer } = withOverrides(parties.customer, input.customer);
     const { sale, ctx } = context(input);
     const values = await buildValues(customer, vehicle, sale, ctx);
     const keys = new Set<string>();
@@ -243,7 +301,9 @@ export async function completeSale(
     const user = await assertPermission("forms.generate");
     const input = dealSchema.parse(raw);
     if (input.markSold || input.mode === "rent") await assertPermission("vehicles.status");
-    const { vehicle, customer } = await loadParties(vehicleId, input.customerId);
+    const parties = await loadParties(vehicleId, input.customerId);
+    const { vehicle } = parties;
+    const { customer, patch: customerPatch } = withOverrides(parties.customer, input.customer);
     if (input.mode === "sale" && vehicle.status === "sold" && vehicle.buyerCustomerId && vehicle.buyerCustomerId !== customer.id && input.markSold)
       throw new UserError("Esta viatura já está vendida a outro cliente. Mude o estado primeiro se a venda foi anulada.");
 
@@ -259,7 +319,21 @@ export async function completeSale(
       throw new UserError(`Preencha antes de gerar: ${missing.map((k) => LABEL[k] ?? k).join(", ")}.`, Object.fromEntries(missing.map((k) => [k, "Obrigatório."])));
     for (const k of keys) if (OPTIONAL.has(k) && !final[k]?.trim()) final[k] = "—";
 
-    const saved = input.saveToRecords ? await saveBack(user, input.mode, input.values, before, vehicle, customer) : [];
+    const saved: string[] = [];
+    if (input.saveToRecords && Object.keys(customerPatch).length && can(user, "customers.edit")) {
+      if (customerPatch.nif) {
+        const [dup] = await db
+          .select({ name: schema.customers.fullName })
+          .from(schema.customers)
+          .where(and(eq(schema.customers.nif, customerPatch.nif), ne(schema.customers.id, customer.id)))
+          .limit(1);
+        if (dup) throw new UserError(`Já existe outro cliente com este NIF: ${dup.name}.`, { "customer.nif": "NIF já registado." });
+      }
+      await db.update(schema.customers).set({ ...customerPatch, updatedAt: new Date() }).where(eq(schema.customers.id, customer.id));
+      await audit(user, { action: "customer.update", entityType: "customer", entityId: customer.id, summary: `Atualizou a ficha de ${customer.fullName} ao preparar o documento`, changes: diff(parties.customer, customerPatch) });
+      saved.push("ficha do cliente");
+    }
+    if (input.saveToRecords) for (const place of await saveBack(user, input.mode, input.values, before, vehicle, customer)) if (!saved.includes(place)) saved.push(place);
 
     let current = vehicle;
     if (input.mode === "sale" && input.markSold) {
