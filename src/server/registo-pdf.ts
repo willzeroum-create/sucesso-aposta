@@ -105,6 +105,8 @@ export async function fillRegistration(input: {
       if (p.certCode) set(`Outro ${q}`, `CERTIDÃO ${p.certCode}`);
       return;
     }
+    // Sem documento (ex.: só veio o do outro contraente) a parte fica toda em branco para escrever à mão.
+    if (!p.docNumber.trim()) return;
     set(names.id, p.docNumber);
     if (p.docType === "outro") set(`Outro ${q}`, p.docTypeOther || "Outro");
     else pick(`${q} bcc`, p.docType);

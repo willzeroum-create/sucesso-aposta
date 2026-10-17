@@ -12,7 +12,6 @@ import {
   emptyRegistrationVehicle,
   PARTY_FIELDS,
   REGISTRATION_STATUS,
-  registrationMissing,
   VEHICLE_FIELDS_RA,
   type RegistrationParty,
   type RegistrationVehicle,
@@ -100,7 +99,10 @@ export async function saveRegistration(id: string, raw: RegistrationPatch): Prom
   });
 }
 
-/** Gera o requerimento oficial preenchido (PDF editável); nunca com dados obrigatórios em falta. */
+/**
+ * Gera o requerimento oficial com o que houver (PDF editável). O que faltar sai em branco para completar
+ * à mão depois de imprimir (ex.: só o documento do comprador, ou só a matrícula).
+ */
 export async function generateRegistration(id: string): Promise<ActionResult<{ url: string }>> {
   return run(async () => {
     const user = await assertPermission("forms.generate");
@@ -110,10 +112,11 @@ export async function generateRegistration(id: string): Promise<ActionResult<{ u
     const seller = { ...emptyParty(), ...row.seller } as RegistrationParty;
     const vehicle = { ...emptyRegistrationVehicle(), ...row.vehicle } as RegistrationVehicle;
     const contractDate = row.contractDate ?? "";
-    const missing = registrationMissing(buyer, seller, vehicle, contractDate);
-    if (missing.length) throw new UserError(`Falta preencher: ${missing.join(", ")}.`);
-    for (const [role, p] of [["comprador", buyer], ["vendedor", seller]] as const)
-      if (!isValidNif(p.nif.replace(/\D/g, ""))) throw new UserError(`O NIF do ${role} não é válido.`);
+    // Só se trava um NIF escrito e errado: o que está vazio fica em branco no papel.
+    for (const [role, p] of [["comprador", buyer], ["vendedor", seller]] as const) {
+      const nif = p.nif.replace(/\D/g, "");
+      if (nif && !isValidNif(nif)) throw new UserError(`O NIF do ${role} não é válido. Corrija-o ou apague-o para escrever à mão.`);
+    }
 
     const pdf = await fillRegistration({ buyer, seller, vehicle, contractDate });
     const stored = await storeGenerated(pdf, "application/pdf", registrationFileName(vehicle, buyer), user.id);
@@ -135,7 +138,7 @@ export async function generateRegistration(id: string): Promise<ActionResult<{ u
       action: "registration.generate",
       entityType: "registration",
       entityId: id,
-      summary: `Gerou o requerimento de registo de ${vehicle.plate || vehicle.make}: ${seller.name} → ${buyer.name}`,
+      summary: `Gerou o requerimento de registo de ${vehicle.plate || vehicle.make || "viatura"}: ${seller.name || "vendedor por preencher"} → ${buyer.name || "comprador por preencher"}`,
     });
     revalidatePath(`/painel/registo/${id}`);
     revalidatePath("/painel/registo");

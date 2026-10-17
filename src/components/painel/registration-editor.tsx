@@ -322,17 +322,17 @@ export function RegistrationEditor({
             <h2>4. Requerimento de registo</h2>
             <p>Modelo 1 RA do IRN: declaração para registo de propriedade (contrato verbal de compra e venda). Comprador e vendedor assinam na página 2.</p>
           </div>
-          {missing.length ? <span className="a-pill danger">{missing.length} em falta</span> : <span className="a-pill available">Pronto</span>}
+          {missing.length ? <span className="a-pill reserved">{missing.length} em branco</span> : <span className="a-pill available">Completo</span>}
         </div>
         <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
           {missing.length > 0 && (
-            <Alert kind="warn" title="Falta preencher">
+            <Alert kind="info" title="Pode gerar já: isto sai em branco para completar à mão">
               <p>{missing.join(", ")}.</p>
             </Alert>
           )}
           <div className="a-actions">
-            <button type="button" className="a-btn a-btn-primary" onClick={generate} disabled={pending || missing.length > 0}>
-              {pending ? <Spinner /> : <FileText size={16} />} {pdfUrl ? "Gerar de novo" : "Gerar requerimento (PDF)"}
+            <button type="button" className="a-btn a-btn-primary" onClick={generate} disabled={pending}>
+              {pending ? <Spinner /> : <FileText size={16} />} {pdfUrl ? "Gerar de novo" : missing.length ? "Gerar com o que há (PDF)" : "Gerar requerimento (PDF)"}
             </button>
             {pdfUrl && (
               <a className="a-btn" href={pdfUrl} target="_blank" rel="noopener">

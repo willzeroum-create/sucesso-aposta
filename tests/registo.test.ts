@@ -85,3 +85,17 @@ test("registo: comprador no Q3, vendedor no Q4, declaração e assinaturas", asy
   mkdirSync("tests/output", { recursive: true });
   writeFileSync("tests/output/requerimento-registo-exemplo.pdf", pdf);
 });
+
+test("registo: só com a matrícula ou um só documento, sai na mesma (o resto à mão)", async () => {
+  const onlyPlate = await fillRegistration({ buyer: emptyParty(), seller: emptyParty(), vehicle: { plate: "AA-12-BB", make: "", model: "", vin: "" }, contractDate: "" });
+  const f1 = (await PDFDocument.load(onlyPlate)).getForm();
+  assert.equal(f1.getTextField("Matricula Q1").getText(), "AA-12-BB");
+  assert.equal(f1.getTextField("Nome - firma Q3").getText() ?? "", "");
+  assert.equal(f1.getRadioGroup("Q3 bcc").getSelected(), undefined, "sem documento não se assinala o tipo");
+  assert.equal(f1.getRadioGroup("Q7 1").getSelected(), undefined, "sem data não se assinala a declaração");
+
+  const onlyBuyer = await fillRegistration({ buyer, seller: emptyParty(), vehicle, contractDate: "2026-10-17" });
+  const f2 = (await PDFDocument.load(onlyBuyer)).getForm();
+  assert.equal(f2.getTextField("Nome - firma Q3").getText(), "ANA MARIA DA SILVA SANTOS");
+  assert.equal(f2.getTextField("Nome - firma Q4").getText() ?? "", "");
+});
