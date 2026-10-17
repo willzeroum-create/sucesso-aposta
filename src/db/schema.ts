@@ -441,6 +441,27 @@ export const vehicleCosts = pgTable(
   (t) => [index("vehicle_costs_vehicle_idx").on(t.vehicleId, t.date)],
 );
 
+/** Compra e venda: Requerimento de Registo Automóvel (Modelo 1 RA do IRN) com comprador e vendedor. */
+export const registrations = pgTable(
+  "registrations",
+  {
+    id: text("id").primaryKey(),
+    vehicleId: text("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
+    buyer: jsonb("buyer").$type<Record<string, string>>().notNull().default({}),
+    seller: jsonb("seller").$type<Record<string, string>>().notNull().default({}),
+    vehicle: jsonb("vehicle").$type<Record<string, string>>().notNull().default({}),
+    contractDate: text("contract_date"),
+    fileIds: jsonb("file_ids").$type<string[]>().notNull().default([]),
+    generatedFileId: text("generated_file_id"),
+    status: text("status", { enum: ["draft", "generated", "submitted", "done"] }).notNull().default("draft"),
+    notes: text("notes"),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("registrations_updated_idx").on(t.updatedAt)],
+);
+
 /* ───────────────────────── Cobranças (vendas a prestações) ───────────────────────── */
 // Valores em cêntimos (inteiros), datas AAAA-MM-DD — como na app Cobrar de onde vieram.
 

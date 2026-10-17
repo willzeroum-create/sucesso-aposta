@@ -16,6 +16,7 @@ import {
   parseNumber,
 } from "@/lib/pt-validation";
 import { categoriaPT, normalizarDataMatricula, normalizarFinalidade, numero, paisOrigemValido, tipoPT } from "@/lib/modelo9";
+import { docTypeFrom } from "@/lib/registo";
 import { AiError, requestJson, type AiPart } from "./provider";
 
 export const MAX_AI_FILE_BYTES = 15 * 1024 * 1024;
@@ -450,7 +451,9 @@ export async function readImportDocuments(parts: AiPart[]): Promise<FieldsPropos
 
 /* ───────────── Requerente do Modelo 9 (empresa ou particular) ───────────── */
 
-const REQUESTER_KEYS = ["tipo", "nome", "nif", "num_documento", "codigo_certidao", "morada", "codigo_postal", "localidade", "email", "telefone"] as const;
+const REQUESTER_KEYS = [
+  "tipo", "nome", "nif", "tipo_documento", "num_documento", "entidade_emissora", "validade_documento", "codigo_certidao", "morada", "codigo_postal", "localidade", "email", "telefone",
+] as const;
 
 const REQUESTER_SCHEMA = {
   type: "object",
@@ -485,7 +488,10 @@ Regras para "dados" ("" quando não constar):
 - tipo: "empresa" se o requerente é uma sociedade/empresa; "particular" se é uma pessoa.
 - nome: firma completa da empresa (ex.: "Sucesso Prudente, Unipessoal Lda") ou nome completo da pessoa.
 - nif: NIPC da empresa ou NIF da pessoa (9 algarismos).
+- tipo_documento: SÓ particular — "Cartão de Cidadão", "Bilhete de Identidade", "Título de Residência", "Passaporte" ou o nome do documento.
 - num_documento: SÓ particular — nº do documento de identificação (CC: nº de identificação civil, ex. "12345678 9 ZZ1").
+- entidade_emissora: SÓ particular — quem emitiu o documento ("República Portuguesa" no CC português; "AIMA"/"SEF" no Título de Residência; o país no passaporte).
+- validade_documento: SÓ particular — data de validade do documento em AAAA-MM-DD.
 - codigo_certidao: SÓ empresa — o código de acesso à certidão permanente (formato "0000-0000-0000").
 - morada (rua, número, andar), codigo_postal ("0000-000") e localidade: a SEDE da empresa ou a morada da pessoa em Portugal. Nunca inventes a morada a partir do local de nascimento; num passaporte ou documento estrangeiro sem morada em Portugal deixa "".
 - email e telefone: só se estiverem escritos.
@@ -499,11 +505,16 @@ export function normalizeRequesterExtraction(json: Record<string, unknown>): Fie
   const nif = raw.nif.replace(/\D/g, "");
   if (nif && !isValidNif(nif)) warnings.push(`O NIF lido (${raw.nif}) não passa na validação. Confirme no documento.`);
   const kind = raw.tipo.toLowerCase().startsWith("emp") ? "empresa" : raw.tipo ? "particular" : "";
+  const doc = kind === "empresa" ? { docType: "", docTypeOther: "" } : docTypeFrom(raw.tipo_documento);
   const fields: Record<string, string> = {
     kind,
     name: raw.nome.replace(/\s+/g, " "),
     nif,
     docNumber: kind === "empresa" ? "" : raw.num_documento,
+    docType: raw.tipo_documento ? doc.docType : "",
+    docTypeOther: doc.docTypeOther,
+    docIssuer: kind === "empresa" ? "" : raw.entidade_emissora,
+    docExpiry: kind === "empresa" ? "" : normalizeDate(raw.validade_documento) ?? "",
     certCode: kind === "particular" ? "" : raw.codigo_certidao,
     address: raw.morada,
     postalCode: raw.codigo_postal ? formatPostalCodePt(raw.codigo_postal) : "",

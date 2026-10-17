@@ -244,7 +244,7 @@ export function LegalizationEditor({
         mode="requester"
         target={{ ownerType: "none", kind: "identificacao" }}
         fields={REQUESTER_META}
-        current={requester as unknown as Record<string, string>}
+        current={{ ...(requester as unknown as Record<string, string>), kind: "" }}
         onApply={(found) => setRequester((r) => ({ ...r, ...found }) as Modelo9Requester)}
         onUploaded={(ids) => void addFiles(ids)}
         intro="Outro requerente? Fotografe a certidão permanente da empresa ou o documento de identificação da pessoa."

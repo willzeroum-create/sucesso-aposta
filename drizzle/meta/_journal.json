@@ -36,6 +36,13 @@
       "when": 1792089439825,
       "tag": "0004_captura_telemovel",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792227253116,
+      "tag": "0005_compra_venda",
+      "breakpoints": true
     }
   ]
 }

@@ -36,6 +36,8 @@ export function AiReader({
   onApply,
   onUploaded,
   intro,
+  title,
+  idSuffix = "",
 }: {
   mode: AiReadMode;
   target: { ownerType: "vehicle" | "customer" | "none"; ownerId?: string; kind: string };
@@ -44,6 +46,10 @@ export function AiReader({
   onApply: (values: Record<string, string>) => void;
   onUploaded?: (fileIds: string[]) => void;
   intro: string;
+  /** Título da caixa (ex.: "Documento do comprador"); por omissão "Preencher a partir de documentos". */
+  title?: string;
+  /** Para haver várias caixas do mesmo tipo na mesma página. */
+  idSuffix?: string;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
@@ -146,11 +152,11 @@ export function AiReader({
   }
 
   return (
-    <section className="a-card" aria-labelledby={`ai-${mode}`}>
+    <section className="a-card" aria-labelledby={`ai-${mode}${idSuffix}`}>
       <div className="a-card-head">
         <div>
-          <h2 id={`ai-${mode}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Sparkles size={17} aria-hidden="true" /> Preencher a partir de documentos
+          <h2 id={`ai-${mode}${idSuffix}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Sparkles size={17} aria-hidden="true" /> {title ?? "Preencher a partir de documentos"}
           </h2>
           <p>{intro}</p>
         </div>
