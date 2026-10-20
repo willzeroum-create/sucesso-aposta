@@ -373,7 +373,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                     )}
                     {fuels[featured.fuel]}
                   </span>
-                  <span>{featured.powerHp} cv</span>
+                  {featured.powerHp ? <span>{featured.powerHp} cv</span> : null}
                   <span>{featured.year}</span>
                 </div>
               )}
@@ -1052,10 +1052,12 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                       : "Manual"}
                   </dd>
                 </div>
-                <div>
-                  <dt>Potência</dt>
-                  <dd>{detail.powerHp} cv</dd>
-                </div>
+                {detail.powerHp ? (
+                  <div>
+                    <dt>Potência</dt>
+                    <dd>{detail.powerHp} cv</dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt>Estado</dt>
                   <dd>

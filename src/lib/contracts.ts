@@ -13,7 +13,8 @@ export interface Vehicle {
   mileageKm: number;
   fuel: VehicleFuel;
   transmission: "automatic" | "manual";
-  powerHp: number;
+  /** null quando a potência ainda não é conhecida (o site não mostra a linha). */
+  powerHp: number | null;
   /** null = "Preço sob consulta" (o preço não é enviado ao site). */
   priceEur: number | null;
   image: string;

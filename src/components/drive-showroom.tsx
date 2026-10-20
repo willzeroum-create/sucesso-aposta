@@ -426,10 +426,12 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                     <small>ANO</small>
                     {featured.year}
                   </span>
-                  <span>
-                    <small>POTÊNCIA</small>
-                    {featured.powerHp} <i>cv</i>
-                  </span>
+                  {featured.powerHp ? (
+                    <span>
+                      <small>POTÊNCIA</small>
+                      {featured.powerHp} <i>cv</i>
+                    </span>
+                  ) : null}
                   <span>
                     <small>
                       PREÇO{source === "demo" ? " ILUSTRATIVO" : ""}
@@ -973,9 +975,9 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                   value: `${numeric.format(detail.mileageKm)} km`,
                 },
                 { label: "MOTOR", value: fuels[detail.fuel] },
-                { label: "POTÊNCIA", value: `${detail.powerHp} cv` },
+                { label: "POTÊNCIA", value: detail.powerHp ? `${detail.powerHp} cv` : "" },
                 { label: "CAIXA", value: transmission(detail) },
-              ].map((fact) => (
+              ].filter((fact) => fact.value !== "").map((fact) => (
                 <div key={fact.label}>
                   <dt>{fact.label}</dt>
                   <dd>{fact.value}</dd>
@@ -1087,7 +1089,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                     },
                     {
                       label: "Potência",
-                      value: (v: Vehicle) => `${v.powerHp} cv`,
+                      value: (v: Vehicle) => (v.powerHp ? `${v.powerHp} cv` : "—"),
                     },
                     { label: "Caixa", value: transmission },
                     {

@@ -23,7 +23,6 @@ export function publicationGaps(
   if (v.mileageKm === null || v.mileageKm === undefined) gaps.push("quilómetros");
   if (!v.fuel) gaps.push("combustível");
   if (!v.transmission) gaps.push("caixa");
-  if (!v.powerHp) gaps.push("potência");
   if (!v.priceEur && !v.priceOnRequest) gaps.push("preço");
   if (!hasCover) gaps.push("fotografia de capa");
   return gaps;
@@ -69,7 +68,7 @@ export async function buildPublicCatalog(): Promise<PublicCatalogPayload> {
       mileageKm: v.mileageKm!,
       fuel: v.fuel!,
       transmission: v.transmission!,
-      powerHp: v.powerHp!,
+      powerHp: v.powerHp ?? null,
       priceEur: v.priceOnRequest ? null : v.priceEur!,
       image: publicUrl(cover!.key),
       imageAlt: cover!.alt || `${v.make} ${v.model} ${v.version}`.trim(),
