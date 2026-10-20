@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-15",
+  "method": "image_gen built-in",
+  "revision": "Light limestone pavilion after client rejected dark courtyard",
+  "desktop": "/images/hero/polestar-gold-gallery.png",
+  "mobile": "/images/hero/polestar-gold-gallery-mobile.png",
+  "prompts": [
+    {
+      "key": "polestarGoldLightDesktop",
+      "prompt": "Use case: precise-object-edit. Photorealistic premium automotive hero image for a website. Preserve the same Polestar 2 silhouette, grille, headlights, wheels, black glass roof and rich metallic champagne GOLD paint from the gold car reference. Change the background completely: OPEN AIR clean contemporary sculptural pale limestone pavilion, broad soft rounded wall in cool off-white, pale silver-grey large-format stone plaza, soft blue sky, distant restrained blue-grey hills. Airy daylight, soft natural shadows, car lit with natural neutral light so gold paint looks tasteful and realistic. This is a light, spacious Scandinavian architectural setting, no dark nightclub, no bronze pillars, no garage, no heavy amber lighting, no plants in front of car. Gentle contrast between champagne gold car and cool pale neutral surroundings. Keep entire car and original angle intact, no mirrored car, no cropped wheels. No lettering, no text, no watermark, no people, no graphics, blank neutral plate. Leave generous clean pale negative space for DARK website text. Input image is the edit target. Keep EXACT car position and size from reference. Wide 16:9 landscape. Car x38-93%, y29-80%, clean pale wall left 37% for copy. Bottom 15% open pale grey plaza for controls. Smooth rounded limestone pavilion behind at right, light grey-white wall to left."
+    },
+    {
+      "key": "polestarGoldLightMobile",
+      "prompt": "Use case: precise-object-edit. Photorealistic premium automotive hero image for a website. Preserve the same Polestar 2 silhouette, grille, headlights, wheels, black glass roof and rich metallic champagne GOLD paint from the gold car reference. Change the background completely: OPEN AIR clean contemporary sculptural pale limestone pavilion, broad soft rounded wall in cool off-white, pale silver-grey large-format stone plaza, soft blue sky, distant restrained blue-grey hills. Airy daylight, soft natural shadows, car lit with natural neutral light so gold paint looks tasteful and realistic. This is a light, spacious Scandinavian architectural setting, no dark nightclub, no bronze pillars, no garage, no heavy amber lighting, no plants in front of car. Gentle contrast between champagne gold car and cool pale neutral surroundings. Keep entire car and original angle intact, no mirrored car, no cropped wheels. No lettering, no text, no watermark, no people, no graphics, blank neutral plate. Leave generous clean pale negative space for DARK website text. Image 1 is the EDIT TARGET for exact portrait composition and vehicle geometry; image 2 defines the correct GOLD paint. Vertical 3:4 portrait, maintain exact car size and placement of image1, repaint gold. Entire car x18-90%, y49-77%, ample margins. Top 45% clean pale off-white rounded pavilion wall transitioning to pale blue sky, no visual clutter, for dark text and two controls. Bottom 20% empty pale grey plaza. Car whole, all wheels visible. Same airy pale curved limestone pavilion and blue-grey distant hills as desktop."
+    }
+  ]
+}

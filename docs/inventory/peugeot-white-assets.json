@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-15",
+  "provider": "built-in image_gen",
+  "use": "Illustrative Peugeot 2008 hero images; pearl white paint and new Mediterranean garden environment, replacing blue hero only",
+  "assets": [
+    {
+      "path": "public/images/hero/peugeot-white-garden.png",
+      "width": 1672,
+      "height": 941,
+      "editTarget": "public/images/hero/peugeot-blue-terrace.png",
+      "source": "C:/Users/willz/.codex/generated_images/01a140c4-4c9b-7810-b296-80c695a3d3c0/exec-0a2ef86f-bfd7-4f91-9919-9bf97dfc504d.png",
+      "prompt": "Use case: precise-object-edit. Asset type: landscape automotive website hero, photorealistic editorial car photography. The provided image is the EDIT TARGET. Change ONLY the Peugeot 2008 body paint from vivid blue to luminous pearl white and replace the environment with an elegant minimalist Mediterranean architectural garden: pale limestone and smooth light concrete walls, sculptural olive trees toward the far right background, clipped low green planting, warm soft daylight and natural gentle shadows. Keep exactly the same car model, pre-facelift Peugeot 2008 shape, black roof, dark original wheels, grille, lights, insignia, door details, black plastic trim, camera angle, car dimensions and three-quarter front-left pose. Car still fully visible with all tires and bumper, in right two thirds of image. Match reference landscape ratio approximately 16:9 and preserve its exact car framing/location. LEFT THIRD and upper left must remain uncluttered light warm neutral pale wall for overlay of DARK website text, no strong patterns. Realistic clean pearl white reflections, no overexposure. Ground beneath car and at bottom must remain clear with plausible contact shadows. Do not put any webpage design, lettering, captions, watermark or extra logos into image. Keep blank license plate. This is one full-bleed photograph, not a UI screenshot."
+    },
+    {
+      "path": "public/images/hero/peugeot-white-garden-mobile.png",
+      "width": 1086,
+      "height": 1448,
+      "editTarget": "public/images/hero/peugeot-blue-terrace-mobile.png",
+      "source": "C:/Users/willz/.codex/generated_images/01a140c4-4c9b-7810-b296-80c695a3d3c0/exec-8cfb9890-4dfe-4dea-aaaf-a49e2a048985.png",
+      "prompt": "Use case: precise-object-edit. Asset type: PORTRAIT automotive website hero photo 3:4 aspect ratio, photorealistic editorial car photography. The provided portrait image is the EDIT TARGET. Change ONLY the Peugeot 2008 body paint from vivid blue to luminous pearl white and replace environment with elegant minimalist Mediterranean architectural garden: pale limestone and smooth light concrete walls, one sculptural olive tree toward far-right middle background, subtle green planting, soft warm daylight. Retain exactly the original pre-facelift Peugeot 2008 model, black roof, dark original wheels, grille, lights, insignia, doors, trim, three-quarter front-left angle, full car proportions and placement. CRITICAL MOBILE FRAMING: match source portrait layout. Entire car including all visible tires and bumpers must fit fully in horizontal canvas between x=10% and x=91%, and vertically between y=48% and y=80%. TOP 45% must be a clean very light warm-neutral pale wall/sky, low contrast, no tree or distracting texture, to place dark website heading and buttons on later. Bottom 18% is empty pale stone ground for website controls. Car must NOT be enlarged, cropped or moved up toward the text space. Composition same as reference 1086x1448, requested portrait ratio 3:4. Pearl white paint clearly distinguished from warm cream walls with realistic crisp edge contrast and subtle reflections. Realistic natural contact shadows. No text, UI, captions, watermark or extra cars. Blank license plate. One full-bleed photo."
+    }
+  ],
+  "review": "Both outputs visually inspected. Pearl white Peugeot 2008 remains fully framed; original car angle, black roof, wheels and trim preserved. Light negative space supports current dark text. Mobile upper ~45 percent and bottom controls space remain clear. Existing blue files retained."
+}
