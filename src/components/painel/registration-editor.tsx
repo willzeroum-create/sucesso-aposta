@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, Building2, FileDown, FileText, Trash2, User } from "lucide-react";
+import { ArrowLeftRight, Building2, FileDown, FileText, Trash2, User, UserCheck } from "lucide-react";
 import { deleteRegistration, generateRegistration, saveRegistration, type RegistrationPatch } from "@/app/painel/_actions/registrations";
 import { dealCustomer } from "@/app/painel/_actions/sales";
 import {
   defaultIssuer,
   DOC_TYPE_LABEL,
   docTypeFrom,
+  emptyParty,
   PARTY_FIELDS,
   REGISTRATION_STATUS,
   registrationMissing,
@@ -18,7 +19,7 @@ import {
   type RegistrationStatus,
   type RegistrationVehicle,
 } from "@/lib/registo";
-import { AiReader, type FieldMeta } from "./ai-reader";
+import { AiReader } from "./ai-reader";
 import { Alert, Dialog, Field, Spinner, useAction } from "./ui";
 
 type Option = { id: string; label: string };
@@ -26,12 +27,15 @@ type StockVehicle = Option & { plate: string; make: string; model: string; vin: 
 type CompanyPreset = { key: string; label: string; party: RegistrationParty };
 type Role = "buyer" | "seller";
 
-const PARTY_META: FieldMeta[] = [
-  { key: "kind", label: "Tipo" },
-  { key: "docType", label: "Tipo de documento" },
-  ...PARTY_FIELDS.map((f) => ({ key: f.key, label: f.label, important: f.required })),
-];
-const VEHICLE_META: FieldMeta[] = VEHICLE_FIELDS_RA.map((f) => ({ key: f.key, label: f.label, important: f.required }));
+/** Pessoa lida pela IA → dados completos de um contraente (substitui o que lá estava). */
+function partyFromRead(found: Record<string, string>): RegistrationParty {
+  const kind = found.kind === "empresa" ? "empresa" : "particular";
+  const p = { ...emptyParty(kind), ...found, kind } as RegistrationParty;
+  if (found.docTypeOther && !found.docType) p.docType = "outro";
+  if (!["cc", "bi", "cp", "outro"].includes(p.docType)) p.docType = "cc";
+  if (!p.docIssuer && kind === "particular") p.docIssuer = defaultIssuer(p);
+  return p;
+}
 const ROLE: Record<Role, { title: string; hint: string; tone: string }> = {
   buyer: { title: "Comprador", hint: "Sujeito ativo (Q3) — quem fica com o carro", tone: "var(--ok)" },
   seller: { title: "Vendedor", hint: "Sujeito passivo (Q4) — quem vende", tone: "var(--accent, #641e2c)" },
@@ -64,6 +68,8 @@ export function RegistrationEditor({
   const [pdfUrl, setPdfUrl] = useState(initialPdf);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** Pessoas lidas nos documentos, à espera de se dizer quem é o comprador. */
+  const [people, setPeople] = useState<RegistrationParty[] | null>(null);
 
   // Grava sozinho pouco depois de cada alteração.
   const snapshot = useMemo(() => JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status, notes }), [buyer, seller, vehicle, contractDate, vehicleId, status, notes]);
@@ -100,14 +106,12 @@ export function RegistrationEditor({
   const missing = registrationMissing(buyer, seller, vehicle, contractDate);
   const setParty = (role: Role) => (role === "buyer" ? setBuyer : setSeller);
 
-  /** O que a IA leu: o tipo de documento vem em texto e a entidade emissora completa-se se faltar. */
-  function applyRead(role: Role, found: Record<string, string>) {
-    setParty(role)((p) => {
-      const next = { ...p, ...found } as RegistrationParty;
-      if (found.docTypeOther && !found.docType) next.docType = "outro";
-      if (!next.docIssuer && next.kind === "particular") next.docIssuer = defaultIssuer(next);
-      return next;
-    });
+  /** Com 2 pessoas: a escolhida é o comprador e a outra o vendedor. Com 1: vai para o papel escolhido. */
+  function assign(buyerIndex: number | null, sellerIndex: number | null) {
+    if (!people) return;
+    if (buyerIndex !== null) setBuyer(people[buyerIndex]);
+    if (sellerIndex !== null) setSeller(people[sellerIndex]);
+    setPeople(null);
   }
 
   async function pickCustomer(role: Role, customerId: string) {
@@ -221,18 +225,6 @@ export function RegistrationEditor({
             </div>
           </div>
         </section>
-        <AiReader
-          mode="requester"
-          idSuffix={`-${role}`}
-          title={`Documento do ${ROLE[role].title.toLowerCase()}`}
-          target={{ ownerType: "none", kind: "identificacao" }}
-          fields={PARTY_META}
-          // O tipo (empresa/particular) e o tipo de documento vêm sempre do documento lido.
-          current={{ ...(p as unknown as Record<string, string>), kind: "", docType: "" }}
-          onApply={(found) => applyRead(role, found)}
-          onUploaded={(ids) => void save({ addFileIds: ids })}
-          intro={`Fotografe SÓ o documento do ${ROLE[role].title.toLowerCase()}: Cartão de Cidadão (frente e verso), título de residência ou certidão permanente da empresa.`}
-        />
       </div>
     );
   };
@@ -243,12 +235,103 @@ export function RegistrationEditor({
         {saveState === "saving" ? "A guardar…" : saveState === "saved" ? "Tudo guardado." : saveState === "error" ? "Não foi possível guardar. Verifique a ligação." : "As alterações ficam guardadas sozinhas."}
       </p>
 
-      {/* 1. Viatura */}
+      {/* 1. Documentos das pessoas */}
+      <AiReader
+        mode="parties"
+        idSuffix="-registo"
+        title="1. Documentos do comprador e do vendedor"
+        target={{ ownerType: "none", kind: "identificacao" }}
+        fields={[]}
+        current={{}}
+        onApply={() => {}}
+        onProposal={(p) => {
+          const list = (Array.isArray(p.people) ? (p.people as Record<string, string>[]) : []).map(partyFromRead);
+          setPeople(list.length ? list : null);
+        }}
+        onUploaded={(ids) => void save({ addFileIds: ids })}
+        intro="Fotografe os documentos das duas pessoas de uma vez (Cartão de Cidadão frente e verso, título de residência…). A seguir diz quem é o comprador."
+      />
+
+      {people && (
+        <section className="a-card" style={{ borderTop: "4px solid var(--ok)" }}>
+          <div className="a-card-head">
+            <div>
+              <h2>{people.length === 1 ? "Este documento é de quem?" : "Quem é o comprador?"}</h2>
+              <p>
+                {people.length === 1
+                  ? `${people[0].name || "Pessoa sem nome legível"}: escolha o papel.`
+                  : people.length === 2
+                    ? "Toque no comprador. O outro fica como vendedor."
+                    : "Há mais de duas pessoas nos documentos: escolha o papel de cada uma."}
+              </p>
+            </div>
+          </div>
+          <div className="a-card-body" style={{ display: "grid", gap: 10 }}>
+            {people.length === 1 ? (
+              <div className="a-actions">
+                <button type="button" className="a-btn a-btn-primary" onClick={() => assign(0, null)}>
+                  <UserCheck size={16} /> Comprador
+                </button>
+                <button type="button" className="a-btn" onClick={() => assign(null, 0)}>
+                  <UserCheck size={16} /> Vendedor
+                </button>
+              </div>
+            ) : people.length === 2 ? (
+              <div className="a-actions">
+                {people.map((pp, i) => (
+                  <button key={i} type="button" className="a-btn a-btn-primary" style={{ minHeight: 48 }} onClick={() => assign(i, 1 - i)}>
+                    <UserCheck size={16} /> {pp.name || `Pessoa ${i + 1}`}
+                    {pp.nif ? <span style={{ fontWeight: 400, opacity: 0.8 }}> · NIF {pp.nif}</span> : null}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              people.map((pp, i) => (
+                <div key={i} className="a-actions" style={{ justifyContent: "space-between" }}>
+                  <strong>{pp.name || `Pessoa ${i + 1}`}</strong>
+                  <span className="a-actions">
+                    <button type="button" className="a-btn a-btn-sm" onClick={() => setBuyer(pp)}>
+                      Comprador
+                    </button>
+                    <button type="button" className="a-btn a-btn-sm" onClick={() => setSeller(pp)}>
+                      Vendedor
+                    </button>
+                  </span>
+                </div>
+              ))
+            )}
+            <div>
+              <button type="button" className="a-btn a-btn-sm a-btn-ghost" onClick={() => setPeople(null)}>
+                {people.length > 2 ? "Concluído" : "Ignorar"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {partyCard("buyer", buyer)}
+
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <button
+          type="button"
+          className="a-btn"
+          onClick={() => {
+            setBuyer(seller);
+            setSeller(buyer);
+          }}
+        >
+          <ArrowLeftRight size={16} /> Trocar comprador e vendedor
+        </button>
+      </div>
+
+      {partyCard("seller", seller)}
+
+      {/* 4. Viatura (opcional, à mão) */}
       <section className="a-card">
         <div className="a-card-head">
           <div>
-            <h2>1. Viatura</h2>
-            <p>Escolha do stock ou fotografe o documento único (DUA).</p>
+            <h2>4. Viatura e data</h2>
+            <p>Escreva à mão ou escolha do stock. O que ficar vazio sai em branco no requerimento.</p>
           </div>
         </div>
         <div className="a-card-body a-fields">
@@ -272,7 +355,7 @@ export function RegistrationEditor({
             </select>
           </Field>
           {VEHICLE_FIELDS_RA.map((f) => (
-            <Field key={f.key} label={`${f.label}${f.required ? " *" : ""}`} name={`reg-v-${f.key}`} wide={f.wide}>
+            <Field key={f.key} label={f.label} name={`reg-v-${f.key}`} wide={f.wide}>
               <input
                 id={`f-reg-v-${f.key}`}
                 autoCapitalize="characters"
@@ -281,45 +364,17 @@ export function RegistrationEditor({
               />
             </Field>
           ))}
-          <Field label="Data da venda *" name="reg-date" hint="Vai para a declaração do vendedor (Q7).">
+          <Field label="Data da venda" name="reg-date" hint="Vai para a declaração do vendedor (Q7).">
             <input id="f-reg-date" type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} />
           </Field>
         </div>
       </section>
-      <AiReader
-        mode="vehicle"
-        idSuffix="-registo"
-        title="Documento da viatura"
-        target={vehicleId ? { ownerType: "vehicle", ownerId: vehicleId, kind: "dua" } : { ownerType: "none", kind: "dua" }}
-        fields={VEHICLE_META}
-        current={vehicle as unknown as Record<string, string>}
-        onApply={(found) => setVehicle((v) => ({ ...v, ...found }))}
-        onUploaded={(ids) => void save({ addFileIds: ids })}
-        intro="Fotografe o DUA / certificado de matrícula: a matrícula, a marca e o nº de quadro preenchem-se sozinhos."
-      />
-
-      {partyCard("buyer", buyer)}
-
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <button
-          type="button"
-          className="a-btn"
-          onClick={() => {
-            setBuyer(seller);
-            setSeller(buyer);
-          }}
-        >
-          <ArrowLeftRight size={16} /> Trocar comprador e vendedor
-        </button>
-      </div>
-
-      {partyCard("seller", seller)}
 
       {/* 4. Gerar */}
       <section className="a-card">
         <div className="a-card-head">
           <div>
-            <h2>4. Requerimento de registo</h2>
+            <h2>5. Requerimento de registo</h2>
             <p>Modelo 1 RA do IRN: declaração para registo de propriedade (contrato verbal de compra e venda). Comprador e vendedor assinam na página 2.</p>
           </div>
           {missing.length ? <span className="a-pill reserved">{missing.length} em branco</span> : <span className="a-pill available">Completo</span>}

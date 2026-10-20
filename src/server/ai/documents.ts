@@ -532,3 +532,77 @@ export async function readRequesterDocuments(parts: AiPart[]): Promise<FieldsPro
   const json = await requestJson({ system: REQUESTER_PROMPT, parts: [...parts, { text: "Extrai os dados do requerente." }], schema: REQUESTER_SCHEMA });
   return normalizeRequesterExtraction(json);
 }
+
+/* ───────────── Compra e venda: documentos de várias pessoas de uma vez ───────────── */
+
+const PARTY_KEYS = [
+  "tipo", "nome", "nif", "tipo_documento", "num_documento", "entidade_emissora", "validade_documento", "codigo_certidao", "morada", "codigo_postal", "localidade", "email",
+] as const;
+
+const PARTIES_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["documentos", "legivel", "problema", "resumo", "pessoas"],
+  properties: {
+    documentos: { type: "array", items: { type: "string" } },
+    legivel: { type: "boolean" },
+    problema: { type: "string" },
+    resumo: { type: "string" },
+    pessoas: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [...PARTY_KEYS],
+        properties: Object.fromEntries(PARTY_KEYS.map((f) => [f, { type: "string" }])),
+      },
+    },
+  },
+};
+
+const PARTIES_PROMPT = `És o assistente de um stand de automóveis em Portugal. Recebes fotos dos documentos de identificação das pessoas (ou empresas) de uma compra e venda de um carro: normalmente o comprador e o vendedor, mas pode ser só um deles. Vais separar as PESSOAS e extrair os dados de cada uma para o Requerimento de Registo Automóvel.
+
+Documentos possíveis (códigos em "documentos"): "cartao_cidadao", "titulo_residencia", "passaporte", "bilhete_identidade", "carta_conducao", "certidao_permanente", "cartao_empresa", "comprovativo_morada", "outro".
+
+Regras:
+- Agrupa por pessoa: a frente e o verso do mesmo documento são da MESMA pessoa; um comprovativo de morada ou a carta de condução juntam-se à pessoa com o mesmo nome. NUNCA juntes duas pessoas diferentes numa só, nem dividas a mesma pessoa em duas.
+- "pessoas": uma entrada por pessoa ou empresa, pela ordem em que aparecem nos ficheiros.
+- Em cada pessoa ("" quando não constar):
+  - tipo: "empresa" (sociedade) ou "particular".
+  - nome: nome completo ou firma.
+  - nif: NIF/NIPC (9 algarismos; no CC está no verso).
+  - tipo_documento: "Cartão de Cidadão", "Bilhete de Identidade", "Título de Residência", "Passaporte" ou o nome do documento (particular).
+  - num_documento: nº do documento de identificação (CC: nº de identificação civil, ex. "12345678 9 ZZ1"; Título de Residência: o nº do título).
+  - entidade_emissora: quem emitiu ("República Portuguesa" no CC português; "AIMA"/"SEF" no Título de Residência; o país no passaporte).
+  - validade_documento: data de validade em AAAA-MM-DD.
+  - codigo_certidao: só empresa — código de acesso à certidão permanente.
+  - morada, codigo_postal ("0000-000"), localidade: só de um documento que tenha a morada em Portugal (Título de Residência, comprovativo, certidão); nunca a partir do local de nascimento.
+  - email: só se estiver escrito.
+- legivel: true só se nomes, números e datas se leem bem; senão "problema" diz exatamente onde.
+- resumo: UMA linha, ex.: "2 pessoas: Ana Silva (CC frente e verso) e João Costa (Título de Residência)".
+
+Responde APENAS com JSON: {"documentos":[],"legivel":true,"problema":"","resumo":"","pessoas":[...]}`;
+
+export interface PartiesProposal extends FieldsProposal {
+  people: Record<string, string>[];
+}
+
+export function normalizePartiesExtraction(json: Record<string, unknown>): PartiesProposal {
+  const list = Array.isArray(json.pessoas) ? (json.pessoas as Record<string, unknown>[]) : [];
+  const warnings: string[] = [];
+  const people = list
+    .map((d) => {
+      const one = normalizeRequesterExtraction({ legivel: true, dados: { ...d, telefone: "" } });
+      warnings.push(...one.warnings.filter((w) => !/morada|certidão/i.test(w)));
+      return one.fields;
+    })
+    .filter((p) => p.name || p.nif || p.docNumber);
+  const base = baseProposal(json, {}, warnings);
+  return { ...base, people };
+}
+
+export async function readPartyDocuments(parts: AiPart[]): Promise<PartiesProposal> {
+  if (!parts.length) throw new AiError("Envie pelo menos um ficheiro.", 400);
+  const json = await requestJson({ system: PARTIES_PROMPT, parts: [...parts, { text: "Separa as pessoas e extrai os dados de cada uma." }], schema: PARTIES_SCHEMA });
+  return normalizePartiesExtraction(json);
+}

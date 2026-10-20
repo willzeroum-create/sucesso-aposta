@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { PDFDocument } from "pdf-lib";
 import { defaultIssuer, docTypeFrom, emptyParty, registrationMissing } from "../src/lib/registo";
-import { normalizeRequesterExtraction } from "../src/server/ai/documents";
+import { normalizePartiesExtraction, normalizeRequesterExtraction } from "../src/server/ai/documents";
 import { fillRegistration, splitAddress } from "../src/server/registo-pdf";
 
 const buyer = {
@@ -41,7 +41,7 @@ test("registo: documentos, morada e campos obrigatórios", () => {
   const missing = registrationMissing({ ...buyer, docNumber: "" }, { ...seller, name: "" }, { ...vehicle, vin: "" }, "");
   assert.ok(missing.includes("Comprador: nº do documento"));
   assert.ok(missing.includes("Vendedor: nome / firma"));
-  assert.ok(missing.includes("Viatura: nº de quadro (vin)"));
+  assert.ok(!missing.some((m) => m.startsWith("Viatura")), "a viatura é opcional");
   assert.ok(missing.includes("Data da venda"));
 });
 
@@ -98,4 +98,24 @@ test("registo: só com a matrícula ou um só documento, sai na mesma (o resto �
   const f2 = (await PDFDocument.load(onlyBuyer)).getForm();
   assert.equal(f2.getTextField("Nome - firma Q3").getText(), "ANA MARIA DA SILVA SANTOS");
   assert.equal(f2.getTextField("Nome - firma Q4").getText() ?? "", "");
+});
+
+test("registo: documentos de duas pessoas de uma vez ficam separados", () => {
+  const r = normalizePartiesExtraction({
+    documentos: ["cartao_cidadao", "titulo_residencia"],
+    legivel: true,
+    problema: "",
+    resumo: "2 pessoas",
+    pessoas: [
+      { tipo: "particular", nome: "Ana Silva", nif: "123456789", tipo_documento: "Cartão de Cidadão", num_documento: "12345678 9 ZZ1", entidade_emissora: "República Portuguesa", validade_documento: "2031-05-12", codigo_certidao: "", morada: "", codigo_postal: "", localidade: "", email: "" },
+      { tipo: "particular", nome: "João Costa", nif: "", tipo_documento: "Título de Residência", num_documento: "Y1234567", entidade_emissora: "AIMA", validade_documento: "15.03.2029", codigo_certidao: "", morada: "Rua A 1", codigo_postal: "2700001", localidade: "Amadora", email: "" },
+      { tipo: "", nome: "", nif: "", tipo_documento: "", num_documento: "", entidade_emissora: "", validade_documento: "", codigo_certidao: "", morada: "", codigo_postal: "", localidade: "", email: "" },
+    ],
+  });
+  assert.equal(r.people.length, 2, "entradas vazias são ignoradas");
+  assert.equal(r.people[0].name, "Ana Silva");
+  assert.equal(r.people[0].docType, "cc");
+  assert.equal(r.people[1].docType, "outro");
+  assert.equal(r.people[1].docExpiry, "2029-03-15");
+  assert.equal(r.people[1].postalCode, "2700-001");
 });

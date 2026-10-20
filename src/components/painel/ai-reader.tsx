@@ -38,6 +38,7 @@ export function AiReader({
   intro,
   title,
   idSuffix = "",
+  onProposal,
 }: {
   mode: AiReadMode;
   target: { ownerType: "vehicle" | "customer" | "none"; ownerId?: string; kind: string };
@@ -50,6 +51,8 @@ export function AiReader({
   title?: string;
   /** Para haver várias caixas do mesmo tipo na mesma página. */
   idSuffix?: string;
+  /** Quem usa a caixa trata do resultado (ex.: compra e venda escolhe quem é comprador); não preenche campos. */
+  onProposal?: (proposal: Proposal & Record<string, unknown>) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
@@ -131,6 +134,14 @@ export function AiReader({
       setStage("reading");
       setProgress("A ler os documentos…");
       const { proposal: p, model: m } = await readWithAi<Proposal>(mode, ids);
+      if (onProposal) {
+        onProposal(p as Proposal & Record<string, unknown>);
+        setResult({ filled: [], conflicts: [], missing: [] });
+        setProposal(p);
+        setModel(m);
+        setStage("review");
+        return;
+      }
       const has = (k: string) => p.fields[k] !== undefined && p.fields[k] !== null && String(p.fields[k]).trim() !== "";
       // Preenche logo tudo o que o documento trouxe e estava vazio; não pergunta.
       const fill: Record<string, string> = {};
@@ -231,7 +242,10 @@ export function AiReader({
           )}
           {stage === "review" && proposal && result && (
             <>
-              <Alert kind={result.filled.length ? "ok" : "info"} title={result.filled.length ? `Preenchidos ${result.filled.length} campo${result.filled.length === 1 ? "" : "s"} no formulário` : "Os documentos não trouxeram dados novos"}>
+              <Alert
+                kind={result.filled.length || onProposal ? "ok" : "info"}
+                title={onProposal ? "Documentos lidos" : result.filled.length ? `Preenchidos ${result.filled.length} campo${result.filled.length === 1 ? "" : "s"} no formulário` : "Os documentos não trouxeram dados novos"}
+              >
                 <p>
                   {proposal.summary}
                   {proposal.summary ? ". " : ""}

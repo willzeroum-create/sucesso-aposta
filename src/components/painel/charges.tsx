@@ -17,6 +17,8 @@ import {
 import {
   buildPlan,
   chargeMessage,
+  datePt,
+  money,
   DEFAULT_CHARGE_MESSAGE,
   INSTALLMENT_STATUS_LABEL,
   PAYMENT_METHODS,
@@ -30,8 +32,6 @@ import {
 } from "@/lib/cobrancas";
 import { Alert, Dialog, Field, Spinner, useAction } from "./ui";
 
-export const money = (v: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
-export const datePt = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "—");
 const parseMoney = (v: string) => Number(v.replace(/\s|€/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
 const PILL: Record<InstallmentStatus, string> = { paga: "available", parcial: "reserved", pendente: "neutral", hoje: "reserved", atrasada: "danger" };
 

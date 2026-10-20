@@ -99,6 +99,10 @@ export interface Contract {
 
 export type InstallmentView = Installment & { customer: Contract["customer"]; vehicle: string; plate: string };
 
+/** Formatação partilhada entre servidor e navegador. */
+export const money = (v: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
+export const datePt = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "—");
+
 export const toCents = (v: number | string) => Math.round(Number(String(v).replace(",", ".")) * 100);
 export const toEuros = (c: number) => Math.round(c) / 100;
 

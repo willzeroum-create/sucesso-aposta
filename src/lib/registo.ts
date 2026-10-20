@@ -61,10 +61,10 @@ export const PARTY_FIELDS: FieldMeta<keyof RegistrationParty>[] = [
 ];
 
 export const VEHICLE_FIELDS_RA: FieldMeta<keyof RegistrationVehicle>[] = [
-  { key: "plate", label: "Matrícula", required: true },
-  { key: "make", label: "Marca", required: true },
+  { key: "plate", label: "Matrícula" },
+  { key: "make", label: "Marca" },
   { key: "model", label: "Modelo" },
-  { key: "vin", label: "Nº de quadro (VIN)", required: true, wide: true },
+  { key: "vin", label: "Nº de quadro (VIN)", wide: true },
 ];
 
 export function emptyParty(kind: PartyKind = "particular"): RegistrationParty {

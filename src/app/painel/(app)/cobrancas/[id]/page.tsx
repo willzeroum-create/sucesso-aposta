@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import { ChargeContractDetail, datePt } from "@/components/painel/charges";
-import { CONTRACT_STATUS_LABEL, toEuros } from "@/lib/cobrancas";
+import { ChargeContractDetail } from "@/components/painel/charges";
+import { CONTRACT_STATUS_LABEL, datePt, toEuros } from "@/lib/cobrancas";
 import { requirePagePermission } from "@/server/auth/session";
 import { chargeContract } from "@/server/cobrancas";
 

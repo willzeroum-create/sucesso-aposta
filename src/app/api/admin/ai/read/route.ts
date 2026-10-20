@@ -3,7 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { kindFromAi, DOCUMENT_KINDS } from "@/lib/document-kinds";
-import { readImportDocuments, readPersonDocuments, readRequesterDocuments, readVehicleDocuments, prepareForAi } from "@/server/ai/documents";
+import { readImportDocuments, readPartyDocuments, readPersonDocuments, readRequesterDocuments, readVehicleDocuments, prepareForAi } from "@/server/ai/documents";
 import { aiModelLabel } from "@/server/ai/provider";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
@@ -15,10 +15,10 @@ import { UserError } from "@/server/action";
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
 
-const MODE_LABEL = { vehicle: "viatura", person: "cliente", import: "importação", requester: "requerente" } as const;
+const MODE_LABEL = { vehicle: "viatura", person: "cliente", import: "importação", requester: "requerente", parties: "compra e venda" } as const;
 
 const bodySchema = z.object({
-  mode: z.enum(["vehicle", "person", "import", "requester"]),
+  mode: z.enum(["vehicle", "person", "import", "requester", "parties"]),
   fileIds: z.array(z.string().max(60)).min(1).max(8),
 });
 
@@ -55,7 +55,9 @@ export async function POST(req: Request) {
             ? await readPersonDocuments(parts)
             : mode === "import"
               ? await readImportDocuments(parts)
-              : await readRequesterDocuments(parts);
+              : mode === "parties"
+                ? await readPartyDocuments(parts)
+                : await readRequesterDocuments(parts);
       for (const d of docs) {
         const detected = proposal.documents.length === 1 && d.kind === "outro" ? kindFromAi(proposal.documents[0]) : d.kind;
         await db

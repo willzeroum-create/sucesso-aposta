@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { datePt, InstallmentActions, InstallmentPill, money } from "@/components/painel/charges";
-import { CONTRACT_STATUS_LABEL, type ContractStatus, type InstallmentView } from "@/lib/cobrancas";
+import { InstallmentActions, InstallmentPill } from "@/components/painel/charges";
+import { CONTRACT_STATUS_LABEL, datePt, money, type ContractStatus, type InstallmentView } from "@/lib/cobrancas";
 import { requirePagePermission } from "@/server/auth/session";
 import { chargesOverview } from "@/server/cobrancas";
 
