@@ -300,6 +300,8 @@ export async function syncTampinha(opts: { userId: string; deadline?: number; lo
         supplier: PARTNER_LABEL,
         createdBy: opts.userId,
         ...data,
+        // O preço do anúncio fica como referência; no site aparece "sob consulta" até a equipa o confirmar.
+        priceOnRequest: true,
       });
       r.created++;
       log(`+ ${label} (${data.priceEur ?? "?"} €${item.sold ? ", vendido" : ""})`);
@@ -311,11 +313,12 @@ export async function syncTampinha(opts: { userId: string; deadline?: number; lo
       r.linked++;
       log(`= ${label} (ligada a uma viatura que já existia)`);
     } else {
-      // Anúncio do parceiro: os dados de lá mandam (preço, km, versão… e se foi vendido). Reservado cá mantém-se.
+      // Anúncio do parceiro: os dados de lá mandam (km, versão… e se foi vendido). Reservado cá mantém-se.
+      // O preço é definido cá no painel: nunca é substituído pelo do anúncio.
       // Vendido lá → vendido cá. Uma venda feita cá (com data de venda) nunca volta a disponível.
       const status = item.sold ? "sold" : existing.status === "sold" && !existing.soldAt ? "available" : existing.status;
       // O que o anúncio não traz não apaga o que a equipa completou à mão no painel.
-      const known = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== null && v !== undefined && v !== ""));
+      const known = Object.fromEntries(Object.entries(data).filter(([k, v]) => k !== "priceEur" && v !== null && v !== undefined && v !== ""));
       await db.update(schema.vehicles).set({ ...known, status, updatedAt: new Date() }).where(eq(schema.vehicles.id, existing.id));
       vehicleId = existing.id;
       r.updated++;

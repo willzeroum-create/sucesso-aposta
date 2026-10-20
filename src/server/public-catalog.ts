@@ -11,7 +11,10 @@ const SOLD_VISIBLE_DAYS = 30;
 type VehicleRow = typeof schema.vehicles.$inferSelect;
 
 /** Campos obrigatórios para uma viatura poder aparecer no site (contrato Vehicle). */
-export function publicationGaps(v: Pick<VehicleRow, "year" | "mileageKm" | "fuel" | "transmission" | "powerHp" | "priceEur" | "make" | "model" | "version">, hasCover: boolean): string[] {
+export function publicationGaps(
+  v: Pick<VehicleRow, "year" | "mileageKm" | "fuel" | "transmission" | "powerHp" | "priceEur" | "make" | "model" | "version"> & { priceOnRequest?: boolean | null },
+  hasCover: boolean,
+): string[] {
   const gaps: string[] = [];
   if (!v.make?.trim()) gaps.push("marca");
   if (!v.model?.trim()) gaps.push("modelo");
@@ -21,7 +24,7 @@ export function publicationGaps(v: Pick<VehicleRow, "year" | "mileageKm" | "fuel
   if (!v.fuel) gaps.push("combustível");
   if (!v.transmission) gaps.push("caixa");
   if (!v.powerHp) gaps.push("potência");
-  if (!v.priceEur) gaps.push("preço");
+  if (!v.priceEur && !v.priceOnRequest) gaps.push("preço");
   if (!hasCover) gaps.push("fotografia de capa");
   return gaps;
 }
@@ -67,7 +70,7 @@ export async function buildPublicCatalog(): Promise<PublicCatalogPayload> {
       fuel: v.fuel!,
       transmission: v.transmission!,
       powerHp: v.powerHp!,
-      priceEur: v.priceEur!,
+      priceEur: v.priceOnRequest ? null : v.priceEur!,
       image: publicUrl(cover!.key),
       imageAlt: cover!.alt || `${v.make} ${v.model} ${v.version}`.trim(),
       ...(v.highlight ? { highlight: v.highlight } : {}),

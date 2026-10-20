@@ -27,6 +27,7 @@ const vehicleSchema = z.object({
   transmission: z.preprocess((v) => v || null, z.enum(["automatic", "manual"]).nullable()),
   powerHp: optInt(1, 5000),
   priceEur: optMoney(),
+  priceOnRequest: z.preprocess((v) => (v === undefined ? undefined : v === "1" || v === "on" || v === "true"), z.boolean().optional()),
   highlight: optText(120),
   description: optText(4000),
   plate: optText(20).transform((v) => (v ? formatPlate(v) : null)),
@@ -51,6 +52,11 @@ const vehicleSchema = z.object({
 });
 
 const COST_FIELDS = ["purchasePriceEur", "purchaseDate", "supplier"] as const;
+
+/** Ou tem preço, ou está "sob consulta". */
+function assertPriceOrRequest(priceEur: number | null, priceOnRequest: boolean) {
+  if (!priceOnRequest && !priceEur) throw new UserError("Indique o preço de venda ou marque «Sob consulta».", { priceEur: "Indique o preço ou marque «Sob consulta»." });
+}
 
 function fromForm(form: FormData) {
   return Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string"));
@@ -87,6 +93,7 @@ export async function createVehicle(form: FormData, attachFileIds: string[] = []
     const user = await assertPermission("vehicles.edit");
     const data = vehicleSchema.parse(fromForm(form));
     if (!can(user, "vehicles.costs")) for (const k of COST_FIELDS) data[k] = null;
+    assertPriceOrRequest(data.priceEur, data.priceOnRequest ?? false);
     await assertNoDuplicate(data.vin, data.plate);
     const id = newId("veh");
     const slug = await uniqueSlug(`${data.make} ${data.model} ${data.version}`);
@@ -120,6 +127,8 @@ export async function updateVehicle(id: string, form: FormData): Promise<ActionR
     if (!before) throw new UserError("Viatura não encontrada.");
     const data = vehicleSchema.parse(fromForm(form));
     if (!can(user, "vehicles.costs")) for (const k of COST_FIELDS) (data as Record<string, unknown>)[k] = before[k];
+    data.priceOnRequest ??= before.priceOnRequest;
+    assertPriceOrRequest(data.priceEur, data.priceOnRequest);
     await assertNoDuplicate(data.vin, data.plate, id);
     const slugChanged = before.make !== data.make || before.model !== data.model || before.version !== data.version;
     const slug = slugChanged && !before.published ? await uniqueSlug(`${data.make} ${data.model} ${data.version}`, id) : before.slug;

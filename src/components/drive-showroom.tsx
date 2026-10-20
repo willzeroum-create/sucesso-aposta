@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { InquiryForm } from "@/components/inquiry-form";
+import { byPrice, priceText, withinBudget } from "@/lib/price";
 import { BrandLogo } from "@/components/brand-logo";
 import type { CatalogData, Vehicle } from "@/lib/contracts";
 import "@fontsource/barlow-condensed/600.css";
@@ -143,7 +144,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
   const matching = vehicles.filter(
     (v) =>
       (category === "all" || v.category === category) &&
-      (budget === "all" || v.priceEur <= Number(budget)) &&
+      withinBudget(v, budget) &&
       (!favoritesOnly || favorites.includes(v.id)) &&
       `${v.make} ${v.model} ${v.version}`
         .toLocaleLowerCase("pt-PT")
@@ -151,9 +152,9 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
   );
   const filtered = [...matching].sort((a, b) =>
     sort === "price-up"
-      ? a.priceEur - b.priceEur
+      ? byPrice(1)(a, b)
       : sort === "price-down"
-        ? b.priceEur - a.priceEur
+        ? byPrice(-1)(a, b)
         : sort === "newest"
           ? b.year - a.year
           : 0,
@@ -433,7 +434,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                     <small>
                       PREÇO{source === "demo" ? " ILUSTRATIVO" : ""}
                     </small>
-                    {euro.format(featured.priceEur)}
+                    {featured.priceEur === null ? "Sob consulta" : euro.format(featured.priceEur)}
                   </span>
                 </div>
               </div>
@@ -605,7 +606,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                           </button>
                         </h3>
                       </div>
-                      <strong>{euro.format(vehicle.priceEur)}</strong>
+                      <strong>{vehicle.priceEur === null ? "Sob consulta" : euro.format(vehicle.priceEur)}</strong>
                     </div>
                     <p className={s.carVersion}>{vehicle.version}</p>
                     <dl className={s.carSpecs}>
@@ -962,7 +963,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                 <h2>{detail.model}</h2>
                 <p>{detail.version}</p>
               </div>
-              <strong>{euro.format(detail.priceEur)}</strong>
+              <strong>{priceText(detail, euro)}</strong>
             </div>
             <dl className={s.detailFacts}>
               {[
@@ -1072,7 +1073,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                   {[
                     {
                       label: "Preço",
-                      value: (v: Vehicle) => euro.format(v.priceEur),
+                      value: (v: Vehicle) => priceText(v, euro),
                     },
                     { label: "Ano", value: (v: Vehicle) => v.year },
                     {

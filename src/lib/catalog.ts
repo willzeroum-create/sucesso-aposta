@@ -206,7 +206,7 @@ function parseVehicle(value: unknown, index: number): Vehicle {
       `${path}.transmission`,
     ),
     powerHp: number(row.powerHp, `${path}.powerHp`, 1, 5000),
-    priceEur: number(row.priceEur, `${path}.priceEur`, 1, 100000000, false),
+    priceEur: row.priceEur === null ? null : number(row.priceEur, `${path}.priceEur`, 1, 100000000, false),
     image: imageUrl(row.image, `${path}.image`),
     imageAlt: text(row.imageAlt, `${path}.imageAlt`, 300),
     highlight: optionalText(row.highlight, `${path}.highlight`, 120),

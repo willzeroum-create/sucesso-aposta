@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { CatalogData, Vehicle } from "@/lib/contracts";
 import { InquiryForm } from "@/components/inquiry-form";
+import { byPrice, priceText, withinBudget } from "@/lib/price";
 import { BrandLogo } from "@/components/brand-logo";
 import { BrandIntro } from "@/components/brand-intro";
 import photoCredits from "@/data/photo-credits.json";
@@ -241,14 +242,14 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
         (category === "electric"
           ? v.fuel === "electric"
           : v.category === category)) &&
-      (budget === "all" || v.priceEur <= Number(budget)) &&
+      withinBudget(v, budget) &&
       (!favoritesOnly || favorites.includes(v.id)) &&
       `${v.make} ${v.model} ${v.version}`
         .toLocaleLowerCase("pt-PT")
         .includes(normalizedQuery),
   );
-  if (sort === "price-asc") filtered.sort((a, b) => a.priceEur - b.priceEur);
-  if (sort === "price-desc") filtered.sort((a, b) => b.priceEur - a.priceEur);
+  if (sort === "price-asc") filtered.sort(byPrice(1));
+  if (sort === "price-desc") filtered.sort(byPrice(-1));
   if (sort === "year") filtered.sort((a, b) => b.year - a.year);
 
   function enquire(vehicle?: Vehicle) {
@@ -414,7 +415,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                         ? "PREÇO ILUSTRATIVO"
                         : "EM DESTAQUE"}
                     </small>
-                    <strong>{currency.format(featured.priceEur)}</strong>
+                    <strong>{priceText(featured, currency)}</strong>
                     <span>
                       {featured.make} {featured.model}
                     </span>
@@ -651,7 +652,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                         </h3>
                       </div>
                       <span className="vehicle-price">
-                        {currency.format(vehicle.priceEur)}
+                        {vehicle.priceEur === null ? "Sob consulta" : currency.format(vehicle.priceEur)}
                       </span>
                     </div>
                     <p className="vehicle-version">{vehicle.version}</p>
@@ -1028,7 +1029,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
               </h2>
               <p>{detail.version}</p>
               <strong className="detail-price">
-                {currency.format(detail.priceEur)}
+                {priceText(detail, currency)}
               </strong>
               <dl className="detail-specs">
                 <div>

@@ -63,7 +63,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
   const initial: Record<string, string> = Object.fromEntries(
     Object.entries({
       make: v.make, model: v.model, version: v.version, category: v.category, year: v.year, mileageKm: v.mileageKm, fuel: v.fuel,
-      transmission: v.transmission, powerHp: v.powerHp, priceEur: v.priceEur, highlight: v.highlight, description: v.description,
+      transmission: v.transmission, powerHp: v.powerHp, priceEur: v.priceEur, priceOnRequest: v.priceOnRequest ? "1" : "0", highlight: v.highlight, description: v.description,
       plate: v.plate, vin: v.vin, color: v.color, engineCc: v.engineCc, doors: v.doors, seats: v.seats, firstRegistration: v.firstRegistration,
       registrationDate: v.registrationDate, registrationOwner: v.registrationOwner, vehicleType: v.vehicleType, homologation: v.homologation,
       grossWeightKg: v.grossWeightKg, tareKg: v.tareKg, co2: v.co2, nextInspection: v.nextInspection, internalNotes: v.internalNotes,
@@ -95,7 +95,11 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
             <p className="muted">{[v.version, v.year, v.mileageKm != null ? `${int.format(v.mileageKm)} km` : null].filter(Boolean).join(" · ")}</p>
             <div className="a-meta">
               <Plate value={v.plate} large />
-              {v.priceEur ? <span className="a-price num">{eur.format(v.status === "sold" && v.soldPriceEur ? v.soldPriceEur : v.priceEur)}</span> : null}
+              {v.priceOnRequest && v.status !== "sold" ? (
+                <span className="a-price">Sob consulta</span>
+              ) : v.priceEur ? (
+                <span className="a-price num">{eur.format(v.status === "sold" && v.soldPriceEur ? v.soldPriceEur : v.priceEur)}</span>
+              ) : null}
               {margin !== null && <span className={`a-pill plain ${margin >= 0 ? "available" : "danger"}`}>Margem {eur.format(margin)}</span>}
               <span>
                 No stand há {daysSince(v.createdAt)} dias

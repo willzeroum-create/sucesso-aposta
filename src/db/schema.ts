@@ -168,6 +168,8 @@ export const vehicles = pgTable(
     transmission: text("transmission", { enum: ["automatic", "manual"] }),
     powerHp: integer("power_hp"),
     priceEur: doublePrecision("price_eur"),
+    /** Preço sob consulta: o site mostra "Preço sob consulta" e o preço não sai do painel. */
+    priceOnRequest: boolean("price_on_request").notNull().default(false),
     highlight: text("highlight"),
     description: text("description"),
     coverPhotoId: text("cover_photo_id"),

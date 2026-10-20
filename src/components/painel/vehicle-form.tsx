@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Save } from "lucide-react";
+import { Lock, Search, Save } from "lucide-react";
 import { createVehicle, lookupDutchPlateAction, lookupVinAction, updateVehicle } from "@/app/painel/_actions/vehicles";
 import { CATEGORY, FUEL, TRANSMISSION, int } from "@/lib/labels";
 import { isValidVinFormat, normalizeVin } from "@/lib/pt-validation";
@@ -51,6 +51,7 @@ export function VehicleForm({ id, initial, canCosts }: { id?: string; initial: V
   const [nlPlate, setNlPlate] = useState("");
   const { pending, fields: errors, run } = useAction();
   const dirty = useMemo(() => Object.keys(values).some((k) => (values[k] ?? "") !== (initial[k] ?? "")), [values, initial]);
+  const onRequest = values.priceOnRequest === "1";
   const aiFields = canCosts ? AI_FIELDS : AI_FIELDS.filter((f) => !["purchasePriceEur", "purchaseDate", "supplier"].includes(f.key));
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -204,7 +205,37 @@ export function VehicleForm({ id, initial, canCosts }: { id?: string; initial: V
           <legend>No site</legend>
           <p>O que os clientes veem quando a viatura estiver publicada.</p>
           <div className="a-fields">
-            {f("priceEur", "Preço de venda (€)", { inputMode: "decimal" })}
+            <Field
+              label={onRequest ? "Preço de venda (€) · travado" : "Preço de venda (€) *"}
+              name="priceEur"
+              error={errors.priceEur}
+              suggested={suggested.has("priceEur")}
+              hint={onRequest ? "No site aparece «Preço sob consulta». Desmarque para pôr o preço." : undefined}
+            >
+              <div className="a-price-lock">
+                <input
+                  id="f-priceEur"
+                  name="priceEur"
+                  value={values.priceEur ?? ""}
+                  onChange={set("priceEur")}
+                  inputMode="decimal"
+                  readOnly={onRequest}
+                  aria-invalid={Boolean(errors.priceEur)}
+                />
+                {onRequest && <Lock size={15} aria-hidden="true" />}
+              </div>
+              <label className="a-check">
+                <input
+                  type="checkbox"
+                  checked={onRequest}
+                  onChange={(e) => setValues((v) => ({ ...v, priceOnRequest: e.target.checked ? "1" : "0" }))}
+                />
+                <span>
+                  <strong>Sob consulta</strong> — o site não mostra o preço
+                </span>
+              </label>
+              <input type="hidden" name="priceOnRequest" value={onRequest ? "1" : "0"} />
+            </Field>
             {f("highlight", "Frase de destaque", { maxLength: 120, placeholder: "ex.: Um só dono, revisões na marca" })}
             <Field label="Descrição" name="description" error={errors.description} wide>
               <textarea id="f-description" name="description" value={values.description ?? ""} onChange={set("description")} maxLength={4000} rows={4} />

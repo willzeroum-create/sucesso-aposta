@@ -656,6 +656,31 @@
   margin-top: 2px;
   accent-color: var(--accent);
 }
+/* Preço travado quando a viatura está "sob consulta" */
+.a-price-lock {
+  position: relative;
+}
+.a-price-lock input {
+  width: 100%;
+}
+.a-price-lock input[readonly] {
+  padding-right: 34px;
+  background: var(--surface-2);
+  color: var(--faint);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+.a-price-lock svg {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.a-field .a-price-lock + .a-check {
+  margin-top: 8px;
+}
 .a-form-foot {
   position: sticky;
   bottom: 0;

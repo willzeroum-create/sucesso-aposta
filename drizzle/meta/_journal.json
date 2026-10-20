@@ -50,6 +50,13 @@
       "when": 1792508910954,
       "tag": "0006_viaturas_parceiro",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792518391766,
+      "tag": "0007_preco_sob_consulta",
+      "breakpoints": true
     }
   ]
 }

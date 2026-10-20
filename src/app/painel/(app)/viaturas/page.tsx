@@ -151,7 +151,7 @@ export default async function VehiclesPage(props: PageProps<"/painel/viaturas">)
                         </div>
                       </td>
                       <td className="hide-sm right num">{v.mileageKm != null ? int.format(v.mileageKm) : "—"}</td>
-                      <td className="right num">{v.status === "sold" && v.soldPriceEur ? eur.format(v.soldPriceEur) : v.priceEur ? eur.format(v.priceEur) : "—"}</td>
+                      <td className="right num">{v.status === "sold" && v.soldPriceEur ? eur.format(v.soldPriceEur) : v.priceOnRequest ? <span className="muted">Sob consulta</span> : v.priceEur ? eur.format(v.priceEur) : "—"}</td>
                       {showCosts && <td className="hide-sm right num muted">{v.purchasePriceEur ? eur.format(v.purchasePriceEur) : "—"}</td>}
                       <td className="hide-sm right num muted">{daysSince(v.status === "sold" && v.soldAt ? v.soldAt : v.createdAt)}</td>
                     </tr>

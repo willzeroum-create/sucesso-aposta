@@ -14,7 +14,8 @@ export interface Vehicle {
   fuel: VehicleFuel;
   transmission: "automatic" | "manual";
   powerHp: number;
-  priceEur: number;
+  /** null = "Preço sob consulta" (o preço não é enviado ao site). */
+  priceEur: number | null;
   image: string;
   imageAlt: string;
   highlight?: string;
