@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { InquiryForm } from "@/components/inquiry-form";
+import { BrandLogo } from "@/components/brand-logo";
 import type { CatalogData, Vehicle } from "@/lib/contracts";
 import "@fontsource/barlow-condensed/600.css";
 import "@fontsource/barlow-condensed/700.css";
@@ -283,11 +284,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
             className={s.brand}
             aria-label={`${site.name} — início`}
           >
-            <DriveMark />
-            <span>
-              {site.name}
-              <small>AUTOMÓVEIS / PORTUGAL</small>
-            </span>
+            <BrandLogo variant="compact" animated name={site.name} />
           </a>
           <nav
             className={`${s.navigation} ${mobileMenu ? s.navigationOpen : ""}`}
@@ -875,11 +872,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
         <div className={s.container}>
           <div className={s.footerTop}>
             <a href="#topo-b" className={s.brand}>
-              <DriveMark />
-              <span>
-                {site.name}
-                <small>O PRÓXIMO É SEU.</small>
-              </span>
+              <BrandLogo variant="compact" animated dark name={site.name} />
             </a>
             <nav aria-label="Navegação do rodapé">
               <a href="#garagem">Viaturas</a>

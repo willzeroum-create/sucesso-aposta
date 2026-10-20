@@ -1,0 +1,202 @@
+/* Logo "Aposta com Sucesso Cars": imagem original + camada de efeitos (contornos, luzes, reflexo). */
+.brand-logo {
+  --brand-ink: #111111;
+  --brand-red: #c4120f;
+  position: relative;
+  display: block;
+  width: 100%;
+  line-height: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.brand-logo--dark { --brand-ink: #f4f2ee; }
+.brand-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+.brand-emblem,
+.brand-name {
+  position: relative;
+  display: block;
+}
+.brand-logo--full .brand-emblem { width: 91.5%; margin-inline: auto; }
+.brand-logo--full .brand-name { margin-top: 3.5%; }
+.brand-logo--compact {
+  display: flex;
+  align-items: center;
+  gap: 2.4%;
+}
+.brand-logo--compact .brand-emblem { flex: 0 0 34%; }
+.brand-logo--compact .brand-name { flex: 1 1 0; min-width: 0; }
+
+.brand-draw,
+.brand-fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+/* Luz: em "screen" só aparece sobre o preto e o vermelho, nunca suja o fundo claro. */
+.brand-fx { mix-blend-mode: screen; }
+
+/* ---------- efeitos (estado de repouso: apagados) ---------- */
+.brand-streak {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 0.16 2;
+  stroke-dashoffset: 0.16;
+  opacity: 0;
+}
+.brand-streak--glow { stroke: #ff3a24; stroke-width: 34; }
+.brand-light { transform-box: fill-box; transform-origin: center; }
+.brand-glow,
+.brand-flare {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.brand-sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.brand-sheen::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 42%;
+  background: linear-gradient(100deg, transparent 0 28%, rgb(255 255 255 / 0.72) 50%, transparent 72% 100%);
+  transform: translateX(-130%) skewX(-18deg);
+  opacity: 0;
+}
+.brand-name .brand-sheen::before { width: 26%; }
+
+/* ---------- movimento contínuo (cabeçalho e rodapé) ---------- */
+.brand-logo--alive .brand-streak { animation: brand-streak 5.2s cubic-bezier(0.5, 0, 0.75, 1) 0.8s infinite; }
+.brand-logo--alive .brand-glow { animation: brand-glow 3.4s ease-in-out infinite; }
+.brand-logo--alive .brand-light:nth-of-type(2) .brand-glow { animation-delay: 0.18s; }
+.brand-logo--alive .brand-flare { animation: brand-flare-blink 5.2s ease-out 0.8s infinite; }
+.brand-logo--alive .brand-emblem .brand-sheen::before { animation: brand-sheen 7.5s ease-in-out 2.2s infinite; }
+.brand-logo--alive .brand-name .brand-sheen::before { animation: brand-sheen 7.5s ease-in-out 2.62s infinite; }
+
+@keyframes brand-streak {
+  0% { stroke-dashoffset: 0.16; opacity: 0; stroke-width: 4; }
+  4% { opacity: 1; }
+  22% { opacity: 1; }
+  27% { stroke-dashoffset: -1; opacity: 0; stroke-width: 16; }
+  100% { stroke-dashoffset: -1; opacity: 0; stroke-width: 16; }
+}
+@keyframes brand-glow {
+  0%, 100% { opacity: 0.3; transform: scale(0.88); }
+  50% { opacity: 0.95; transform: scale(1.06); }
+}
+/* clarão nos faróis quando a luz da estrada chega ao carro */
+@keyframes brand-flare-blink {
+  0%, 22% { opacity: 0; transform: scaleX(0.2); }
+  27% { opacity: 0.9; transform: scaleX(1); }
+  40%, 100% { opacity: 0; transform: scaleX(0.5); }
+}
+@keyframes brand-sheen {
+  0%, 74% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
+  76% { opacity: 1; }
+  92% { transform: translateX(260%) skewX(-18deg); opacity: 1; }
+  94%, 100% { transform: translateX(260%) skewX(-18deg); opacity: 0; }
+}
+
+/* ---------- construção (animação de entrada) ---------- */
+.brand-draw path {
+  fill: none;
+  stroke: var(--brand-ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation:
+    brand-draw 0.95s cubic-bezier(0.55, 0.1, 0.25, 1) var(--d, 0s) forwards,
+    brand-draw-out 0.5s ease 1.55s forwards;
+}
+.brand-draw path.is-red { stroke: var(--brand-red); }
+.brand-logo--intro .brand-emblem > img {
+  opacity: 0;
+  animation: brand-fill 0.8s cubic-bezier(0.6, 0, 0.2, 1) 0.95s forwards;
+}
+.brand-logo--intro .brand-streak { animation: brand-streak-once 1.05s cubic-bezier(0.5, 0, 0.75, 1) 1.15s forwards; }
+.brand-logo--intro .brand-glow { animation: brand-ignite 1.1s ease-out 1.6s forwards; }
+.brand-logo--intro .brand-light:nth-of-type(2) .brand-glow { animation-delay: 1.72s; }
+.brand-logo--intro .brand-flare { animation: brand-flare-once 1s ease-out 1.62s forwards; }
+.brand-logo--intro .brand-light:nth-of-type(2) .brand-flare { animation-delay: 1.74s; }
+.brand-logo--intro .brand-name > img {
+  clip-path: inset(0 100% 0 0);
+  animation: brand-wipe 0.72s cubic-bezier(0.65, 0, 0.25, 1) 1.72s forwards;
+}
+.brand-logo--intro .brand-name::after {
+  content: "";
+  position: absolute;
+  top: -8%;
+  bottom: -8%;
+  left: 0;
+  width: 2px;
+  background: var(--brand-red);
+  box-shadow: 0 0 14px 3px rgb(255 58 36 / 0.55);
+  opacity: 0;
+  animation: brand-wipe-bar 0.72s cubic-bezier(0.65, 0, 0.25, 1) 1.72s;
+}
+.brand-logo--intro .brand-emblem .brand-sheen::before { animation: brand-sheen-once 0.7s ease-in-out 2.2s; }
+.brand-logo--intro .brand-name .brand-sheen::before { animation: brand-sheen-once 0.7s ease-in-out 2.42s; }
+
+@keyframes brand-draw { to { stroke-dashoffset: 0; } }
+@keyframes brand-draw-out { to { opacity: 0; } }
+@keyframes brand-fill {
+  from { opacity: 1; clip-path: polygon(-30% 0, 0% 0, -30% 100%, -30% 100%); }
+  to { opacity: 1; clip-path: polygon(-30% 0, 130% 0, 100% 100%, -30% 100%); }
+}
+@keyframes brand-streak-once {
+  0% { stroke-dashoffset: 0.16; opacity: 0; stroke-width: 4; }
+  15% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { stroke-dashoffset: -1; opacity: 0; stroke-width: 16; }
+}
+@keyframes brand-ignite {
+  0% { opacity: 0; transform: scale(0.35); }
+  30% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 0.75; transform: scale(1); }
+}
+@keyframes brand-flare-once {
+  0% { opacity: 0; transform: scaleX(0); }
+  30% { opacity: 1; transform: scaleX(1.15); }
+  100% { opacity: 0; transform: scaleX(0.6); }
+}
+@keyframes brand-wipe { to { clip-path: inset(0 0 0 0); } }
+@keyframes brand-wipe-bar {
+  0% { left: 0; opacity: 1; }
+  88% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+@keyframes brand-sheen-once {
+  0% { transform: translateX(-130%) skewX(-18deg); opacity: 1; }
+  100% { transform: translateX(260%) skewX(-18deg); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo *,
+  .brand-logo *::before,
+  .brand-logo *::after { animation: none !important; }
+  .brand-logo--intro .brand-emblem > img { opacity: 1; }
+  .brand-logo--intro .brand-name > img { clip-path: none; }
+  .brand-draw { display: none; }
+}

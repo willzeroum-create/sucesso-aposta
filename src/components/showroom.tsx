@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import type { CatalogData, Vehicle } from "@/lib/contracts";
 import { InquiryForm } from "@/components/inquiry-form";
+import { BrandLogo } from "@/components/brand-logo";
+import { BrandIntro } from "@/components/brand-intro";
 import photoCredits from "@/data/photo-credits.json";
 import "./showroom-modern.css";
 
@@ -100,15 +102,7 @@ function Wordmark({ name, light = false }: { name: string; light?: boolean }) {
       href="#inicio"
       aria-label={`${name} — início`}
     >
-      <span className="brand-symbol" aria-hidden="true">
-        <svg viewBox="0 0 40 44">
-          <path d="M5 34 20 6l15 28M12 24h16M5 40h30" />
-        </svg>
-      </span>
-      <span className="brand-type">
-        {name}
-        <span>AUTOMÓVEIS COM PRESENÇA</span>
-      </span>
+      <BrandLogo variant="compact" animated dark={light} name={name} />
     </a>
   );
 }
@@ -278,6 +272,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
 
   return (
     <div className="modern-showroom" id="inicio">
+      <BrandIntro name={site.name} />
       <a className="skip-link" href="#conteudo">
         Saltar para o conteúdo
       </a>
@@ -949,9 +944,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
           <div className="footer-top">
             <Wordmark name={site.name} light />
             <p>
-              Automóveis com presença.
-              <br />
-              <em>Viagens com significado.</em>
+              <em>{site.tagline}</em>
             </p>
             <a
               href="#inicio"
@@ -974,7 +967,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
             <span>
               © {new Date().getFullYear()} {site.name}.
               {source === "demo" &&
-                " Nome provisório · projeto em demonstração."}
+                " Projeto em demonstração."}
             </span>
             <div className="footer-utility">
               <a href="/creditos">Fotografias & créditos</a>
@@ -1162,7 +1155,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
             </h2>
             <h3>Uma primeira edição</h3>
             <p>
-              “{site.name}” é o nome provisório deste projeto.{" "}
+              {site.name} é a marca apresentada neste projeto.{" "}
               {source === "demo"
                 ? "As viaturas, características e preços são exemplos para apresentação, sem oferta comercial."
                 : "As informações comerciais e a disponibilidade devem ser confirmadas junto do stand."}

@@ -185,6 +185,8 @@
   text-transform: uppercase;
   line-height: 1.2;
 }
+.brand { width: clamp(230px, 23vw, 300px); min-width: 0; }
+.brand :global(.brand-logo) { width: 100%; }
 .brand small {
   display: block;
   font-size: 6.5px;
@@ -1839,6 +1841,7 @@
   }
 }
 @media (max-width: 800px) {
+  .brand { width: clamp(210px, 64vw, 270px); }
   .headerInner {
     height: 76px;
   }

@@ -2,13 +2,17 @@
 .modern-showroom {
   --paper: #f8f7f3;
   --cream: #efede6;
-  --wine: #77283b;
-  --wine-dark: #522031;
-  --ink: #292c29;
+  --wine: #c4120f;
+  --wine-dark: #730a08;
+  --ink: #111111;
   --line: #dfdfd6;
   background: var(--paper);
   overflow: clip;
 }
+.modern-showroom .wordmark { width: clamp(240px, 23vw, 306px); min-width: 0; }
+.modern-showroom .wordmark .brand-logo { width: 100%; }
+.modern-showroom .site-footer { background: #111111; }
+.modern-showroom :is(a, button, input, textarea, select):focus-visible { outline-color: #c4120f; }
 .modern-showroom .page-width,
 .modern-showroom .header-inner {
   max-width: 1440px;
@@ -181,7 +185,7 @@
 .modern-showroom .hero-switcher .is-active {
   color: white;
   background: #ffffff12;
-  border-bottom-color: #d3aaa4;
+  border-bottom-color: #c4120f;
 }
 .modern-showroom .hero-dark .hero-switcher {
   background: #fbfaf4d9;
@@ -915,6 +919,9 @@
   }
 }
 @media (max-width: 600px) {
+  .modern-showroom .header-inner { gap: 10px; }
+  .modern-showroom .wordmark { width: clamp(215px, 66vw, 275px); }
+  .modern-showroom .footer-top .wordmark { width: min(75vw, 310px); }
   .modern-showroom .page-width,
   .modern-showroom .header-inner {
     width: calc(100% - 40px);
@@ -1332,6 +1339,7 @@
   }
 }
 @media (max-width: 370px) {
+  .modern-showroom .wordmark { width: 208px; }
   .modern-showroom .page-width,
   .modern-showroom .header-inner {
     width: calc(100% - 32px);

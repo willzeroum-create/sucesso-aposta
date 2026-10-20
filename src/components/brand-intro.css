@@ -1,0 +1,104 @@
+/* Entrada da marca: estrada em perspetiva ao fundo, logo a construir-se e saída para o cabeçalho. */
+.brand-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: hidden;
+  cursor: pointer;
+  background: radial-gradient(120% 85% at 50% 40%, #ffffff 0%, #f8f7f3 58%, #ebe8e0 100%);
+  -webkit-tap-highlight-color: transparent;
+  animation: brand-intro-exit 0.42s ease-in 2.68s forwards;
+}
+.brand-intro.is-leaving { animation: brand-intro-exit 0.26s ease-in forwards; }
+
+/* estrada em perspetiva: nasce atrás do logo (horizonte) e os traços vêm na nossa direção */
+.brand-intro-road {
+  position: absolute;
+  inset: 0;
+  perspective: 360px;
+  /* horizonte logo abaixo do nome: a estrada sai de baixo do logo */
+  perspective-origin: 50% calc(50% + min(27.5vw, 198px) + 10px);
+  opacity: 0;
+  animation: brand-road-in 0.9s ease-out forwards;
+}
+.brand-intro-road > span {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(56vw, 640px);
+  height: 420vh;
+  margin-left: calc(min(56vw, 640px) / -2);
+  transform-origin: 50% 100%;
+  transform: rotateX(90deg);
+  background:
+    linear-gradient(90deg, rgb(17 17 17 / 0.2) 0 2px, transparent 2px calc(100% - 2px), rgb(17 17 17 / 0.2) calc(100% - 2px)),
+    linear-gradient(90deg, transparent 0 8%, rgb(17 17 17 / 0.07) 8% calc(8% + 1px), transparent 0 calc(92% - 1px), rgb(17 17 17 / 0.07) 0 92%, transparent 0),
+    linear-gradient(90deg, transparent, rgb(17 17 17 / 0.035) 50%, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 25%, transparent 85%);
+  mask-image: linear-gradient(to top, #000 0%, #000 25%, transparent 85%);
+}
+.brand-intro-road > span::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 10px;
+  margin-left: -5px;
+  background: repeating-linear-gradient(to bottom, #c4120f 0 60px, transparent 60px 150px);
+  animation: brand-road-run 0.5s linear infinite;
+}
+.brand-intro-glow {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: min(120vw, 900px);
+  aspect-ratio: 2 / 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgb(196 18 15 / 0.12), transparent);
+  opacity: 0;
+  animation: brand-glow-in 1.4s ease-out 1.5s forwards;
+}
+
+.brand-intro-stage {
+  position: relative;
+  width: min(86vw, 620px);
+  animation: brand-intro-fly 0.46s cubic-bezier(0.6, 0, 0.8, 0.35) 2.62s forwards;
+}
+.brand-intro-skip {
+  position: absolute;
+  right: clamp(16px, 5vw, 64px);
+  bottom: max(clamp(20px, 5vw, 56px), env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: #111111;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.brand-intro-skip span { color: #c4120f; font-size: 16px; }
+
+@keyframes brand-road-in { to { opacity: 1; } }
+@keyframes brand-road-run { to { background-position: 0 150px; } }
+@keyframes brand-glow-in { to { opacity: 1; } }
+@keyframes brand-intro-fly { to { transform: translateY(-36vh) scale(0.3); opacity: 0; } }
+@keyframes brand-intro-exit { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+
+@media (max-width: 600px) {
+  .brand-intro-stage { width: min(90vw, 440px); }
+  .brand-intro-road { perspective: 260px; perspective-origin: 50% calc(50% + min(28.8vw, 141px) + 8px); }
+  .brand-intro-road > span { width: 84vw; margin-left: -42vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-intro { display: none; }
+}
