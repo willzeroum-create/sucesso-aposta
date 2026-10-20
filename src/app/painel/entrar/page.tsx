@@ -14,14 +14,13 @@ export default async function LoginPage(props: PageProps<"/painel/entrar">) {
   return (
     <main className="a-login">
       <div className="a-login-card">
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span className="a-brand-mark" aria-hidden="true">
-            {(site?.name ?? "S").slice(0, 1)}
-          </span>
+        <div style={{ display: "grid", gap: 14, textAlign: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="a-login-logo" src="/brand/logo-full.png" alt={site?.name ?? "Aposta com Sucesso Cars"} width={1112} height={710} />
           <div>
             <h1>Painel do stand</h1>
             <p className="muted" style={{ fontSize: 14 }}>
-              {site?.name ?? "Sucesso Aposta"}
+              {site?.name ?? "Aposta com Sucesso Cars"}
             </p>
           </div>
         </div>

@@ -4,9 +4,9 @@ import "@fontsource/cormorant-garamond/500-italic.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sucesso Aposta — Automóveis com presença",
+  title: "Aposta com Sucesso Cars — Mais que carros, grandes conquistas",
   description:
-    "Uma seleção de automóveis para quem valoriza cada detalhe. Descubra a primeira edição de Sucesso Aposta. Projeto em demonstração.",
+    "Aposta com Sucesso Cars: automóveis usados selecionados em Famões, Odivelas. Veja o stock com fotografias, preços e equipamento.",
   robots: { index: false, follow: false },
 };
 

@@ -10,9 +10,9 @@
   --ink: #1d2320;
   --muted: #5f6762;
   --faint: #8a918c;
-  --accent: #6e1f33;
+  --accent: #c4120f;
   --accent-ink: #ffffff;
-  --accent-soft: #f5e7ea;
+  --accent-soft: #fbe8e6;
   --focus: #2b5fa8;
   --ok: #2c7a4b;
   --ok-soft: #e3f1e8;
@@ -48,9 +48,9 @@
   --ink: #e8ece9;
   --muted: #a3aba6;
   --faint: #7a827d;
-  --accent: #e38aa0;
-  --accent-ink: #2a0d16;
-  --accent-soft: #3a2229;
+  --accent: #ff6a5f;
+  --accent-ink: #2a0605;
+  --accent-soft: #3a1b19;
   --focus: #8cb4f0;
   --ok: #6fcf97;
   --ok-soft: #1d3326;
@@ -76,9 +76,9 @@
     --ink: #e8ece9;
     --muted: #a3aba6;
     --faint: #7a827d;
-    --accent: #e38aa0;
-    --accent-ink: #2a0d16;
-    --accent-soft: #3a2229;
+    --accent: #ff6a5f;
+    --accent-ink: #2a0605;
+    --accent-soft: #3a1b19;
     --focus: #8cb4f0;
     --ok: #6fcf97;
     --ok-soft: #1d3326;
@@ -189,13 +189,32 @@
 .a-brand-mark {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  flex: none;
+  width: 44px;
+  height: 32px;
   border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-family: var(--plate);
-  font-size: 17px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--line);
+  padding: 3px 4px;
+}
+.a-brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.a-brand-name {
+  line-height: 1.15;
+}
+.a-login-logo {
+  display: block;
+  width: min(260px, 80%);
+  height: auto;
+  margin: 0 auto;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-sizing: content-box;
 }
 .a-nav {
   display: grid;

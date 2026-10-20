@@ -46,9 +46,10 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
       <aside id="a-side" className="a-side" data-open={open} aria-label="Navegação do painel">
         <Link href="/painel" className="a-brand">
           <span className="a-brand-mark" aria-hidden="true">
-            {standName.slice(0, 1)}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-emblem-160.png" alt="" width={36} height={16} />
           </span>
-          {standName}
+          <span className="a-brand-name">{standName}</span>
         </Link>
         <nav className="a-nav">
           {item("/painel", "Início", Home)}

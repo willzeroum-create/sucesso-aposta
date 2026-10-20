@@ -15,7 +15,7 @@ export async function GET() {
       display: "standalone",
       orientation: "portrait",
       background_color: "#121513",
-      theme_color: "#641e2c",
+      theme_color: "#c4120f",
       lang: "pt-PT",
       icons: [
         { src: "/painel-icon-192.png", sizes: "192x192", type: "image/png" },

@@ -170,8 +170,8 @@ export const demoHeroSlides: HeroSlide[] = [
   },
 ];
 export const demoSiteConfig: SiteConfig = {
-  name: "Sucesso Aposta",
-  tagline: "Automóveis com presença. Escolhas com sentido.",
+  name: "Aposta com Sucesso Cars",
+  tagline: "Mais que carros, grandes conquistas.",
   locale: "pt-PT",
   currency: "EUR",
   contacts: {},

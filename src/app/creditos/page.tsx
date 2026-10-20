@@ -3,7 +3,7 @@ import Link from "next/link";
 import photos from "@/data/photo-credits.json";
 import styles from "./page.module.css";
 
-export const metadata = { title: "Fotografias e créditos | Sucesso Aposta" };
+export const metadata = { title: "Fotografias e créditos | Aposta com Sucesso Cars" };
 
 export default function PhotoCredits() {
   return (
