@@ -9,7 +9,7 @@ const loadCatalog = cache(getCatalogData);
 export async function generateMetadata(): Promise<Metadata> {
   const { site, source } = await loadCatalog();
   return {
-    title: `${site.name} — Automóveis com presença`,
+    title: `${site.name} — ${site.tagline.replace(/\.$/, "")}`,
     description: `${site.tagline}${source === "demo" ? " Projeto em demonstração." : ""}`,
   };
 }
