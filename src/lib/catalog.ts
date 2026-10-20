@@ -157,6 +157,23 @@ function parseSite(value: unknown): SiteConfig {
   return result;
 }
 
+function optionalGallery(value: unknown, path: string): { src: string; alt: string }[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value) || value.length > 40)
+    throw new CatalogLoadError(`Invalid catalogue field: ${path} must be a list (max 40).`);
+  return value.map((item, i) => {
+    const row = object(item, `${path}[${i}]`);
+    return { src: imageUrl(row.src, `${path}[${i}].src`), alt: text(row.alt, `${path}[${i}].alt`, 300) };
+  });
+}
+
+function optionalList(value: unknown, path: string, maxItems = 250, maxLength = 160): string[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value) || value.length > maxItems)
+    throw new CatalogLoadError(`Invalid catalogue field: ${path} must be a list (max ${maxItems}).`);
+  return value.map((item, i) => text(item, `${path}[${i}]`, maxLength));
+}
+
 function parseVehicle(value: unknown, index: number): Vehicle {
   const path = `vehicles[${index}]`;
   const row = object(value, path);
@@ -198,6 +215,9 @@ function parseVehicle(value: unknown, index: number): Vehicle {
       ["available", "reserved", "sold"],
       `${path}.status`,
     ),
+    gallery: optionalGallery(row.gallery, `${path}.gallery`),
+    features: optionalList(row.features, `${path}.features`),
+    description: optionalText(row.description, `${path}.description`, 4000),
   };
 }
 

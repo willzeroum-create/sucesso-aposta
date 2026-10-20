@@ -19,6 +19,11 @@ export interface Vehicle {
   imageAlt: string;
   highlight?: string;
   status: "available" | "reserved" | "sold";
+  /** Todas as fotografias, pela ordem da galeria (a primeira é a capa). */
+  gallery?: { src: string; alt: string }[];
+  /** Lista de equipamento (ex.: "Apple CarPlay"). */
+  features?: string[];
+  description?: string;
 }
 
 export interface HeroSlide {

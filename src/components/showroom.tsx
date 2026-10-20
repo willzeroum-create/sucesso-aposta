@@ -189,7 +189,9 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
       ? photoCredits.vehicles.find((p) => p.id === photoReferenceIds[detail.id])
       : undefined;
   const detailPhotos = detail
-    ? [detail.image, ...(detailReference?.userImages ?? [])]
+    ? detail.gallery?.length
+      ? detail.gallery.map((p) => p.src)
+      : [detail.image, ...(detailReference?.userImages ?? [])]
     : [];
   useEffect(() => setDetailImage(0), [detail?.id]);
 
@@ -1073,6 +1075,19 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                   </dd>
                 </div>
               </dl>
+              {detail.description && (
+                <p className="detail-description">{detail.description}</p>
+              )}
+              {detail.features && detail.features.length > 0 && (
+                <details className="detail-features">
+                  <summary>Equipamento ({detail.features.length})</summary>
+                  <ul>
+                    {detail.features.map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               {isIllustrative(detail) && (
                 <p className="detail-disclaimer">
                   Exemplo de apresentação. Preço e características fictícios;

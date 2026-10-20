@@ -43,6 +43,13 @@
       "when": 1792227253116,
       "tag": "0005_compra_venda",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792508910954,
+      "tag": "0006_viaturas_parceiro",
+      "breakpoints": true
     }
   ]
 }

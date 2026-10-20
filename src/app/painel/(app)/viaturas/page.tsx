@@ -4,12 +4,14 @@ import { Car, Globe, Plus, Search } from "lucide-react";
 import { db, schema } from "@/db";
 import { VEHICLE_STATUSES } from "@/db/schema";
 import { Plate, StatusPill } from "@/components/painel/ui";
+import { PartnerSync } from "@/components/painel/partner-sync";
 import { daysSince, eur, int, VEHICLE_STATUS } from "@/lib/labels";
 import { normalizePlate } from "@/lib/pt-validation";
 import { can, requirePagePermission } from "@/server/auth/session";
 import { publicUrl } from "@/server/storage";
 
 export const metadata = { title: "Viaturas" };
+export const maxDuration = 60;
 
 export default async function VehiclesPage(props: PageProps<"/painel/viaturas">) {
   const user = await requirePagePermission("vehicles.view");
@@ -71,9 +73,12 @@ export default async function VehiclesPage(props: PageProps<"/painel/viaturas">)
           <p>Stock do stand. O estado e a publicação controlam o que aparece no site.</p>
         </div>
         {can(user, "vehicles.edit") && (
-          <Link href="/painel/viaturas/nova" className="a-btn a-btn-primary">
-            <Plus size={17} /> Dar entrada de viatura
-          </Link>
+          <div className="a-actions">
+            {can(user, "vehicles.status") && <PartnerSync />}
+            <Link href="/painel/viaturas/nova" className="a-btn a-btn-primary">
+              <Plus size={17} /> Dar entrada de viatura
+            </Link>
+          </div>
         )}
       </div>
 

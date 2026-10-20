@@ -72,6 +72,16 @@ export async function buildPublicCatalog(): Promise<PublicCatalogPayload> {
       imageAlt: cover!.alt || `${v.make} ${v.model} ${v.version}`.trim(),
       ...(v.highlight ? { highlight: v.highlight } : {}),
       status: v.status as Vehicle["status"],
+      ...(own.length > 1
+        ? {
+            gallery: [cover!, ...own.filter((p) => p.id !== cover!.id)].map((p) => ({
+              src: publicUrl(p.key),
+              alt: p.alt || `${v.make} ${v.model} ${v.version}`.trim(),
+            })),
+          }
+        : {}),
+      ...(v.features?.length ? { features: v.features.filter((f) => f.trim()).slice(0, 250) } : {}),
+      ...(v.description?.trim() ? { description: v.description.trim().slice(0, 4000) } : {}),
     });
   }
 

@@ -199,6 +199,14 @@ export const vehicles = pgTable(
     soldPriceEur: doublePrecision("sold_price_eur"),
     buyerCustomerId: text("buyer_customer_id"),
 
+    /** Lista de equipamento (ex.: "Apple CarPlay", "Câmara de marcha-atrás"). */
+    features: jsonb("features").$type<string[]>(),
+    /** Viaturas vindas de um parceiro (ex.: "tampinha"): id do anúncio lá e endereço, para atualizar sem duplicar. */
+    sourcePartner: text("source_partner"),
+    sourceRef: text("source_ref"),
+    sourceUrl: text("source_url"),
+    sourceSyncedAt: timestamp("source_synced_at", { withTimezone: true, mode: "date" }),
+
     createdBy: text("created_by"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -207,6 +215,7 @@ export const vehicles = pgTable(
     uniqueIndex("vehicles_slug_unique").on(t.slug),
     index("vehicles_status_idx").on(t.status),
     index("vehicles_plate_idx").on(t.plate),
+    uniqueIndex("vehicles_source_unique").on(t.sourcePartner, t.sourceRef),
   ],
 );
 

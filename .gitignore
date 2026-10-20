@@ -20,3 +20,4 @@ tests/output/
 .env*
 
 /cobrar/
+/docs/o-que-falta-*.pdf
