@@ -22,7 +22,7 @@ export async function shrinkImage(file: File, maxSide = 2400, maxBytes = 3 * 102
   }
 }
 
-export type AiReadMode = "vehicle" | "person" | "import" | "requester" | "parties";
+export type AiReadMode = "vehicle" | "person" | "import" | "requester" | "parties" | "carphoto";
 
 export interface UploadedDoc {
   fileId: string;

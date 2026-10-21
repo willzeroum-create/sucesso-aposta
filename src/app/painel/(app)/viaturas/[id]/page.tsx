@@ -134,7 +134,12 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         soldPrice={v.soldPriceEur}
         onSite={v.section === "site"}
       />
-      {can(user, "vehicles.status") && <SectionMover vehicleId={v.id} section={v.section} />}
+      {(can(user, "vehicles.status") || can(user, "vehicles.delete")) && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
+          {can(user, "vehicles.status") ? <SectionMover vehicleId={v.id} section={v.section} /> : <span />}
+          {can(user, "vehicles.delete") && <DeleteVehicle id={v.id} label={`${v.make} ${v.model}`} back={sec.base} />}
+        </div>
+      )}
 
       <nav className="a-tabs" aria-label="Secções da viatura">
         {TABS.filter((t) => (t.key === "documentos" ? canDocs : t.key === "custos" ? canCosts : t.key === "termos" || t.key === "venda" || t.key === "aluguer" ? canForms : true)).map((t) => (
@@ -227,7 +232,6 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         </section>
       )}
 
-      {can(user, "vehicles.delete") && tab === "dados" && v.status !== "sold" && <DeleteVehicle id={v.id} />}
     </div>
   );
 }

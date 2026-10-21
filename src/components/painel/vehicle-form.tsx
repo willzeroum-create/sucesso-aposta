@@ -2,10 +2,10 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Lock, Search, Save, Smartphone, X } from "lucide-react";
+import { ImagePlus, Lock, Search, Save, Smartphone, Sparkles, X } from "lucide-react";
 import type { SectionKey } from "@/lib/sections";
 import { CaptureDialog, useIsDesktop } from "./capture-dialog";
-import { uploadLoosePhotos } from "./upload";
+import { readWithAi, uploadLoosePhotos } from "./upload";
 import { createVehicle, lookupDutchPlateAction, lookupVinAction, updateVehicle } from "@/app/painel/_actions/vehicles";
 import { CATEGORY, FUEL, TRANSMISSION, int } from "@/lib/labels";
 import { isValidVinFormat, normalizeVin } from "@/lib/pt-validation";
@@ -45,12 +45,40 @@ const AI_FIELDS: FieldMeta[] = [
 ];
 
 /** Fotografias da viatura ao dar entrada (antes de gravar): do telemóvel/computador ou por código QR. */
-function NewVehiclePhotos({ photos, setPhotos }: { photos: { id: string; url: string }[]; setPhotos: React.Dispatch<React.SetStateAction<{ id: string; url: string }[]>> }) {
+function NewVehiclePhotos({
+  photos,
+  setPhotos,
+  onIdentified,
+}: {
+  photos: { id: string; url: string }[];
+  setPhotos: React.Dispatch<React.SetStateAction<{ id: string; url: string }[]>>;
+  /** Campos reconhecidos na foto (marca, modelo, cor, matrícula…), para pré-preencher a ficha. */
+  onIdentified: (fields: Record<string, string>, summary: string) => void;
+}) {
   const toast = useToast();
   const desktop = useIsDesktop();
   const input = useRef<HTMLInputElement>(null);
   const [capturing, setCapturing] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [identifying, setIdentifying] = useState(false);
+
+  async function identify(list = photos) {
+    if (!list.length) return;
+    setIdentifying(true);
+    try {
+      const { proposal } = await readWithAi<{ summary: string; legible: boolean; problem: string | null; fields: Record<string, unknown> }>(
+        "carphoto",
+        list.slice(0, 4).map((p) => p.id),
+      );
+      const fields = Object.fromEntries(Object.entries(proposal.fields).filter(([, v]) => v !== null && v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
+      if (!Object.keys(fields).length) toast("info", proposal.problem || "Não consegui reconhecer o carro nesta foto. Tente uma de frente ou de trás, com a matrícula.");
+      else onIdentified(fields, proposal.summary);
+    } catch (e) {
+      toast("danger", e instanceof Error ? e.message : "A identificação falhou.");
+    } finally {
+      setIdentifying(false);
+    }
+  }
 
   async function send(list: FileList | File[] | null) {
     const files = [...(list ?? [])].filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
@@ -72,7 +100,7 @@ function NewVehiclePhotos({ photos, setPhotos }: { photos: { id: string; url: st
       <div>
         <h2 style={{ margin: 0, fontSize: 16 }}>Fotografias da viatura</h2>
         <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>
-          As fotos do carro (não os documentos). A primeira fica como capa; pode mudar depois em Fotografias.
+          As fotos do carro (não os documentos). A primeira fica como capa. Com “Identificar o carro pela foto”, a IA reconhece marca, modelo, cor e matrícula e preenche a ficha para confirmar.
         </p>
       </div>
       <div className="a-actions">
@@ -82,6 +110,11 @@ function NewVehiclePhotos({ photos, setPhotos }: { photos: { id: string; url: st
         {desktop && (
           <button type="button" className="a-btn a-btn-sm" onClick={() => setCapturing(true)}>
             <Smartphone size={15} /> Enviar do telemóvel (QR)
+          </button>
+        )}
+        {photos.length > 0 && (
+          <button type="button" className="a-btn a-btn-sm a-btn-primary" onClick={() => void identify()} disabled={identifying || !!progress}>
+            {identifying ? <Spinner size={14} /> : <Sparkles size={15} />} {identifying ? "A reconhecer o carro…" : "Identificar o carro pela foto"}
           </button>
         )}
         {progress && (
@@ -235,7 +268,16 @@ export function VehicleForm({ id, initial, canCosts, section = "site" }: { id?: 
         }
       />
 
-      {!id && <NewVehiclePhotos photos={photos} setPhotos={setPhotos} />}
+      {!id && (
+        <NewVehiclePhotos
+          photos={photos}
+          setPhotos={setPhotos}
+          onIdentified={(fields, summary) => {
+            const n = apply(fields, true);
+            toast(n ? "ok" : "info", n ? `${summary || "Carro reconhecido"}. ${n} campo(s) preenchido(s): confirme os destacados.` : `${summary || "Carro reconhecido"}. Os campos já estavam preenchidos.`);
+          }}
+        />
+      )}
 
       <form className="a-card a-card-body a-form" onSubmit={submit} noValidate>
         {!id && <input type="hidden" name="section" value={section} />}

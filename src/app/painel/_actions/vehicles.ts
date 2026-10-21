@@ -255,18 +255,19 @@ export async function deleteVehicle(id: string, confirmText: string): Promise<Ac
     const [v] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, id)).limit(1);
     if (!v) throw new UserError("Viatura não encontrada.");
     if (confirmText.trim().toUpperCase() !== "APAGAR") throw new UserError('Escreva "APAGAR" para confirmar.');
-    if (v.status === "sold") throw new UserError("Viaturas vendidas não podem ser apagadas: ficam no histórico.");
     const photos = await db.select().from(schema.vehiclePhotos).where(eq(schema.vehiclePhotos.vehicleId, id));
     const docs = await db.select().from(schema.documents).where(and(eq(schema.documents.ownerType, "vehicle"), eq(schema.documents.ownerId, id)));
+    // Custos e alugueres apagam-se com a viatura (cascade); vendas a prestações e processos ficam, sem ligação.
     await db.delete(schema.heroSlides).where(eq(schema.heroSlides.vehicleId, id));
     await db.delete(schema.vehiclePhotos).where(eq(schema.vehiclePhotos.vehicleId, id));
     await db.delete(schema.documents).where(and(eq(schema.documents.ownerType, "vehicle"), eq(schema.documents.ownerId, id)));
     await db.delete(schema.vehicles).where(eq(schema.vehicles.id, id));
     for (const f of [...photos.map((p) => p.fileId), ...docs.map((d) => d.fileId)]) await removeFile(f);
     await audit(user, { action: "vehicle.delete", entityType: "vehicle", entityId: id, summary: `Apagou a viatura ${v.make} ${v.model}${v.plate ? ` (${v.plate})` : ""} com ${photos.length} fotografias e ${docs.length} documentos` });
-    revalidatePath("/painel/viaturas");
+    for (const s of Object.values(SECTIONS)) revalidatePath(s.base);
+    revalidatePath("/painel/aluguer");
     revalidatePath("/", "layout");
-  }, "Viatura apagada.");
+  }, "Carro excluído.");
 }
 
 /* ── Fotografias ── */

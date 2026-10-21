@@ -208,6 +208,28 @@ export async function readVehicleDocuments(parts: AiPart[]): Promise<VehicleProp
   return normalizeVehicleExtraction(json);
 }
 
+const CAR_PHOTO_PROMPT = `És o assistente de um stand de automóveis em Portugal. Recebes FOTOGRAFIAS DO PRÓPRIO CARRO (não de documentos), tiradas no parque do stand. Identifica o carro para pré-preencher a ficha; a equipa confirma depois.
+
+Responde APENAS com JSON: {"documentos":["foto_viatura"],"legivel":true,"problema":"","resumo":"","dados":{...}}
+
+Regras para "dados" ("" quando não tiveres a certeza — nunca inventes):
+- marca: pelo emblema/logótipo e pela forma (ex.: "Peugeot", "BMW", "Porsche").
+- modelo: pelo nome escrito na traseira ou pela forma inconfundível (ex.: "3008", "Leaf", "Cayenne", "Série 3 Coupé", "Tipo Station Wagon"). Se só tiveres palpite fraco, deixa "".
+- versao: só se estiver escrita num emblema (ex.: "GT Line", "ST-Line", "e-HDi"); senão "".
+- cor: em português, simples ("Preto", "Branco", "Cinzento", "Prateado", "Azul", "Vermelho", "Bege"…).
+- matricula: exatamente como se lê na chapa (ex.: "77-81-TP", "BM-54-EF"); "" se não se vir ou estiver tapada. pais_matricula pela chapa (P = "Portugal", NL amarela = "Países Baixos", B vermelha = "Bélgica"…).
+- combustivel: só se houver indicação visível (emblema "electric", "hybrid", tomada de carga, ausência de escape num elétrico conhecido como Leaf/Zoe → "Elétrico"); senão "".
+- todos os outros campos: "".
+- legivel: true se reconheces pelo menos marca e modelo; senão false e "problema" diz porquê ("só se vê a traseira desfocada").
+- resumo: UMA linha, ex.: "Peugeot 206 cinzento, matrícula 77-81-TP".`;
+
+/** Identifica o carro a partir de fotografias do próprio carro (marca, modelo, cor, matrícula). */
+export async function readCarPhotos(parts: AiPart[]): Promise<VehicleProposal> {
+  if (!parts.length) throw new AiError("Envie pelo menos uma fotografia do carro.", 400);
+  const json = await requestJson({ system: CAR_PHOTO_PROMPT, parts: [...parts, { text: "Identifica este carro." }], schema: VEHICLE_SCHEMA });
+  return normalizeVehicleExtraction(json);
+}
+
 /* ───────────── Pessoa (ficha de cliente) ───────────── */
 
 const PERSON_FIELDS = [

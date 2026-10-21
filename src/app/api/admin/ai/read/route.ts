@@ -3,7 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { kindFromAi, DOCUMENT_KINDS } from "@/lib/document-kinds";
-import { readImportDocuments, readPartyDocuments, readPersonDocuments, readRequesterDocuments, readVehicleDocuments, prepareForAi } from "@/server/ai/documents";
+import { readCarPhotos, readImportDocuments, readPartyDocuments, readPersonDocuments, readRequesterDocuments, readVehicleDocuments, prepareForAi } from "@/server/ai/documents";
 import { aiModelLabel } from "@/server/ai/provider";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
@@ -15,10 +15,10 @@ import { UserError } from "@/server/action";
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
 
-const MODE_LABEL = { vehicle: "viatura", person: "cliente", import: "importação", requester: "requerente", parties: "compra e venda" } as const;
+const MODE_LABEL = { vehicle: "viatura", person: "cliente", import: "importação", requester: "requerente", parties: "compra e venda", carphoto: "foto do carro" } as const;
 
 const bodySchema = z.object({
-  mode: z.enum(["vehicle", "person", "import", "requester", "parties"]),
+  mode: z.enum(["vehicle", "person", "import", "requester", "parties", "carphoto"]),
   fileIds: z.array(z.string().max(60)).min(1).max(8),
 });
 
@@ -29,13 +29,14 @@ const bodySchema = z.object({
 export async function POST(req: Request) {
   try {
     assertSameOrigin(req);
-    const user = await assertPermission("documents.upload");
-    await assertPermission("documents.view"); // lê ficheiros já guardados
     const { mode, fileIds } = bodySchema.parse(await req.json());
+    // Foto do carro: fotografias da viatura (públicas) ao dar entrada; documentos: ficheiros privados.
+    const user = await assertPermission(mode === "carphoto" ? "vehicles.edit" : "documents.upload");
+    if (mode !== "carphoto") await assertPermission("documents.view"); // lê ficheiros já guardados
     const limit = await rateLimit(`ai:${user.id}`, 60, 60 * 60 * 1000);
     if (!limit.ok) throw new UserError("Atingiu o limite de leituras por hora. Tente mais tarde.");
 
-    const files = await db.select().from(schema.files).where(and(inArray(schema.files.id, fileIds), eq(schema.files.visibility, "private")));
+    const files = await db.select().from(schema.files).where(and(inArray(schema.files.id, fileIds), eq(schema.files.visibility, mode === "carphoto" ? "public" : "private")));
     if (files.length !== new Set(fileIds).size) throw new UserError("Algum ficheiro não foi encontrado.");
     const parts = [];
     for (const f of files) {
@@ -49,7 +50,9 @@ export async function POST(req: Request) {
 
     try {
       const proposal =
-        mode === "vehicle"
+        mode === "carphoto"
+          ? await readCarPhotos(parts)
+          : mode === "vehicle"
           ? await readVehicleDocuments(parts)
           : mode === "person"
             ? await readPersonDocuments(parts)
