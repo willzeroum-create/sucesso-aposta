@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
+import { lisbonDate } from "@/lib/rentals";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
 import { PLACEHOLDERS, TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
@@ -356,8 +357,9 @@ export async function completeSale(
         id: rentalId,
         vehicleId,
         customerId: customer.id,
-        startAt: new Date(`${r.startDate}T${r.startTime}:00`),
-        endAt: new Date(`${r.endDate}T${r.endTime}:00`),
+        // Hora escrita em Lisboa (o servidor da Vercel está em UTC).
+        startAt: lisbonDate(r.startDate, r.startTime),
+        endAt: lisbonDate(r.endDate, r.endTime),
         kmOut: r.kmOut ?? vehicle.mileageKm ?? null,
         totalEur: r.totalEur ?? null,
         paymentMethod: final["aluguer.forma_pagamento"] ?? null,
@@ -379,6 +381,9 @@ export async function completeSale(
     }
 
     revalidatePath(`/painel/viaturas/${vehicleId}`);
+    revalidatePath(`/painel/estoque/${vehicleId}`);
+    revalidatePath(`/painel/aluguer/${vehicleId}`);
+    revalidatePath("/painel/aluguer");
     revalidatePath(`/painel/clientes/${customer.id}`);
     revalidatePath("/painel/viaturas");
     if (input.mode === "sale" && input.markSold && vehicle.published) revalidatePath("/", "layout");

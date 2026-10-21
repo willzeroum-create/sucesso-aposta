@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
-  Activity, ArrowLeftRight, Car, FileSignature, Globe, Home, LogOut, Megaphone, Menu, Moon, Settings, Stamp, Sun, SunMoon, UserRound, UsersRound, Inbox, Wallet,
+  Activity, ArrowLeftRight, Car, KeyRound, Warehouse, FileSignature, Globe, Home, LogOut, Megaphone, Menu, Moon, Settings, Stamp, Sun, SunMoon, UserRound, UsersRound, Inbox, Wallet,
 } from "lucide-react";
 import { logout, setTheme } from "@/app/painel/_actions/auth";
 
@@ -55,6 +55,8 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
           {item("/painel", "Início", Home)}
           {(perms.vehicles || perms.customers || perms.forms || perms.billing) && <span className="a-nav-group">Stand</span>}
           {perms.vehicles && item("/painel/viaturas", "Viaturas", Car)}
+          {perms.vehicles && item("/painel/estoque", "Estoque", Warehouse)}
+          {perms.vehicles && item("/painel/aluguer", "Aluguer", KeyRound)}
           {perms.customers && item("/painel/clientes", "Clientes", UserRound)}
           {perms.forms && item("/painel/termos", "Termos e fichas", FileSignature)}
           {perms.forms && item("/painel/legalizacao", "Modelo 9 e homologação", Stamp)}

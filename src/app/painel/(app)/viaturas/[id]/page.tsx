@@ -19,6 +19,10 @@ import { can, requirePagePermission } from "@/server/auth/session";
 import { publicationGaps } from "@/server/public-catalog";
 import { customerOptions, documentsFor, entityHistory, formHistory, templateInfos } from "@/server/queries";
 import { publicUrl } from "@/server/storage";
+import { SECTIONS } from "@/lib/sections";
+import { SectionMover } from "@/components/painel/section-mover";
+import { RentalsCard } from "@/components/painel/rentals";
+import { vehicleRentals } from "@/server/rentals";
 
 const TABS = [
   { key: "dados", label: "Dados" },
@@ -59,6 +63,8 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
   const customers = can(user, "vehicles.status") || canForms ? await customerOptions() : [];
   const buyer = v.buyerCustomerId ? customers.find((c) => c.id === v.buyerCustomerId) : null;
   const canCosts = can(user, "vehicles.costs");
+  const sec = SECTIONS[v.section];
+  const base = `${sec.base}/${v.id}`;
 
   const initial: Record<string, string> = Object.fromEntries(
     Object.entries({
@@ -76,8 +82,8 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
   return (
     <div className="a-page">
       <div>
-        <Link href="/painel/viaturas" className="a-crumb">
-          <ArrowLeft size={14} /> Viaturas
+        <Link href={sec.base} className="a-crumb">
+          <ArrowLeft size={14} /> {sec.crumb}
         </Link>
         <div className="a-vhead">
           {cover ? (
@@ -105,7 +111,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
                 No stand há {daysSince(v.createdAt)} dias
                 {buyer ? ` · Cliente: ${buyer.fullName}` : ""}
               </span>
-              {v.published && v.status !== "preparation" && (
+              {v.section === "site" && v.published && v.status !== "preparation" && (
                 <a href={`/#${v.slug}`} target="_blank" rel="noopener" className="a-link" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
                   Ver no site <ExternalLink size={13} />
                 </a>
@@ -125,11 +131,13 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         buyerId={v.buyerCustomerId}
         price={v.priceEur}
         soldPrice={v.soldPriceEur}
+        onSite={v.section === "site"}
       />
+      {can(user, "vehicles.status") && <SectionMover vehicleId={v.id} section={v.section} />}
 
       <nav className="a-tabs" aria-label="Secções da viatura">
         {TABS.filter((t) => (t.key === "documentos" ? canDocs : t.key === "custos" ? canCosts : t.key === "termos" || t.key === "venda" || t.key === "aluguer" ? canForms : true)).map((t) => (
-          <Link key={t.key} href={`/painel/viaturas/${id}?tab=${t.key}`} aria-current={tab === t.key ? "page" : undefined} scroll={false}>
+          <Link key={t.key} href={`${base}?tab=${t.key}`} aria-current={tab === t.key ? "page" : undefined} scroll={false}>
             {t.label}
             {t.key === "fotos" && <span className="a-tab-count">{gallery.length}</span>}
           </Link>
@@ -138,7 +146,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
 
       {tab === "dados" &&
         (can(user, "vehicles.edit") ? (
-          <VehicleForm id={v.id} initial={initial} canCosts={canCosts} />
+          <VehicleForm id={v.id} initial={initial} canCosts={canCosts} section={v.section} />
         ) : (
           <section className="a-card a-card-pad">
             <dl className="a-dl">
@@ -161,6 +169,8 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
       {tab === "documentos" && canDocs && (
         <DocumentsPanel owner={{ type: "vehicle", id: v.id }} docs={await documentsFor("vehicle", v.id)} kinds={VEHICLE_DOCUMENT_KINDS} canUpload={can(user, "documents.upload")} />
       )}
+
+      {tab === "aluguer" && <RentalsCard rentals={await vehicleRentals(v.id)} canEdit={can(user, "vehicles.status")} />}
 
       {(tab === "venda" || tab === "aluguer") && canForms && (
         <SalePanel

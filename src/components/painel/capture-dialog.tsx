@@ -6,7 +6,7 @@ import { startPhoneCapture } from "@/app/painel/_actions/capture";
 import { Alert, Dialog, Spinner } from "./ui";
 
 export type CaptureTarget = { ownerType: "vehicle" | "customer" | "none" | "photos"; ownerId?: string; kind?: string };
-export type RemoteFile = { id: string; name: string; mime: string };
+export type RemoteFile = { id: string; name: string; mime: string; url?: string | null };
 
 /** No computador o "Fotografar" do navegador só abre a pasta de ficheiros: aí mostra-se esta janela. */
 export function useIsDesktop(): boolean {

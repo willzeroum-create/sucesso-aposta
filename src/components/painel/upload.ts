@@ -38,6 +38,20 @@ async function postForm<T>(url: string, form: FormData): Promise<T> {
   return json;
 }
 
+/** Fotografias de uma viatura ainda por gravar: devolve os ficheiros (id + endereço) pela ordem enviada. */
+export async function uploadLoosePhotos(files: File[], onProgress?: (done: number, total: number) => void): Promise<{ id: string; url: string }[]> {
+  const out: { id: string; url: string }[] = [];
+  for (const [i, original] of files.entries()) {
+    const file = await shrinkImage(original);
+    const form = new FormData();
+    form.append("files", file, file.name);
+    const res = await postForm<{ files: { id: string; url: string }[] }>("/api/admin/photos", form);
+    out.push(...res.files);
+    onProgress?.(i + 1, files.length);
+  }
+  return out;
+}
+
 /** Envia um ficheiro de cada vez (respeita limites de tamanho por pedido e dá progresso real). */
 export async function uploadDocuments(
   files: File[],

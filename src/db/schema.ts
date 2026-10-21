@@ -168,6 +168,8 @@ export const vehicles = pgTable(
     transmission: text("transmission", { enum: ["automatic", "manual"] }),
     powerHp: integer("power_hp"),
     priceEur: doublePrecision("price_eur"),
+    /** Onde a viatura vive no painel: viaturas do site, estoque interno ou frota de aluguer (estas nunca vão para o site). */
+    section: text("section", { enum: ["site", "estoque", "aluguer"] }).notNull().default("site"),
     /** Preço sob consulta: o site mostra "Preço sob consulta" e o preço não sai do painel. */
     priceOnRequest: boolean("price_on_request").notNull().default(false),
     highlight: text("highlight"),
@@ -405,6 +407,8 @@ export const rentals = pgTable(
     paymentMethod: text("payment_method"),
     notes: text("notes"),
     status: text("status", { enum: ["active", "closed", "cancelled"] }).notNull().default("active"),
+    /** Quando o carro foi devolvido (aluguer fechado). */
+    returnedAt: timestamp("returned_at", { withTimezone: true, mode: "date" }),
     createdBy: text("created_by"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

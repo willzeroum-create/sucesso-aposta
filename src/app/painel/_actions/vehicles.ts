@@ -13,6 +13,7 @@ import { publicationGaps } from "@/server/public-catalog";
 import { removeFile } from "@/server/storage";
 import { lookupDutchPlate, lookupVin, type VinLookupResult, type VinFields } from "@/server/vin";
 import { optDate, optInt, optMoney, optText, reqText, run, UserError } from "@/server/action";
+import { isSection, SECTIONS, type SectionKey } from "@/lib/sections";
 
 const STATUS_LABEL: Record<string, string> = { preparation: "Em preparação", available: "Disponível", reserved: "Reservado", sold: "Vendido" };
 
@@ -87,17 +88,36 @@ async function assertNoDuplicate(vin: string | null, plate: string | null, excep
   }
 }
 
-/** Cria a viatura (sempre "Em preparação" e não publicada) e anexa documentos já carregados. */
-export async function createVehicle(form: FormData, attachFileIds: string[] = []): Promise<ActionResult<{ id: string }>> {
+/**
+ * Cria a viatura (sempre "Em preparação" e não publicada) na secção pedida, anexa documentos já carregados
+ * e as fotografias da viatura enviadas antes de gravar (computador ou telemóvel).
+ */
+export async function createVehicle(form: FormData, attachFileIds: string[] = [], photoFileIds: string[] = []): Promise<ActionResult<{ id: string; base: string }>> {
   return run(async () => {
     const user = await assertPermission("vehicles.edit");
-    const data = vehicleSchema.parse(fromForm(form));
+    const raw = fromForm(form);
+    const section: SectionKey = isSection(raw.section) ? raw.section : "site";
+    const data = vehicleSchema.parse(raw);
     if (!can(user, "vehicles.costs")) for (const k of COST_FIELDS) data[k] = null;
-    assertPriceOrRequest(data.priceEur, data.priceOnRequest ?? false);
+    if (section === "site") assertPriceOrRequest(data.priceEur, data.priceOnRequest ?? false);
     await assertNoDuplicate(data.vin, data.plate);
     const id = newId("veh");
     const slug = await uniqueSlug(`${data.make} ${data.model} ${data.version}`);
-    await db.insert(schema.vehicles).values({ id, slug, ...data, status: "preparation", published: false, createdBy: user.id });
+    await db.insert(schema.vehicles).values({ id, slug, ...data, section, status: "preparation", published: false, createdBy: user.id });
+
+    const photoFiles = photoFileIds.length
+      ? await db
+          .select({ id: schema.files.id })
+          .from(schema.files)
+          .where(and(inArray(schema.files.id, photoFileIds.slice(0, 40)), eq(schema.files.uploadedBy, user.id), eq(schema.files.visibility, "public")))
+      : [];
+    let cover: string | null = null;
+    for (const [position, fileId] of photoFileIds.filter((f) => photoFiles.some((p) => p.id === f)).entries()) {
+      const photoId = newId("pho");
+      await db.insert(schema.vehiclePhotos).values({ id: photoId, vehicleId: id, fileId, alt: `${data.make} ${data.model} ${data.version}`.trim(), position });
+      cover ??= photoId;
+    }
+    if (cover) await db.update(schema.vehicles).set({ coverPhotoId: cover }).where(eq(schema.vehicles.id, id));
 
     const files = attachFileIds.length
       ? await db.select().from(schema.files).where(and(inArray(schema.files.id, attachFileIds.slice(0, 20)), eq(schema.files.uploadedBy, user.id), eq(schema.files.visibility, "private")))
@@ -114,9 +134,14 @@ export async function createVehicle(form: FormData, attachFileIds: string[] = []
         uploadedBy: user.id,
       });
     }
-    await audit(user, { action: "vehicle.create", entityType: "vehicle", entityId: id, summary: `Deu entrada da viatura ${data.make} ${data.model}${data.plate ? ` (${data.plate})` : ""}` });
-    revalidatePath("/painel/viaturas");
-    return { id };
+    await audit(user, {
+      action: "vehicle.create",
+      entityType: "vehicle",
+      entityId: id,
+      summary: `Deu entrada da viatura ${data.make} ${data.model}${data.plate ? ` (${data.plate})` : ""}${section !== "site" ? ` (${SECTIONS[section].short})` : ""}${cover ? ` com ${photoFiles.length} fotografia(s)` : ""}`,
+    });
+    revalidatePath(SECTIONS[section].base);
+    return { id, base: SECTIONS[section].base };
   }, "Viatura criada.");
 }
 
@@ -128,7 +153,7 @@ export async function updateVehicle(id: string, form: FormData): Promise<ActionR
     const data = vehicleSchema.parse(fromForm(form));
     if (!can(user, "vehicles.costs")) for (const k of COST_FIELDS) (data as Record<string, unknown>)[k] = before[k];
     data.priceOnRequest ??= before.priceOnRequest;
-    assertPriceOrRequest(data.priceEur, data.priceOnRequest);
+    if (before.section === "site") assertPriceOrRequest(data.priceEur, data.priceOnRequest);
     await assertNoDuplicate(data.vin, data.plate, id);
     const slugChanged = before.make !== data.make || before.model !== data.model || before.version !== data.version;
     const slug = slugChanged && !before.published ? await uniqueSlug(`${data.make} ${data.model} ${data.version}`, id) : before.slug;
@@ -157,6 +182,30 @@ const statusSchema = z.object({
   soldAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
+/** Muda a viatura de secção (site / estoque / aluguer). Fora do site fica sempre não publicada. */
+export async function setVehicleSection(id: string, section: SectionKey): Promise<ActionResult<{ base: string }>> {
+  return run(async () => {
+    const user = await assertPermission("vehicles.status");
+    if (!isSection(section)) throw new UserError("Secção inválida.");
+    const [before] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, id)).limit(1);
+    if (!before) throw new UserError("Viatura não encontrada.");
+    if (before.section === section) return { base: SECTIONS[section].base };
+    await db
+      .update(schema.vehicles)
+      .set({ section, ...(section !== "site" ? { published: false } : {}), updatedAt: new Date() })
+      .where(eq(schema.vehicles.id, id));
+    await audit(user, {
+      action: "vehicle.section",
+      entityType: "vehicle",
+      entityId: id,
+      summary: `${before.make} ${before.model}: ${SECTIONS[before.section].short} → ${SECTIONS[section].short}`,
+    });
+    for (const s of Object.values(SECTIONS)) revalidatePath(s.base);
+    if (before.published) revalidatePath("/", "layout");
+    return { base: SECTIONS[section].base };
+  }, "Viatura mudada de secção.");
+}
+
 /** Estado comercial e publicação no site — a alteração reflete-se imediatamente no catálogo público. */
 export async function setVehicleStatus(id: string, input: z.input<typeof statusSchema>): Promise<ActionResult> {
   return run(async () => {
@@ -164,7 +213,7 @@ export async function setVehicleStatus(id: string, input: z.input<typeof statusS
     const data = statusSchema.parse(input);
     const [before] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, id)).limit(1);
     if (!before) throw new UserError("Viatura não encontrada.");
-    const published = data.status === "preparation" ? false : data.published;
+    const published = data.status === "preparation" || before.section !== "site" ? false : data.published;
     if (published) {
       const photos = await db.select({ id: schema.vehiclePhotos.id }).from(schema.vehiclePhotos).where(eq(schema.vehiclePhotos.vehicleId, id)).limit(1);
       const gaps = publicationGaps(before, photos.length > 0);

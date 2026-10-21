@@ -29,7 +29,8 @@ export async function createCaptureSession(target: CaptureTarget): Promise<{ id:
     user = await assertPermission("documents.upload");
     if (target.ownerType === "customer") await assertPermission("customers.edit");
   }
-  if (target.ownerType !== "none") {
+  // Fotografias sem viatura = formulário "Dar entrada" (a viatura ainda não existe; liga-se ao gravar).
+  if (target.ownerType !== "none" && !(target.ownerType === "photos" && !target.ownerId)) {
     if (!target.ownerId) throw new UserError("Destino inválido.");
     const table = target.ownerType === "customer" ? schema.customers : schema.vehicles;
     const [row] = await db.select({ id: table.id }).from(table).where(eq(table.id, target.ownerId)).limit(1);
@@ -43,7 +44,7 @@ export async function createCaptureSession(target: CaptureTarget): Promise<{ id:
     tokenHash: hash(token),
     userId: user.id,
     ownerType: target.ownerType,
-    ownerId: target.ownerType === "none" ? null : target.ownerId!,
+    ownerId: target.ownerType === "none" ? null : (target.ownerId ?? null),
     kind: target.kind && target.kind in DOCUMENT_KINDS ? target.kind : "outro",
     expiresAt,
   });
@@ -70,7 +71,9 @@ export async function captureForUser(id: string, userId: string): Promise<Captur
 export async function storeCaptured(session: CaptureRow, file: { name: string; buffer: Buffer }): Promise<string> {
   if (session.fileIds.length >= CAPTURE_MAX_FILES) throw new UserError(`No máximo ${CAPTURE_MAX_FILES} fotografias por código. Gere outro no computador.`);
   let fileId: string;
-  if (session.ownerType === "photos") {
+  if (session.ownerType === "photos" && !session.ownerId) {
+    fileId = (await storeVehiclePhoto(file.buffer, file.name, session.userId)).id;
+  } else if (session.ownerType === "photos") {
     const [vehicle] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, session.ownerId!)).limit(1);
     if (!vehicle) throw new UserError("Viatura não encontrada.");
     const stored = await storeVehiclePhoto(file.buffer, file.name, session.userId);
@@ -101,7 +104,7 @@ export async function storeCaptured(session: CaptureRow, file: { name: string; b
     .set({ fileIds: [...session.fileIds, fileId] })
     .where(eq(schema.captureSessions.id, session.id));
   session.fileIds.push(fileId);
-  if (session.ownerType !== "none") {
+  if (session.ownerType !== "none" && session.ownerId) {
     const [u] = await db.select({ name: schema.users.name }).from(schema.users).where(eq(schema.users.id, session.userId)).limit(1);
     await audit({ id: session.userId, name: `${u?.name ?? "Equipa"} (telemóvel)` }, {
       action: session.ownerType === "photos" ? "vehicle.photos_add" : "document.upload",

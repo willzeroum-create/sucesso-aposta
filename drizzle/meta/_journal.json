@@ -64,6 +64,13 @@
       "when": 1792580144287,
       "tag": "0008_divida_cobrancas",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792597193719,
+      "tag": "0009_estoque_aluguer",
+      "breakpoints": true
     }
   ]
 }

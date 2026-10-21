@@ -19,6 +19,7 @@ export function StatusTrack({
   buyerId,
   price,
   soldPrice,
+  onSite = true,
 }: {
   vehicleId: string;
   status: VehicleStatusKey;
@@ -29,6 +30,8 @@ export function StatusTrack({
   buyerId: string | null;
   price: number | null;
   soldPrice: number | null;
+  /** Estoque e aluguer não vão para o site: sem botões de publicação. */
+  onSite?: boolean;
 }) {
   const router = useRouter();
   const { pending, run } = useAction();
@@ -38,7 +41,7 @@ export function StatusTrack({
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
 
   async function change(next: VehicleStatusKey, extra: { buyerCustomerId?: string | null; soldPriceEur?: number | null; soldAt?: string | null } = {}) {
-    const keepPublished = next === "preparation" ? false : published || (status === "preparation" && gaps.length === 0);
+    const keepPublished = !onSite || next === "preparation" ? false : published || (status === "preparation" && gaps.length === 0);
     const res = await run(() => setVehicleStatus(vehicleId, { status: next, published: keepPublished, ...extra }));
     if (res.ok) {
       setDialog(null);
@@ -68,6 +71,7 @@ export function StatusTrack({
           </button>
         ))}
       </div>
+      {onSite && (
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
         {status === "preparation" ? (
           <span className="muted" style={{ display: "inline-flex", gap: 6, alignItems: "center", fontSize: 14 }}>
@@ -85,6 +89,7 @@ export function StatusTrack({
         )}
         {gaps.length > 0 && <span className="muted" style={{ fontSize: 13 }}>Para publicar falta: {gaps.join(", ")}.</span>}
       </div>
+      )}
 
       <Dialog
         open={dialog !== null}

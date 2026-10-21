@@ -19,7 +19,7 @@ export default async function VehiclesPage(props: PageProps<"/painel/viaturas">)
   const estado = typeof sp.estado === "string" && (VEHICLE_STATUSES as readonly string[]).includes(sp.estado) ? sp.estado : "stock";
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 80) : "";
 
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(schema.vehicles.section, "site")];
   if (estado === "stock") conditions.push(sql`${schema.vehicles.status} != 'sold'`);
   else conditions.push(eq(schema.vehicles.status, estado as (typeof VEHICLE_STATUSES)[number]));
   if (q) {
@@ -57,7 +57,7 @@ export default async function VehiclesPage(props: PageProps<"/painel/viaturas">)
     return c ? publicUrl(c.key) : null;
   };
 
-  const totals = await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)::int` }).from(schema.vehicles).groupBy(schema.vehicles.status);
+  const totals = await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)::int` }).from(schema.vehicles).where(eq(schema.vehicles.section, "site")).groupBy(schema.vehicles.status);
   const n = (s: string) => Number(totals.find((t) => t.status === s)?.n ?? 0);
   const tabs = [
     { key: "stock", label: "Em stock", count: n("preparation") + n("available") + n("reserved") },

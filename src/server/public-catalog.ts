@@ -37,7 +37,8 @@ export async function buildPublicCatalog(): Promise<PublicCatalogPayload> {
   const rows = await db
     .select()
     .from(schema.vehicles)
-    .where(and(eq(schema.vehicles.published, true), inArray(schema.vehicles.status, ["available", "reserved", "sold"])))
+    // Estoque interno e frota de aluguer nunca vão para o site.
+    .where(and(eq(schema.vehicles.published, true), eq(schema.vehicles.section, "site"), inArray(schema.vehicles.status, ["available", "reserved", "sold"])))
     .orderBy(asc(schema.vehicles.status), asc(schema.vehicles.createdAt));
 
   const ids = rows.map((r) => r.id);

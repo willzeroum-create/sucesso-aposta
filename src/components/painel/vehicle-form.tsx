@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Search, Save } from "lucide-react";
+import { ImagePlus, Lock, Search, Save, Smartphone, X } from "lucide-react";
+import type { SectionKey } from "@/lib/sections";
+import { CaptureDialog, useIsDesktop } from "./capture-dialog";
+import { uploadLoosePhotos } from "./upload";
 import { createVehicle, lookupDutchPlateAction, lookupVinAction, updateVehicle } from "@/app/painel/_actions/vehicles";
 import { CATEGORY, FUEL, TRANSMISSION, int } from "@/lib/labels";
 import { isValidVinFormat, normalizeVin } from "@/lib/pt-validation";
@@ -41,12 +44,91 @@ const AI_FIELDS: FieldMeta[] = [
   { key: "supplier", label: "Fornecedor / vendedor" },
 ];
 
-export function VehicleForm({ id, initial, canCosts }: { id?: string; initial: VehicleValues; canCosts: boolean }) {
+/** Fotografias da viatura ao dar entrada (antes de gravar): do telemóvel/computador ou por código QR. */
+function NewVehiclePhotos({ photos, setPhotos }: { photos: { id: string; url: string }[]; setPhotos: React.Dispatch<React.SetStateAction<{ id: string; url: string }[]>> }) {
+  const toast = useToast();
+  const desktop = useIsDesktop();
+  const input = useRef<HTMLInputElement>(null);
+  const [capturing, setCapturing] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  async function send(list: FileList | File[] | null) {
+    const files = [...(list ?? [])].filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
+    if (!files.length) return;
+    setProgress({ done: 0, total: files.length });
+    try {
+      const got = await uploadLoosePhotos(files, (done, total) => setProgress({ done, total }));
+      setPhotos((p) => [...p, ...got]);
+    } catch (e) {
+      toast("danger", e instanceof Error ? e.message : "Falha no envio.");
+    } finally {
+      setProgress(null);
+      if (input.current) input.current.value = "";
+    }
+  }
+
+  return (
+    <section className="a-card a-card-body" style={{ display: "grid", gap: 12 }}>
+      <div>
+        <h2 style={{ margin: 0, fontSize: 16 }}>Fotografias da viatura</h2>
+        <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>
+          As fotos do carro (não os documentos). A primeira fica como capa; pode mudar depois em Fotografias.
+        </p>
+      </div>
+      <div className="a-actions">
+        <button type="button" className="a-btn a-btn-sm" onClick={() => input.current?.click()} disabled={!!progress}>
+          {progress ? <Spinner size={14} /> : <ImagePlus size={15} />} {desktop ? "Escolher fotografias" : "Tirar ou escolher fotografias"}
+        </button>
+        {desktop && (
+          <button type="button" className="a-btn a-btn-sm" onClick={() => setCapturing(true)}>
+            <Smartphone size={15} /> Enviar do telemóvel (QR)
+          </button>
+        )}
+        {progress && (
+          <span className="muted" style={{ fontSize: 13 }}>
+            A enviar {progress.done}/{progress.total}…
+          </span>
+        )}
+      </div>
+      <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => void send(e.target.files)} />
+      {photos.length > 0 && (
+        <div className="a-newphotos">
+          {photos.map((p, i) => (
+            <div key={p.id} className="a-newphoto">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.url} alt={`Fotografia ${i + 1}`} />
+              {i === 0 && <span className="a-newphoto-tag">Capa</span>}
+              <button type="button" className="a-newphoto-x" aria-label={`Tirar a fotografia ${i + 1}`} onClick={() => setPhotos((list) => list.filter((x) => x.id !== p.id))}>
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <CaptureDialog
+        open={capturing}
+        onClose={() => setCapturing(false)}
+        target={{ ownerType: "photos" }}
+        onRemoteFiles={(files) => {
+          const got = files.filter((f) => f.url).map((f) => ({ id: f.id, url: f.url! }));
+          if (got.length) {
+            setPhotos((p) => [...p, ...got.filter((g) => !p.some((x) => x.id === g.id))]);
+            toast("ok", `${got.length} fotografia(s) recebida(s) do telemóvel.`);
+          }
+        }}
+        onWebcamFile={(file) => void send([file])}
+      />
+    </section>
+  );
+}
+
+export function VehicleForm({ id, initial, canCosts, section = "site" }: { id?: string; initial: VehicleValues; canCosts: boolean; section?: SectionKey }) {
   const router = useRouter();
   const toast = useToast();
   const [values, setValues] = useState<VehicleValues>(initial);
   const [suggested, setSuggested] = useState<Set<string>>(new Set());
   const [attach, setAttach] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<{ id: string; url: string }[]>([]);
   const [vinBusy, setVinBusy] = useState(false);
   const [nlPlate, setNlPlate] = useState("");
   const { pending, fields: errors, run } = useAction();
@@ -114,8 +196,8 @@ export function VehicleForm({ id, initial, canCosts }: { id?: string; initial: V
         router.refresh();
       }
     } else {
-      const res = await run(() => createVehicle(form, attach));
-      if (res.ok) router.push(`/painel/viaturas/${res.data.id}`);
+      const res = await run(() => createVehicle(form, attach, photos.map((p) => p.id)));
+      if (res.ok) router.push(`${res.data.base}/${res.data.id}`);
     }
   }
 
@@ -153,7 +235,10 @@ export function VehicleForm({ id, initial, canCosts }: { id?: string; initial: V
         }
       />
 
+      {!id && <NewVehiclePhotos photos={photos} setPhotos={setPhotos} />}
+
       <form className="a-card a-card-body a-form" onSubmit={submit} noValidate>
+        {!id && <input type="hidden" name="section" value={section} />}
         {!id && attach.length > 0 && <Alert kind="info">{attach.length} documento(s) serão anexados a esta viatura ao guardar.</Alert>}
         <fieldset className="a-fieldset">
           <legend>Identificação</legend>
@@ -202,7 +287,7 @@ export function VehicleForm({ id, initial, canCosts }: { id?: string; initial: V
         </fieldset>
 
         <fieldset className="a-fieldset">
-          <legend>No site</legend>
+          <legend>{section === "site" ? "No site" : "Preço e descrição"}</legend>
           <p>O que os clientes veem quando a viatura estiver publicada.</p>
           <div className="a-fields">
             <Field
