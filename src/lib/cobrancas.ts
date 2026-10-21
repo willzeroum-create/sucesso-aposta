@@ -134,14 +134,40 @@ export function vehicleLabel(c: Pick<ContractRow, "make" | "model" | "color" | "
   return [c.make, c.model, c.color, c.year].filter((p) => p !== "" && p != null).join(" ");
 }
 
-/** Plano de prestações mensais: o resto dos cêntimos vai para a última. */
-export function buildPlan(totalCents: number, count: number, firstDue: string): { dueDate: string; amountCents: number }[] {
-  if (!count || count < 1 || totalCents <= 0 || !isIsoDate(firstDue)) return [];
+/** De quanto em quanto tempo se paga: "mensal" (mesmo dia de cada mês) ou um número de dias (ex.: "15"). */
+export type PlanInterval = "mensal" | `${number}`;
+export const INTERVAL_PRESETS: { value: PlanInterval; label: string }[] = [
+  { value: "mensal", label: "Todos os meses (mesmo dia)" },
+  { value: "7", label: "A cada 7 dias (semanal)" },
+  { value: "14", label: "A cada 14 dias" },
+  { value: "15", label: "A cada 15 dias (quinzenal)" },
+  { value: "20", label: "A cada 20 dias" },
+  { value: "30", label: "A cada 30 dias" },
+];
+export function intervalLabel(interval: string): string {
+  if (interval === "mensal") return "todos os meses";
+  const days = Number(interval);
+  return days === 1 ? "todos os dias" : `a cada ${days} dias`;
+}
+
+/** Plano de prestações (mensal ou a cada N dias): o resto dos cêntimos vai para a última. */
+export function buildPlan(totalCents: number, count: number, firstDue: string, interval: string = "mensal"): { dueDate: string; amountCents: number }[] {
+  const days = interval === "mensal" ? 0 : Math.trunc(Number(interval));
+  if (!count || count < 1 || totalCents <= 0 || !isIsoDate(firstDue) || (interval !== "mensal" && !(days >= 1 && days <= 366))) return [];
   const base = Math.floor(totalCents / count);
   return Array.from({ length: count }, (_, i) => ({
-    dueDate: addMonths(firstDue, i),
+    dueDate: days ? addDays(firstDue, days * i) : addMonths(firstDue, i),
     amountCents: i === count - 1 ? totalCents - base * (count - 1) : base,
   }));
+}
+
+/** Periodicidade das prestações já marcadas (para sugerir ao acrescentar mais). */
+export function inferInterval(dueDates: string[]): string | null {
+  if (dueDates.length < 2) return null;
+  const [a, b] = dueDates.slice(-2);
+  if (addMonths(a, 1) === b) return "mensal";
+  const days = daysBetween(a, b);
+  return days >= 1 ? String(days) : null;
 }
 
 /** Monta contratos, prestações e estados a partir das linhas da base de dados. */

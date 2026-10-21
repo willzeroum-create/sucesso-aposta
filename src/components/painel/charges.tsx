@@ -15,12 +15,17 @@ import {
   updateChargeContract,
 } from "@/app/painel/_actions/cobrancas";
 import {
+  addDays,
+  addMonths,
   buildPlan,
   chargeMessage,
   datePt,
+  inferInterval,
+  intervalLabel,
   money,
   DEFAULT_CHARGE_MESSAGE,
   INSTALLMENT_STATUS_LABEL,
+  INTERVAL_PRESETS,
   PAYMENT_METHODS,
   toCents,
   toEuros,
@@ -124,6 +129,44 @@ export function InstallmentActions({
   );
 }
 
+/** "De quanto em quanto tempo paga?": todos os meses ou a cada N dias. */
+function IntervalField({ id, value, onChange, error }: { id: string; value: string; onChange: (v: string) => void; error?: string }) {
+  const isPreset = value === "" || INTERVAL_PRESETS.some((p) => p.value === value);
+  const [custom, setCustom] = useState(!isPreset);
+  return (
+    <Field label="De quanto em quanto tempo paga? *" name={id} error={error}>
+      <select
+        id={`f-${id}`}
+        className="a-input"
+        value={custom ? "outro" : value}
+        onChange={(e) => {
+          const v = e.target.value;
+          setCustom(v === "outro");
+          onChange(v === "outro" ? "" : v);
+        }}
+      >
+        <option value="">Escolher…</option>
+        {INTERVAL_PRESETS.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
+          </option>
+        ))}
+        <option value="outro">Outro número de dias…</option>
+      </select>
+      {custom && (
+        <input
+          aria-label="A cada quantos dias"
+          inputMode="numeric"
+          placeholder="Nº de dias, ex.: 10"
+          value={value}
+          onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 3))}
+          style={{ marginTop: 8 }}
+        />
+      )}
+    </Field>
+  );
+}
+
 /* ───────── Nova venda a prestações ───────── */
 
 type CustomerOption = { id: string; label: string };
@@ -143,13 +186,20 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
   const [values, setValues] = useState({ sale: first?.price ? String(first.price) : "", down: "", debt: "", deliveryDate: today, notes: "" });
   /** Enquanto ninguém escreve a dívida, sugere-se venda − entrada. */
   const [debtTouched, setDebtTouched] = useState(false);
-  const [plan, setPlan] = useState({ count: "6", firstDue: nextMonth });
+  const [plan, setPlan] = useState({ count: "6", firstDue: nextMonth, every: "" });
+  const [planError, setPlanError] = useState("");
   const [edited, setEdited] = useState<{ dueDate: string; amount: string }[] | null>(null);
 
   const suggestedDebt = Math.max(0, toCents(parseMoney(values.sale) || 0) - toCents(parseMoney(values.down) || 0));
   const debtText = debtTouched ? values.debt : suggestedDebt ? String(toEuros(suggestedDebt)).replace(".", ",") : "";
   const toPlan = Math.max(0, toCents(parseMoney(debtText) || 0));
-  const generated = useMemo(() => buildPlan(toPlan, Number(plan.count) || 0, plan.firstDue).map((p) => ({ dueDate: p.dueDate, amount: String(toEuros(p.amountCents)).replace(".", ",") })), [toPlan, plan.count, plan.firstDue]);
+  const generated = useMemo(
+    () =>
+      plan.every
+        ? buildPlan(toPlan, Number(plan.count) || 0, plan.firstDue, plan.every).map((p) => ({ dueDate: p.dueDate, amount: String(toEuros(p.amountCents)).replace(".", ",") }))
+        : [],
+    [toPlan, plan.count, plan.firstDue, plan.every],
+  );
   const rows = edited ?? generated;
   const planTotal = rows.reduce((s, r) => s + toCents(parseMoney(r.amount) || 0), 0);
 
@@ -163,6 +213,10 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
   }
 
   async function submit() {
+    if (Number(plan.count) > 0 && !plan.every) {
+      setPlanError("Escolha de quanto em quanto tempo o cliente paga.");
+      return;
+    }
     const res = await run(() =>
       createChargeContract({
         ...(customerMode === "existing" ? { customerId } : { newCustomer }),
@@ -293,12 +347,19 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
             <Field label="Nº de prestações" name="cv-count">
               <input id="f-cv-count" inputMode="numeric" value={plan.count} onChange={(e) => (setPlan((p) => ({ ...p, count: e.target.value })), setEdited(null))} />
             </Field>
+            <IntervalField
+              id="cv-every"
+              value={plan.every}
+              error={planError}
+              onChange={(every) => (setPlan((p) => ({ ...p, every })), setPlanError(""), setEdited(null))}
+            />
             <Field label="1.ª prestação" name="cv-first">
               <input id="f-cv-first" type="date" value={plan.firstDue} onChange={(e) => (setPlan((p) => ({ ...p, firstDue: e.target.value })), setEdited(null))} />
             </Field>
           </div>
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            Dívida a dividir em prestações: <strong>{money(toEuros(toPlan))}</strong>. Pode corrigir cada data e valor abaixo.
+            Dívida a dividir em prestações: <strong>{money(toEuros(toPlan))}</strong>
+            {plan.every ? `, ${intervalLabel(plan.every)}` : ""}. {plan.every ? "Pode corrigir cada data e valor abaixo." : "Escolha de quanto em quanto tempo paga para montar as prestações."}
           </p>
           {rows.length > 0 && (
             <div style={{ display: "grid", gap: 8 }}>
@@ -340,7 +401,10 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
   const router = useRouter();
   const { pending, run } = useAction();
   const [extra, setExtra] = useState({ amount: "", date: new Date().toISOString().slice(0, 10), method: "dinheiro" as PaymentMethod });
-  const [more, setMore] = useState({ count: "1", firstDue: contract.installments.at(-1)?.dueDate ?? new Date().toISOString().slice(0, 10), amount: contract.unplanned ? String(contract.unplanned).replace(".", ",") : "" });
+  const currentInterval = inferInterval(contract.installments.map((i) => i.dueDate));
+  const lastDue = contract.installments.at(-1)?.dueDate;
+  const nextDue = lastDue && currentInterval ? (currentInterval === "mensal" ? addMonths(lastDue, 1) : addDays(lastDue, Number(currentInterval))) : (lastDue ?? new Date().toISOString().slice(0, 10));
+  const [more, setMore] = useState({ count: "1", firstDue: nextDue, every: currentInterval ?? "", amount: contract.unplanned ? String(contract.unplanned).replace(".", ",") : "" });
   const [notes, setNotes] = useState(contract.notes);
   const euros = (v: number) => (v ? String(v).replace(".", ",") : "");
   const [vals, setVals] = useState({ sale: euros(contract.sale), down: euros(contract.down), debt: euros(contract.toCollect) });
@@ -386,6 +450,7 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
         <div className="a-card-head">
           <div>
             <h2>Prestações</h2>
+            {currentInterval && <p>Pagas {intervalLabel(currentInterval)}.</p>}
           </div>
         </div>
         {contract.installments.length ? (
@@ -424,6 +489,7 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
             <Field label="Quantas" name="more-count">
               <input id="f-more-count" inputMode="numeric" value={more.count} onChange={(e) => setMore((m) => ({ ...m, count: e.target.value }))} />
             </Field>
+            <IntervalField id="more-every" value={more.every} onChange={(every) => setMore((m) => ({ ...m, every }))} />
             <Field label="1.ª data" name="more-first">
               <input id="f-more-first" type="date" value={more.firstDue} onChange={(e) => setMore((m) => ({ ...m, firstDue: e.target.value }))} />
             </Field>
@@ -435,11 +501,17 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
             <button
               type="button"
               className="a-btn a-btn-sm"
-              disabled={pending || !more.amount}
+              disabled={pending || !more.amount || !more.every}
               onClick={async () =>
                 refresh(
-                  (await run(() => addInstallments(contract.id, buildPlan(toCents(parseMoney(more.amount)), Number(more.count) || 1, more.firstDue).map((p) => ({ dueDate: p.dueDate, amount: toEuros(p.amountCents) })))))
-                    .ok,
+                  (
+                    await run(() =>
+                      addInstallments(
+                        contract.id,
+                        buildPlan(toCents(parseMoney(more.amount)), Number(more.count) || 1, more.firstDue, more.every).map((p) => ({ dueDate: p.dueDate, amount: toEuros(p.amountCents) })),
+                      ),
+                    )
+                  ).ok,
                 )
               }
             >

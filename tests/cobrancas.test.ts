@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addMonths, allocatePayment, assemble, buildPlan, chargeMessage, summary, whatsappLink, type ContractRow } from "../src/lib/cobrancas";
+import { addMonths, allocatePayment, assemble, buildPlan, chargeMessage, inferInterval, summary, whatsappLink, type ContractRow } from "../src/lib/cobrancas";
 import { costSummary } from "../src/lib/vehicle-costs";
 
 const contract = (over: Partial<ContractRow> = {}): ContractRow => ({
@@ -35,6 +35,20 @@ test("cobranças: plano de prestações", () => {
   assert.equal(plan[2].amountCents, 33_334);
   assert.equal(addMonths("2026-11-30", 3), "2027-02-28");
   assert.deepEqual(buildPlan(0, 3, "2026-01-01"), []);
+});
+
+test("cobranças: plano a cada N dias", () => {
+  const plan = buildPlan(90_000, 3, "2026-10-25", "15");
+  assert.deepEqual(
+    plan.map((p) => p.dueDate),
+    ["2026-10-25", "2026-11-09", "2026-11-24"],
+  );
+  assert.equal(plan.reduce((s, p) => s + p.amountCents, 0), 90_000);
+  assert.deepEqual(buildPlan(14_000, 2, "2026-12-28", "7").map((p) => p.dueDate), ["2026-12-28", "2027-01-04"]);
+  assert.deepEqual(buildPlan(10_000, 2, "2026-01-01", "0"), []);
+  assert.equal(inferInterval(["2026-10-01", "2026-10-15"]), "14");
+  assert.equal(inferInterval(["2026-01-31", "2026-02-28"]), "mensal");
+  assert.equal(inferInterval(["2026-01-31"]), null);
 });
 
 test("cobranças: estados, saldo e resumo", () => {
