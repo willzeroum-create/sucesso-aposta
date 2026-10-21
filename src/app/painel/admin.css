@@ -1807,3 +1807,129 @@ a.a-stock-item:hover {
   color: var(--accent-ink);
   font-weight: 600;
 }
+
+/* Separador Custos: dados à esquerda, lista curta de custos adicionais à direita */
+.a-costs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .a-costs {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+  .a-costs-side {
+    position: sticky;
+    top: 16px;
+  }
+}
+.a-costs-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(130px, 40%), 1fr));
+  gap: 10px 18px;
+  margin: 0;
+}
+.a-costs-facts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.a-costs-facts dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.a-costs-buy {
+  display: grid;
+  gap: 6px;
+  max-width: 320px;
+}
+.a-costs-buy label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.a-costs-side {
+  display: grid;
+}
+.a-costs-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px 10px;
+}
+.a-costs-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.a-costs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+}
+.a-costs-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px 6px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.a-costs-list li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.a-costs-list .a-icon-btn {
+  width: 30px;
+  height: 30px;
+}
+.a-costs-empty {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-top: 1px solid var(--line);
+}
+.a-costs-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px auto;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.a-costs-total {
+  margin: 0;
+  padding: 10px 16px 14px;
+  display: grid;
+  gap: 4px;
+}
+.a-costs-total div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13.5px;
+}
+.a-costs-total dt {
+  color: var(--muted);
+}
+.a-costs-total dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.a-costs-total .is-final {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+  font-weight: 700;
+}
+.a-costs-total .is-final dt {
+  color: inherit;
+}
+.a-costs-total .is-final dd {
+  color: var(--accent);
+}

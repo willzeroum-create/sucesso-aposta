@@ -14,7 +14,7 @@ import { SalePanel } from "@/components/painel/sale-panel";
 import { CostsPanel } from "@/components/painel/costs-panel";
 import { costSummary } from "@/lib/vehicle-costs";
 import { VEHICLE_DOCUMENT_KINDS } from "@/lib/document-kinds";
-import { dateTime, daysSince, eur, int } from "@/lib/labels";
+import { dateTime, daysSince, eur, FUEL, int } from "@/lib/labels";
 import { can, requirePagePermission } from "@/server/auth/session";
 import { publicationGaps } from "@/server/public-catalog";
 import { customerOptions, documentsFor, entityHistory, formHistory, templateInfos } from "@/server/queries";
@@ -238,5 +238,23 @@ async function CostsCard({ vehicle, canEditPurchase }: { vehicle: typeof schema.
     .from(schema.vehicleCosts)
     .where(eq(schema.vehicleCosts.vehicleId, vehicle.id))
     .orderBy(asc(schema.vehicleCosts.date));
-  return <CostsPanel vehicleId={vehicle.id} summary={costSummary(vehicle, costs)} costs={costs} canEditPurchase={canEditPurchase} />;
+  return (
+    <CostsPanel
+      vehicleId={vehicle.id}
+      summary={costSummary(vehicle, costs)}
+      costs={costs}
+      canEditPurchase={canEditPurchase}
+      info={{
+        title: [vehicle.make, vehicle.model, vehicle.version].filter(Boolean).join(" "),
+        plate: vehicle.plate,
+        vin: vehicle.vin,
+        year: vehicle.year,
+        km: vehicle.mileageKm,
+        fuel: vehicle.fuel ? FUEL[vehicle.fuel] : null,
+        color: vehicle.color,
+        supplier: vehicle.supplier,
+        purchaseDate: vehicle.purchaseDate,
+      }}
+    />
+  );
 }

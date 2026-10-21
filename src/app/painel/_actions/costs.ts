@@ -32,6 +32,8 @@ export async function addVehicleCost(vehicleId: string, raw: z.input<typeof cost
       summary: `Registou custo de ${d.amount.toFixed(2)} € (${COST_CATEGORIES[d.category]}) em ${v.make} ${v.model}`,
     });
     revalidatePath(`/painel/viaturas/${vehicleId}`);
+    revalidatePath(`/painel/estoque/${vehicleId}`);
+    revalidatePath("/painel/estoque");
   }, "Custo registado.");
 }
 
@@ -43,6 +45,8 @@ export async function deleteVehicleCost(id: string): Promise<ActionResult> {
     await db.delete(schema.vehicleCosts).where(eq(schema.vehicleCosts.id, id));
     await audit(user, { action: "vehicle.cost_delete", entityType: "vehicle", entityId: c.vehicleId, summary: `Apagou um custo de ${c.amountEur.toFixed(2)} €` });
     revalidatePath(`/painel/viaturas/${c.vehicleId}`);
+    revalidatePath(`/painel/estoque/${c.vehicleId}`);
+    revalidatePath("/painel/estoque");
   }, "Custo apagado.");
 }
 
@@ -56,5 +60,7 @@ export async function setPurchasePrice(vehicleId: string, amount: number | null)
     await db.update(schema.vehicles).set({ purchasePriceEur: value, updatedAt: new Date() }).where(eq(schema.vehicles.id, vehicleId));
     await audit(user, { action: "vehicle.update", entityType: "vehicle", entityId: vehicleId, summary: "Atualizou o preço de compra", changes: diff({ purchasePriceEur: v.before }, { purchasePriceEur: value }) });
     revalidatePath(`/painel/viaturas/${vehicleId}`);
+    revalidatePath(`/painel/estoque/${vehicleId}`);
+    revalidatePath("/painel/estoque");
   }, "Preço de compra guardado.");
 }
