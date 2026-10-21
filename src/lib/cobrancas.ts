@@ -40,6 +40,8 @@ export interface ContractRow {
   deliveryDate: string | null;
   saleCents: number;
   financedCents: number;
+  downCents: number;
+  debtCents: number;
   notes: string;
   createdAt: Date;
 }
@@ -82,6 +84,9 @@ export interface Contract {
   deliveryDate: string | null;
   sale: number;
   financed: number;
+  /** Entrada paga na entrega. */
+  down: number;
+  /** Dívida financiada pelo stand = o que se cobra em prestações. */
   toCollect: number;
   paidTotal: number;
   balance: number;
@@ -178,7 +183,7 @@ export function assemble(contracts: ContractRow[], installments: InstallmentRow[
 
   return contracts.map((c) => {
     const inst = byContract.get(c.id) ?? [];
-    const toCollect = Math.max(0, c.saleCents - c.financedCents);
+    const toCollect = Math.max(0, c.debtCents);
     const paid = paidByContract.get(c.id) ?? 0;
     const balance = Math.max(0, toCollect - paid);
     const open = inst.filter((i) => i.status !== "paga");
@@ -193,6 +198,7 @@ export function assemble(contracts: ContractRow[], installments: InstallmentRow[
       deliveryDate: c.deliveryDate,
       sale: toEuros(c.saleCents),
       financed: toEuros(c.financedCents),
+      down: toEuros(c.downCents),
       toCollect: toEuros(toCollect),
       paidTotal: toEuros(paid),
       balance: toEuros(balance),

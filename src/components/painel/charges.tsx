@@ -140,11 +140,15 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
   const [newCustomer, setNewCustomer] = useState({ fullName: "", phone: "", nif: "", email: "" });
   const [vehicleId, setVehicleId] = useState(first?.id ?? "");
   const [vehicle, setVehicle] = useState({ make: first?.make ?? "", model: first?.model ?? "", color: first?.color ?? "", year: first?.year ? String(first.year) : "", plate: first?.plate ?? "", vin: first?.vin ?? "" });
-  const [values, setValues] = useState({ sale: first?.price ? String(first.price) : "", financed: "", down: "", deliveryDate: today, notes: "" });
+  const [values, setValues] = useState({ sale: first?.price ? String(first.price) : "", down: "", debt: "", deliveryDate: today, notes: "" });
+  /** Enquanto ninguém escreve a dívida, sugere-se venda − entrada. */
+  const [debtTouched, setDebtTouched] = useState(false);
   const [plan, setPlan] = useState({ count: "6", firstDue: nextMonth });
   const [edited, setEdited] = useState<{ dueDate: string; amount: string }[] | null>(null);
 
-  const toPlan = Math.max(0, toCents(parseMoney(values.sale) || 0) - toCents(parseMoney(values.financed) || 0) - toCents(parseMoney(values.down) || 0));
+  const suggestedDebt = Math.max(0, toCents(parseMoney(values.sale) || 0) - toCents(parseMoney(values.down) || 0));
+  const debtText = debtTouched ? values.debt : suggestedDebt ? String(toEuros(suggestedDebt)).replace(".", ",") : "";
+  const toPlan = Math.max(0, toCents(parseMoney(debtText) || 0));
   const generated = useMemo(() => buildPlan(toPlan, Number(plan.count) || 0, plan.firstDue).map((p) => ({ dueDate: p.dueDate, amount: String(toEuros(p.amountCents)).replace(".", ",") })), [toPlan, plan.count, plan.firstDue]);
   const rows = edited ?? generated;
   const planTotal = rows.reduce((s, r) => s + toCents(parseMoney(r.amount) || 0), 0);
@@ -166,8 +170,8 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
         vehicle: { ...vehicle, year: vehicle.year ? Number(vehicle.year) : null },
         deliveryDate: values.deliveryDate || null,
         sale: parseMoney(values.sale),
-        financed: parseMoney(values.financed) || 0,
         downPayment: parseMoney(values.down) || 0,
+        debt: parseMoney(debtText),
         notes: values.notes,
         installments: rows.map((r) => ({ dueDate: r.dueDate, amount: parseMoney(r.amount) })),
       }),
@@ -259,7 +263,7 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
         <div className="a-card-head">
           <div>
             <h2>3. Valores e prestações</h2>
-            <p>O financiado pelo banco não é cobrado pelo stand. A entrada fica registada como já recebida.</p>
+            <p>A dívida é o valor que o stand financia e cobra ao cliente em prestações. As prestações dividem a dívida, não a venda.</p>
           </div>
         </div>
         <div className="a-card-body" style={{ display: "grid", gap: 16 }}>
@@ -267,11 +271,21 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
             <Field label="Valor de venda (€) *" name="cv-sale" error={errors.sale}>
               <input id="f-cv-sale" inputMode="decimal" value={values.sale} onChange={(e) => (setValues((v) => ({ ...v, sale: e.target.value })), setEdited(null))} />
             </Field>
-            <Field label="Financiado pelo banco (€)" name="cv-financed" error={errors.financed}>
-              <input id="f-cv-financed" inputMode="decimal" value={values.financed} onChange={(e) => (setValues((v) => ({ ...v, financed: e.target.value })), setEdited(null))} placeholder="0" />
-            </Field>
-            <Field label="Entrada já recebida (€)" name="cv-down" error={errors.downPayment}>
+            <Field label="Entrada (€)" name="cv-down" error={errors.downPayment} hint="Paga na entrega. Não entra na dívida.">
               <input id="f-cv-down" inputMode="decimal" value={values.down} onChange={(e) => (setValues((v) => ({ ...v, down: e.target.value })), setEdited(null))} placeholder="0" />
+            </Field>
+            <Field
+              label="Valor da dívida (€) *"
+              name="cv-debt"
+              error={errors.debt}
+              hint={debtTouched ? "Financiado pelo stand. Pode incluir juros." : "Sugerido: venda − entrada. Altere se tiver juros."}
+            >
+              <input
+                id="f-cv-debt"
+                inputMode="decimal"
+                value={debtText}
+                onChange={(e) => (setDebtTouched(true), setValues((v) => ({ ...v, debt: e.target.value })), setEdited(null))}
+              />
             </Field>
             <Field label="Data de entrega" name="cv-delivery">
               <input id="f-cv-delivery" type="date" value={values.deliveryDate} onChange={(e) => setValues((v) => ({ ...v, deliveryDate: e.target.value }))} />
@@ -284,7 +298,7 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
             </Field>
           </div>
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            A dividir em prestações: <strong>{money(toEuros(toPlan))}</strong>. Pode corrigir cada data e valor abaixo.
+            Dívida a dividir em prestações: <strong>{money(toEuros(toPlan))}</strong>. Pode corrigir cada data e valor abaixo.
           </p>
           {rows.length > 0 && (
             <div style={{ display: "grid", gap: 8 }}>
@@ -298,7 +312,7 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
               {planTotal !== toPlan && (
                 <Alert kind="warn">
                   <p>
-                    As prestações somam {money(toEuros(planTotal))}, mas faltam cobrar {money(toEuros(toPlan))}. A diferença fica no saldo sem prestação.
+                    As prestações somam {money(toEuros(planTotal))}, mas a dívida é {money(toEuros(toPlan))}. A diferença fica no saldo sem prestação.
                   </p>
                 </Alert>
               )}
@@ -328,6 +342,9 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
   const [extra, setExtra] = useState({ amount: "", date: new Date().toISOString().slice(0, 10), method: "dinheiro" as PaymentMethod });
   const [more, setMore] = useState({ count: "1", firstDue: contract.installments.at(-1)?.dueDate ?? new Date().toISOString().slice(0, 10), amount: contract.unplanned ? String(contract.unplanned).replace(".", ",") : "" });
   const [notes, setNotes] = useState(contract.notes);
+  const euros = (v: number) => (v ? String(v).replace(".", ",") : "");
+  const [vals, setVals] = useState({ sale: euros(contract.sale), down: euros(contract.down), debt: euros(contract.toCollect) });
+  const valsChanged = vals.sale !== euros(contract.sale) || vals.down !== euros(contract.down) || vals.debt !== euros(contract.toCollect);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const refresh = (ok: boolean) => ok && router.refresh();
 
@@ -335,9 +352,13 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
     <div style={{ display: "grid", gap: 20 }}>
       <div className="a-stats is-money">
         <div className="a-stat">
-          <span>A cobrar</span>
+          <span>Dívida</span>
           <strong>{money(contract.toCollect)}</strong>
-          <small>Venda {money(contract.sale)}{contract.financed ? ` − banco ${money(contract.financed)}` : ""}</small>
+          <small>
+            Venda {money(contract.sale)}
+            {contract.down ? ` · entrada ${money(contract.down)}` : ""}
+            {contract.financed ? ` · banco ${money(contract.financed)}` : ""}
+          </small>
         </div>
         <div className="a-stat">
           <span>Recebido</span>
@@ -488,6 +509,33 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
             ))}
           </div>
         )}
+      </section>
+
+      <section className="a-card a-card-pad" style={{ display: "grid", gap: 10 }}>
+        <strong style={{ fontWeight: 600 }}>Valores da venda</strong>
+        <div className="a-fields">
+          <Field label="Valor de venda (€)" name="edit-sale">
+            <input id="f-edit-sale" inputMode="decimal" value={vals.sale} onChange={(e) => setVals((v) => ({ ...v, sale: e.target.value }))} />
+          </Field>
+          <Field label="Entrada (€)" name="edit-down">
+            <input id="f-edit-down" inputMode="decimal" value={vals.down} onChange={(e) => setVals((v) => ({ ...v, down: e.target.value }))} placeholder="0" />
+          </Field>
+          <Field label="Valor da dívida (€)" name="edit-debt" hint="Financiado pelo stand: é o que se cobra em prestações.">
+            <input id="f-edit-debt" inputMode="decimal" value={vals.debt} onChange={(e) => setVals((v) => ({ ...v, debt: e.target.value }))} />
+          </Field>
+        </div>
+        <div>
+          <button
+            type="button"
+            className="a-btn a-btn-sm"
+            disabled={pending || !valsChanged || !vals.sale || !vals.debt}
+            onClick={async () =>
+              refresh((await run(() => updateChargeContract(contract.id, { sale: parseMoney(vals.sale), down: parseMoney(vals.down) || 0, debt: parseMoney(vals.debt) }))).ok)
+            }
+          >
+            Guardar valores
+          </button>
+        </div>
       </section>
 
       <section className="a-card a-card-pad" style={{ display: "grid", gap: 10 }}>

@@ -492,8 +492,12 @@ export const chargeContracts = pgTable(
     vin: text("vin").notNull().default(""),
     deliveryDate: text("delivery_date"),
     saleCents: integer("sale_cents").notNull().default(0),
-    /** Parte paga pelo banco/financeira: o stand não cobra isto. */
+    /** Parte paga pelo banco/financeira: o stand não cobra isto (vendas antigas da app Cobrar). */
     financedCents: integer("financed_cents").notNull().default(0),
+    /** Entrada paga na entrega (fica fora da dívida). */
+    downCents: integer("down_cents").notNull().default(0),
+    /** Dívida: o valor que o próprio stand financia e cobra em prestações (pode incluir juros). */
+    debtCents: integer("debt_cents").notNull().default(0),
     notes: text("notes").notNull().default(""),
     createdBy: text("created_by"),
     createdAt: createdAt(),

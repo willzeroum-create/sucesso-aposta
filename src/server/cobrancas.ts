@@ -20,6 +20,8 @@ async function rows(contractIds?: string[]) {
       deliveryDate: schema.chargeContracts.deliveryDate,
       saleCents: schema.chargeContracts.saleCents,
       financedCents: schema.chargeContracts.financedCents,
+      downCents: schema.chargeContracts.downCents,
+      debtCents: schema.chargeContracts.debtCents,
       notes: schema.chargeContracts.notes,
       createdAt: schema.chargeContracts.createdAt,
     })

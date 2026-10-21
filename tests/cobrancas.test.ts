@@ -16,8 +16,10 @@ const contract = (over: Partial<ContractRow> = {}): ContractRow => ({
   plate: "AA-00-BB",
   vin: "",
   deliveryDate: "2026-09-01",
-  saleCents: 1_200_000,
+  saleCents: 1_400_000,
   financedCents: 0,
+  downCents: 200_000,
+  debtCents: 1_200_000,
   notes: "",
   createdAt: new Date(),
   ...over,
@@ -57,9 +59,10 @@ test("cobranças: estados, saldo e resumo", () => {
   assert.equal(s.totals.receivedMonth, 0);
   assert.equal(s.upcoming.length, 0);
 
-  // Financiado pelo banco não se cobra; tudo pago = quitado.
-  const [paid] = assemble([contract({ id: "c2", saleCents: 500_000, financedCents: 400_000 })], [], [{ id: "g2", contractId: "c2", installmentId: null, date: "2026-10-01", amountCents: 100_000, method: "mbway", note: "" }], today);
+  // Cobra-se a dívida (não a venda); tudo pago = quitado.
+  const [paid] = assemble([contract({ id: "c2", saleCents: 500_000, downCents: 450_000, debtCents: 100_000 })], [], [{ id: "g2", contractId: "c2", installmentId: null, date: "2026-10-01", amountCents: 100_000, method: "mbway", note: "" }], today);
   assert.equal(paid.toCollect, 1000);
+  assert.equal(paid.down, 4500);
   assert.equal(paid.status, "quitado");
   const [noPlan] = assemble([contract({ id: "c3" })], [], [], today);
   assert.equal(noPlan.status, "sem_plano");

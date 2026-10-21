@@ -72,6 +72,8 @@ for (const k of contracts)
       deliveryDate: str(k.data_entrega) || null,
       saleCents: Number(k.valor_venda) || 0,
       financedCents: Number(k.valor_financiado) || 0,
+      // Na Cobrar cobrava-se a venda menos o financiado pelo banco (a entrada entrava como pagamento).
+      debtCents: Math.max(0, (Number(k.valor_venda) || 0) - (Number(k.valor_financiado) || 0)),
       notes: str(k.notas),
     })
     .onConflictDoNothing();

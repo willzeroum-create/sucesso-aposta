@@ -44,15 +44,14 @@ const contractSchema = z
     sale: money("Valor de venda"),
     financed: money("Valor financiado", { allowZero: true }).default(0),
     downPayment: money("Entrada", { allowZero: true }).default(0),
-    downMethod: method,
+    debt: money("Valor da dívida"),
     notes: z.string().trim().max(4000).default(""),
     installments: z.array(z.object({ dueDate: isoDate, amount: money("Valor da prestação") })).max(240).default([]),
   })
   .superRefine((v, ctx) => {
     if (!v.customerId && !v.newCustomer) ctx.addIssue({ code: "custom", path: ["customerId"], message: "Escolha ou crie o cliente." });
     if (!v.vehicle.make && !v.vehicle.model) ctx.addIssue({ code: "custom", path: ["vehicle", "model"], message: "Indique a marca ou o modelo." });
-    if (v.financed > v.sale) ctx.addIssue({ code: "custom", path: ["financed"], message: "O financiado não pode ser maior do que a venda." });
-    if (v.downPayment > v.sale - v.financed) ctx.addIssue({ code: "custom", path: ["downPayment"], message: "A entrada é maior do que o valor a cobrar." });
+    if (v.downPayment > v.sale) ctx.addIssue({ code: "custom", path: ["downPayment"], message: "A entrada é maior do que a venda." });
     if (v.newCustomer?.nif && !isValidNif(v.newCustomer.nif.replace(/\D/g, ""))) ctx.addIssue({ code: "custom", path: ["newCustomer", "nif"], message: "NIF inválido." });
   });
 
@@ -98,20 +97,11 @@ export async function createChargeContract(raw: NewChargeContract): Promise<Acti
       deliveryDate: d.deliveryDate ?? null,
       saleCents: toCents(d.sale),
       financedCents: toCents(d.financed),
+      downCents: toCents(d.downPayment),
+      debtCents: toCents(d.debt),
       notes: d.notes,
       createdBy: user.id,
     });
-    if (d.downPayment > 0)
-      await db.insert(schema.chargePayments).values({
-        id: newId("pag"),
-        contractId: id,
-        installmentId: null,
-        date: d.deliveryDate ?? todayLisbon(),
-        amountCents: toCents(d.downPayment),
-        method: d.downMethod,
-        note: "Entrada",
-        createdBy: user.id,
-      });
     for (const i of d.installments) await db.insert(schema.chargeInstallments).values({ id: newId("pre"), contractId: id, dueDate: i.dueDate, amountCents: toCents(i.amount) });
     await audit(user, {
       action: "charge.create",
@@ -124,25 +114,38 @@ export async function createChargeContract(raw: NewChargeContract): Promise<Acti
   }, "Venda a prestações registada.");
 }
 
-export async function updateChargeContract(id: string, raw: { notes?: string; deliveryDate?: string | null; sale?: number; financed?: number; vehicleId?: string | null }): Promise<ActionResult> {
+export async function updateChargeContract(
+  id: string,
+  raw: { notes?: string; deliveryDate?: string | null; sale?: number; down?: number; debt?: number; financed?: number; vehicleId?: string | null },
+): Promise<ActionResult> {
   return run(async () => {
     const user = await assertPermission("billing.manage");
     const d = z
-      .object({ notes: z.string().trim().max(4000).optional(), deliveryDate: isoDate.nullable().optional(), sale: money("Valor de venda").optional(), financed: money("Valor financiado", { allowZero: true }).optional(), vehicleId: z.string().max(60).nullable().optional() })
+      .object({
+        notes: z.string().trim().max(4000).optional(),
+        deliveryDate: isoDate.nullable().optional(),
+        sale: money("Valor de venda").optional(),
+        down: money("Entrada", { allowZero: true }).optional(),
+        debt: money("Valor da dívida").optional(),
+        financed: money("Valor financiado", { allowZero: true }).optional(),
+        vehicleId: z.string().max(60).nullable().optional(),
+      })
       .parse(raw);
     const [c] = await db.select().from(schema.chargeContracts).where(eq(schema.chargeContracts.id, id)).limit(1);
     if (!c) throw new UserError("Venda não encontrada.");
     const sale = d.sale !== undefined ? toCents(d.sale) : c.saleCents;
-    const financed = d.financed !== undefined ? toCents(d.financed) : c.financedCents;
-    if (financed > sale) throw new UserError("O financiado não pode ser maior do que a venda.");
+    const down = d.down !== undefined ? toCents(d.down) : c.downCents;
+    if (down > sale) throw new UserError("A entrada é maior do que a venda.", { down: "Maior do que a venda." });
     await db
       .update(schema.chargeContracts)
       .set({
         ...(d.notes !== undefined ? { notes: d.notes } : {}),
         ...(d.deliveryDate !== undefined ? { deliveryDate: d.deliveryDate } : {}),
         ...(d.vehicleId !== undefined ? { vehicleId: d.vehicleId || null } : {}),
+        ...(d.financed !== undefined ? { financedCents: toCents(d.financed) } : {}),
+        ...(d.debt !== undefined ? { debtCents: toCents(d.debt) } : {}),
         saleCents: sale,
-        financedCents: financed,
+        downCents: down,
         updatedAt: new Date(),
       })
       .where(eq(schema.chargeContracts.id, id));
