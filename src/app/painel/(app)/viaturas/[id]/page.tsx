@@ -101,6 +101,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
             <p className="muted">{[v.version, v.year, v.mileageKm != null ? `${int.format(v.mileageKm)} km` : null].filter(Boolean).join(" · ")}</p>
             <div className="a-meta">
               <Plate value={v.plate} large />
+              {v.section !== "site" && <span className="a-role">{v.section === "aluguer" ? "Aluguer" : "Venda"}</span>}
               {v.priceOnRequest && v.status !== "sold" ? (
                 <span className="a-price">Sob consulta</span>
               ) : v.priceEur ? (

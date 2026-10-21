@@ -1770,3 +1770,40 @@ a.a-stock-item:hover {
   gap: 8px;
   align-items: center;
 }
+
+/* Função do carro no estoque (ao lado da matrícula) */
+.a-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.a-seg {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.a-seg button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.a-seg button + button {
+  border-left: 1px solid var(--line-strong);
+}
+.a-seg button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}

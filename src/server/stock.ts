@@ -6,6 +6,8 @@ import { publicUrl } from "./storage";
 
 export type StockItem = {
   id: string;
+  /** Função do carro no estoque: venda ou aluguer. */
+  section: "estoque" | "aluguer";
   make: string;
   model: string;
   version: string;
@@ -28,9 +30,9 @@ export type StockItem = {
   rented: boolean;
 };
 
-/** Viaturas do estoque interno (fora do site), com fotografia de capa, custos e se estão alugadas. */
+/** Viaturas do estoque interno, de venda e de aluguer (fora do site), com fotografia de capa, custos e se estão alugadas. */
 export async function stockList(): Promise<StockItem[]> {
-  const rows = await db.select().from(schema.vehicles).where(eq(schema.vehicles.section, "estoque")).orderBy(asc(schema.vehicles.createdAt));
+  const rows = await db.select().from(schema.vehicles).where(inArray(schema.vehicles.section, ["estoque", "aluguer"])).orderBy(asc(schema.vehicles.createdAt));
   const ids = rows.map((r) => r.id);
   if (!ids.length) return [];
   const costs = await db
@@ -51,6 +53,7 @@ export async function stockList(): Promise<StockItem[]> {
     const c = costs.find((x) => x.v === v.id);
     return {
       id: v.id,
+      section: v.section === "aluguer" ? "aluguer" : "estoque",
       make: v.make,
       model: v.model,
       version: v.version,

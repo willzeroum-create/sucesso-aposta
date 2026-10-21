@@ -108,7 +108,7 @@ export default async function RentalsPage() {
                   const photo = coverOf(v);
                   return (
                     <div key={v.id} className="a-stock-item">
-                      <Link href={`/painel/aluguer/${v.id}`} className="a-stock-photo" aria-label={`Abrir ${v.make} ${v.model}`}>
+                      <Link href={`/painel/estoque/${v.id}`} className="a-stock-photo" aria-label={`Abrir ${v.make} ${v.model}`}>
                         {photo ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={photo} alt="" loading="lazy" />
@@ -118,7 +118,7 @@ export default async function RentalsPage() {
                       </Link>
                       <span className="a-stock-main">
                         <span className="a-stock-title">
-                          <Link href={`/painel/aluguer/${v.id}`} style={{ color: "inherit" }}>
+                          <Link href={`/painel/estoque/${v.id}`} style={{ color: "inherit" }}>
                             <strong>
                               {v.make} {v.model}
                             </strong>
@@ -138,7 +138,7 @@ export default async function RentalsPage() {
                         </span>
                       </span>
                       {!r && canRent && (
-                        <Link href={`/painel/aluguer/${v.id}?tab=aluguer`} className="a-btn a-btn-sm a-btn-primary" style={{ alignSelf: "center" }}>
+                        <Link href={`/painel/estoque/${v.id}?tab=aluguer`} className="a-btn a-btn-sm a-btn-primary" style={{ alignSelf: "center" }}>
                           <KeyRound size={14} /> Alugar
                         </Link>
                       )}
@@ -149,7 +149,7 @@ export default async function RentalsPage() {
             ) : (
               <div className="a-empty">
                 <strong>A frota ainda está vazia.</strong>
-                <span className="muted">Adicione os carros de aluguer, ou mude um carro do Estoque para o Aluguer na ficha dele (Secção).</span>
+                <span className="muted">No Estoque, abra um carro e escolha a função “Aluguer”, ou adicione um carro novo à frota.</span>
               </div>
             )}
           </section>

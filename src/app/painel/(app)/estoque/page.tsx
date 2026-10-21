@@ -21,7 +21,7 @@ export default async function StockPage() {
       <div className="a-head">
         <div>
           <h1>Estoque</h1>
-          <p>Os carros da casa que não estão no site: todos os dados de cada carro e tudo o que já se gastou com ele.</p>
+          <p>Os carros da casa que não estão no site, de venda e de aluguer: todos os dados de cada carro e tudo o que já se gastou com ele.</p>
         </div>
         {can(user, "vehicles.edit") && (
           <Link href="/painel/viaturas/nova?seccao=estoque" className="a-btn a-btn-primary">
@@ -34,7 +34,9 @@ export default async function StockPage() {
         <div className="a-stat">
           <span>Carros em estoque</span>
           <strong>{inStock.length}</strong>
-          <small>{inStock.filter((v) => v.rented).length} alugado(s) agora</small>
+          <small>
+            {inStock.filter((v) => v.section === "estoque").length} venda · {inStock.filter((v) => v.section === "aluguer").length} aluguer · {inStock.filter((v) => v.rented).length} alugado(s) agora
+          </small>
         </div>
         {canCosts && (
           <>

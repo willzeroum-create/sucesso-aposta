@@ -14,21 +14,25 @@ const days = (iso: string) => Math.max(0, Math.floor((Date.now() - Date.parse(is
 
 const FILTERS = [
   { key: "stock", label: "Em estoque" },
+  { key: "venda", label: "Venda" },
+  { key: "aluguer", label: "Aluguer" },
   { key: "sold", label: "Vendidos" },
-  { key: "all", label: "Todos" },
 ] as const;
+type FilterKey = (typeof FILTERS)[number]["key"];
+const inFilter = (v: StockItem, k: FilterKey) =>
+  k === "sold" ? v.status === "sold" : v.status !== "sold" && (k === "stock" || (k === "venda" ? v.section === "estoque" : v.section === "aluguer"));
 
 /** Lista do estoque com pesquisa por marca, modelo, matrícula ou VIN, e totais de custo por carro. */
 export function StockList({ items, base, canCosts }: { items: StockItem[]; base: string; canCosts: boolean }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("stock");
+  const [filter, setFilter] = useState<FilterKey>("stock");
   const q = fold(query.trim());
   const qPlate = query.replace(/[\s-]/g, "").toUpperCase();
-  const byFilter = items.filter((v) => (filter === "all" ? true : filter === "sold" ? v.status === "sold" : v.status !== "sold"));
+  const byFilter = items.filter((v) => inFilter(v, filter));
   const shown = q
     ? byFilter.filter((v) => fold(`${v.make} ${v.model} ${v.version} ${v.color ?? ""}`).includes(q) || (qPlate.length >= 2 && `${v.plate.replace(/-/g, "")} ${v.vin}`.toUpperCase().includes(qPlate)))
     : byFilter;
-  const count = (k: (typeof FILTERS)[number]["key"]) => items.filter((v) => (k === "all" ? true : k === "sold" ? v.status === "sold" : v.status !== "sold")).length;
+  const count = (k: FilterKey) => items.filter((v) => inFilter(v, k)).length;
 
   return (
     <section className="a-card">
@@ -65,6 +69,7 @@ export function StockList({ items, base, canCosts }: { items: StockItem[]; base:
                       {v.make} {v.model}
                     </strong>
                     {v.plate ? <Plate value={v.plate} /> : <span className="a-pill neutral">Sem matrícula</span>}
+                    <span className="a-role">{v.section === "aluguer" ? "Aluguer" : "Venda"}</span>
                   </span>
                   <small className="muted">
                     {[v.version, v.year, v.km != null ? `${int.format(v.km)} km` : null, v.fuel ? FUEL[v.fuel as keyof typeof FUEL] : null, v.color].filter(Boolean).join(" · ") || "Dados por completar"}

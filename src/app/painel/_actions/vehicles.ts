@@ -203,7 +203,7 @@ export async function setVehicleSection(id: string, section: SectionKey): Promis
     for (const s of Object.values(SECTIONS)) revalidatePath(s.base);
     if (before.published) revalidatePath("/", "layout");
     return { base: SECTIONS[section].base };
-  }, "Viatura mudada de secção.");
+  }, "Função atualizada.");
 }
 
 /** Estado comercial e publicação no site — a alteração reflete-se imediatamente no catálogo público. */
