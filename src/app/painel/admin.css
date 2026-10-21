@@ -695,6 +695,29 @@
   border-radius: 0 0 var(--radius) var(--radius);
   background: var(--surface);
 }
+/* Duas colunas lado a lado no computador; uma por baixo da outra no telemóvel */
+.a-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.a-split-col {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+@media (min-width: 1180px) {
+  .a-split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+@media (max-width: 1179px) {
+  .a-split-col.is-first-mobile {
+    order: -1;
+  }
+}
+
 .a-search {
   position: relative;
   flex: 1 1 260px;
@@ -1563,4 +1586,18 @@
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
+}
+/* Linha de prestação com botões (Recebido / WhatsApp): no telemóvel os botões passam para baixo do texto */
+.a-doc.a-doc-pay {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+@media (max-width: 560px) {
+  .a-doc.a-doc-pay {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .a-doc.a-doc-pay > :last-child,
+  .a-doc.a-doc-pay .a-row-actions {
+    justify-content: flex-start;
+  }
 }

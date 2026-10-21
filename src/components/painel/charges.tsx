@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, MessageCircle, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Check, MessageCircle, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import {
   addInstallments,
   addPayment,
@@ -23,6 +24,7 @@ import {
   inferInterval,
   intervalLabel,
   money,
+  CONTRACT_STATUS_LABEL,
   DEFAULT_CHARGE_MESSAGE,
   INSTALLMENT_STATUS_LABEL,
   INTERVAL_PRESETS,
@@ -31,6 +33,7 @@ import {
   toEuros,
   whatsappLink,
   type Contract,
+  type ContractStatus,
   type Installment,
   type InstallmentStatus,
   type PaymentMethod,
@@ -164,6 +167,72 @@ function IntervalField({ id, value, onChange, error }: { id: string; value: stri
         />
       )}
     </Field>
+  );
+}
+
+/* ───────── Lista de todas as vendas, com pesquisa ───────── */
+
+export type ContractListItem = {
+  id: string;
+  name: string;
+  phone: string;
+  vehicle: string;
+  plate: string;
+  balance: number;
+  toCollect: number;
+  nextDue: string | null;
+  status: ContractStatus;
+};
+
+const CONTRACT_PILL: Record<ContractStatus, string> = { em_dia: "available", atrasado: "danger", quitado: "neutral", sem_plano: "reserved" };
+const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+export function ChargeContractList({ items }: { items: ContractListItem[] }) {
+  const [query, setQuery] = useState("");
+  const q = fold(query.trim());
+  const digits = query.replace(/\D/g, "");
+  const shown = q
+    ? items.filter((c) => fold(`${c.name} ${c.vehicle} ${c.plate}`).includes(q) || (digits.length >= 3 && c.phone.replace(/\D/g, "").includes(digits)))
+    : items;
+  return (
+    <section className="a-card">
+      <div className="a-card-head">
+        <div>
+          <h2>Todas as vendas a prestações</h2>
+          <p>{items.length} cliente{items.length === 1 ? "" : "s"}</p>
+        </div>
+      </div>
+      <div className="a-card-body" style={{ paddingBottom: 0 }}>
+        <div className="a-search" style={{ maxWidth: "none" }} role="search">
+          <Search size={16} aria-hidden="true" />
+          <input className="a-input" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Procurar por nome, telefone, carro ou matrícula" aria-label="Procurar cliente" />
+        </div>
+      </div>
+      {shown.length ? (
+        <div className="a-docs" style={{ marginTop: 12 }}>
+          {shown.map((c) => (
+            <Link key={c.id} href={`/painel/cobrancas/${c.id}`} className="a-doc" style={{ gridTemplateColumns: "minmax(0, 1fr) auto", color: "inherit", textDecoration: "none" }}>
+              <span style={{ minWidth: 0 }}>
+                <strong>{c.name}</strong>
+                <small style={{ display: "block" }}>
+                  {c.vehicle}
+                  {c.plate ? ` · ${c.plate}` : ""}
+                </small>
+                <small style={{ display: "block" }}>
+                  Falta {money(c.balance)} de {money(c.toCollect)}
+                  {c.nextDue ? ` · próxima ${datePt(c.nextDue)}` : ""}
+                </small>
+              </span>
+              <span className={`a-pill ${CONTRACT_PILL[c.status]}`}>{CONTRACT_STATUS_LABEL[c.status]}</span>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="a-empty">
+          <strong>{items.length ? `Ninguém encontrado com «${query.trim()}».` : "Ainda não há vendas a prestações."}</strong>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -456,7 +525,7 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
         {contract.installments.length ? (
           <div className="a-docs">
             {contract.installments.map((i) => (
-              <div key={i.id} className="a-doc" style={{ gridTemplateColumns: "minmax(0, 1fr) auto" }}>
+              <div key={i.id} className="a-doc a-doc-pay">
                 <span style={{ minWidth: 0, display: "grid", gap: 4 }}>
                   <strong>
                     {i.number}. {datePt(i.dueDate)} · {money(i.amount)}
