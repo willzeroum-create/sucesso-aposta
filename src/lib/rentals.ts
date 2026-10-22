@@ -55,7 +55,8 @@ export function rentalState(r: { startAt: Date; endAt: Date; status: RentalStatu
   return left <= 0 ? { state: "termina_hoje", days: 0 } : { state: "a_decorrer", days: left };
 }
 
-/** Número de dias cobrados (mínimo 1). */
+/** Número de dias cobrados (mínimo 1). A mudança da hora (±1 h) não conta como mais um dia. */
 export function rentalDays(startAt: Date, endAt: Date): number {
-  return Math.max(1, Math.ceil((endAt.getTime() - startAt.getTime()) / 86_400_000));
+  const d = (endAt.getTime() - startAt.getTime()) / 86_400_000;
+  return Math.max(1, Math.abs(d - Math.round(d)) <= 2 / 24 ? Math.round(d) : Math.ceil(d));
 }

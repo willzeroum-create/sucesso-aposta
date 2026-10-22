@@ -128,3 +128,15 @@ export async function createManualLead(form: FormData): Promise<ActionResult<{ i
     return { id };
   }, "Pedido registado.");
 }
+
+/** Apaga um pedido (ex.: pedidos de teste). As notas e o histórico do pedido vão com ele. */
+export async function deleteLead(id: string): Promise<ActionResult> {
+  return run(async () => {
+    const user = await assertPermission("leads.edit");
+    const lead = await loadLead(id);
+    await db.delete(schema.leads).where(eq(schema.leads.id, id));
+    await audit(user, { action: "lead.delete", entityType: "lead", entityId: id, summary: `Apagou o pedido de ${lead.fullName}` });
+    revalidatePath("/painel/crm");
+    revalidatePath("/painel");
+  }, "Pedido apagado.");
+}

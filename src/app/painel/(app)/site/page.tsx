@@ -22,7 +22,7 @@ export default async function SitePage() {
     .innerJoin(schema.files, eq(schema.files.id, schema.vehiclePhotos.fileId))
     .orderBy(asc(schema.vehiclePhotos.position));
   const heroVehicles = vehicles
-    .filter((v) => v.status !== "sold")
+    .filter((v) => v.status !== "sold" && v.section === "site")
     .map((v) => ({
       id: v.id,
       label: `${v.make} ${v.model}${v.version ? ` ${v.version}` : ""}`,

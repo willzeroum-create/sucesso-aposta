@@ -14,6 +14,7 @@ import { removeFile } from "@/server/storage";
 import { lookupDutchPlate, lookupVin, type VinLookupResult, type VinFields } from "@/server/vin";
 import { optDate, optInt, optMoney, optText, reqText, run, UserError } from "@/server/action";
 import { isSection, SECTIONS, type SectionKey } from "@/lib/sections";
+import { addDeletedPartnerRef } from "@/server/settings";
 
 const STATUS_LABEL: Record<string, string> = { preparation: "Em preparação", available: "Disponível", reserved: "Reservado", sold: "Vendido" };
 
@@ -257,6 +258,8 @@ export async function deleteVehicle(id: string, confirmText: string): Promise<Ac
     if (confirmText.trim().toUpperCase() !== "APAGAR") throw new UserError('Escreva "APAGAR" para confirmar.');
     const photos = await db.select().from(schema.vehiclePhotos).where(eq(schema.vehiclePhotos.vehicleId, id));
     const docs = await db.select().from(schema.documents).where(and(eq(schema.documents.ownerType, "vehicle"), eq(schema.documents.ownerId, id)));
+    // Carro de parceiro (ex.: Tampinha): fica registado como apagado para a sincronização não o voltar a criar.
+    if (v.sourcePartner && v.sourceRef) await addDeletedPartnerRef(v.sourcePartner, v.sourceRef, user.id);
     // Custos e alugueres apagam-se com a viatura (cascade); vendas a prestações e processos ficam, sem ligação.
     await db.delete(schema.heroSlides).where(eq(schema.heroSlides.vehicleId, id));
     await db.delete(schema.vehiclePhotos).where(eq(schema.vehiclePhotos.vehicleId, id));

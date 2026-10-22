@@ -330,10 +330,10 @@ export function VehicleForm({ id, initial, canCosts, section = "site" }: { id?: 
 
         <fieldset className="a-fieldset">
           <legend>{section === "site" ? "No site" : "Preço e descrição"}</legend>
-          <p>O que os clientes veem quando a viatura estiver publicada.</p>
+          <p>{section === "site" ? "O que os clientes veem quando a viatura estiver publicada." : "Preço pedido e notas do carro (não vai para o site)."}</p>
           <div className="a-fields">
             <Field
-              label={onRequest ? "Preço de venda (€) · travado" : "Preço de venda (€) *"}
+              label={onRequest ? "Preço de venda (€) · travado" : section === "site" ? "Preço de venda (€) *" : "Preço de venda (€)"}
               name="priceEur"
               error={errors.priceEur}
               suggested={suggested.has("priceEur")}

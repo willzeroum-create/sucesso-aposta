@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Car, Check, MessageCircle, Search, X } from "lucide-react";
-import { cancelRental, extendRental, returnRental } from "@/app/painel/_actions/rentals";
+import { CalendarClock, Car, Check, MessageCircle, Search, Trash2, X } from "lucide-react";
+import { cancelRental, deleteRental, extendRental, returnRental } from "@/app/painel/_actions/rentals";
 import { lisbonDateTime, lisbonParts, RENTAL_STATE_LABEL, type RentalState } from "@/lib/rentals";
 import { SECTIONS } from "@/lib/sections";
 import { whatsappLink } from "@/lib/cobrancas";
@@ -31,7 +31,7 @@ function stateText(r: RentalView): string {
 }
 
 /** Um aluguer: carro, cliente, período, km, valor e ações (devolução, prolongar, cancelar, WhatsApp). */
-export function RentalRow({ r, canEdit, showVehicle = true }: { r: RentalView; canEdit: boolean; showVehicle?: boolean }) {
+export function RentalRow({ r, canEdit, showVehicle = true, canDelete = false }: { r: RentalView; canEdit: boolean; showVehicle?: boolean; canDelete?: boolean }) {
   const router = useRouter();
   const { pending, fields: errors, run } = useAction();
   const [dialog, setDialog] = useState<null | "return" | "extend" | "cancel">(null);
@@ -91,6 +91,21 @@ export function RentalRow({ r, canEdit, showVehicle = true }: { r: RentalView; c
           {r.totalEur != null ? ` · ${eur.format(r.totalEur)}` : ""}
           {r.paymentMethod ? ` · ${r.paymentMethod}` : ""}
         </small>
+        {r.status !== "active" && canDelete && (
+          <div className="a-row-actions" style={{ justifyContent: "flex-start", marginTop: 4 }}>
+            <button
+              type="button"
+              className="a-btn a-btn-sm a-btn-ghost"
+              disabled={pending}
+              onClick={async () => {
+                if (!window.confirm("Apagar este aluguer do histórico? Não dá para desfazer.")) return;
+                if ((await run(() => deleteRental(r.id))).ok) router.refresh();
+              }}
+            >
+              <Trash2 size={14} /> Apagar do histórico
+            </button>
+          </div>
+        )}
         {r.status === "active" && (
           <div className="a-row-actions" style={{ justifyContent: "flex-start", marginTop: 4 }}>
             {canEdit && (
@@ -222,7 +237,7 @@ export function RentalsCard({ rentals, canEdit }: { rentals: RentalView[]; canEd
       </div>
       <div className="a-docs">
         {rentals.map((r) => (
-          <RentalRow key={r.id} r={r} canEdit={canEdit} showVehicle={false} />
+          <RentalRow key={r.id} r={r} canEdit={canEdit} showVehicle={false} canDelete={canEdit} />
         ))}
       </div>
     </section>
@@ -230,7 +245,7 @@ export function RentalsCard({ rentals, canEdit }: { rentals: RentalView[]; canEd
 }
 
 /** Histórico com pesquisa (cliente, carro, matrícula). */
-export function RentalHistory({ rentals }: { rentals: RentalView[] }) {
+export function RentalHistory({ rentals, canDelete = false }: { rentals: RentalView[]; canDelete?: boolean }) {
   const [query, setQuery] = useState("");
   const q = fold(query.trim());
   const shown = q ? rentals.filter((r) => fold(`${r.customer} ${r.vehicle} ${r.plate}`).includes(q)) : rentals;
@@ -253,7 +268,7 @@ export function RentalHistory({ rentals }: { rentals: RentalView[] }) {
       {shown.length ? (
         <div className="a-docs" style={{ marginTop: 12 }}>
           {shown.map((r) => (
-            <RentalRow key={r.id} r={r} canEdit={false} />
+            <RentalRow key={r.id} r={r} canEdit={false} canDelete={canDelete} />
           ))}
         </div>
       ) : (

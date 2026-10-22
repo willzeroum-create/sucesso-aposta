@@ -9,6 +9,9 @@ import { Alert, Dialog, Spinner, useAction } from "./ui";
 
 type Customer = { id: string; fullName: string; nif: string | null };
 
+/** Estoque e aluguer: as dicas não falam do site. */
+const OFFSITE_HINT: Record<VehicleStatusKey, string> = { preparation: "A preparar", available: "Pronto", reserved: "Sinal ou acordo", sold: "Negócio fechado" };
+
 export function StatusTrack({
   vehicleId,
   status,
@@ -67,7 +70,7 @@ export function StatusTrack({
             onClick={() => (s === "reserved" || s === "sold" ? setDialog(s) : change(s))}
           >
             <strong>{VEHICLE_STATUS[s].label}</strong>
-            <small>{VEHICLE_STATUS[s].hint}</small>
+            <small>{onSite ? VEHICLE_STATUS[s].hint : OFFSITE_HINT[s]}</small>
           </button>
         ))}
       </div>

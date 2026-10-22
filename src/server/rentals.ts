@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { rentalDays, rentalState, type RentalState, type RentalStatus } from "@/lib/rentals";
 import { publicUrl } from "./storage";
@@ -83,6 +83,7 @@ async function load(where?: ReturnType<typeof eq>) {
 }
 
 export const vehicleRentals = (vehicleId: string) => load(eq(schema.rentals.vehicleId, vehicleId));
+export const customerRentals = (customerId: string) => load(eq(schema.rentals.customerId, customerId));
 
 export async function rentalsOverview() {
   const all = await load();
@@ -106,7 +107,7 @@ export async function rentalFleet() {
   const cars = await db
     .select()
     .from(schema.vehicles)
-    .where(and(eq(schema.vehicles.section, "aluguer")))
+    .where(and(eq(schema.vehicles.section, "aluguer"), ne(schema.vehicles.status, "sold")))
     .orderBy(asc(schema.vehicles.make), asc(schema.vehicles.model));
   return cars;
 }

@@ -94,3 +94,15 @@ export async function cancelRental(id: string): Promise<ActionResult> {
     refresh(v.id);
   }, "Aluguer cancelado.");
 }
+
+/** Apaga um aluguer do histórico (devolvido ou cancelado), ex.: registos de teste. */
+export async function deleteRental(id: string): Promise<ActionResult> {
+  return run(async () => {
+    const user = await assertPermission("vehicles.status");
+    const { r, v } = await load(id);
+    if (r.status === "active") throw new UserError("Um aluguer a decorrer não se apaga: registe a devolução ou cancele-o primeiro.");
+    await db.delete(schema.rentals).where(eq(schema.rentals.id, id));
+    await audit(user, { action: "vehicle.rent_delete", entityType: "vehicle", entityId: v.id, summary: `Apagou um aluguer do histórico de ${v.make} ${v.model}` });
+    refresh(v.id);
+  }, "Aluguer apagado do histórico.");
+}

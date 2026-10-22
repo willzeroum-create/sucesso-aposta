@@ -84,15 +84,30 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
     const user = await assertPermission("customers.edit");
     const [c] = await db.select().from(schema.customers).where(eq(schema.customers.id, id)).limit(1);
     if (!c) throw new UserError("Cliente não encontrado.");
-    const [bought] = await db.select({ id: schema.vehicles.id }).from(schema.vehicles).where(eq(schema.vehicles.buyerCustomerId, id)).limit(1);
-    if (bought) throw new UserError("Este cliente está associado a uma venda ou reserva e não pode ser apagado.");
+    // Vendas a prestações são dinheiro em dívida: apagam-se primeiro nas Cobranças, de propósito.
+    const charges = await db.select({ id: schema.chargeContracts.id }).from(schema.chargeContracts).where(eq(schema.chargeContracts.customerId, id));
+    if (charges.length) throw new UserError(`${c.fullName} tem ${charges.length} venda(s) a prestações nas Cobranças. Apague-as lá primeiro.`);
+    const rentals = await db.select({ id: schema.rentals.id, status: schema.rentals.status }).from(schema.rentals).where(eq(schema.rentals.customerId, id));
+    if (rentals.some((r) => r.status === "active")) throw new UserError(`${c.fullName} tem um aluguer a decorrer. Registe a devolução ou cancele-o primeiro (página Aluguer).`);
     const docs = await db.select().from(schema.documents).where(and(eq(schema.documents.ownerType, "customer"), eq(schema.documents.ownerId, id)));
+    const forms = await db.select({ id: schema.generatedForms.id, fileId: schema.generatedForms.fileId }).from(schema.generatedForms).where(eq(schema.generatedForms.customerId, id));
     await db.delete(schema.documents).where(and(eq(schema.documents.ownerType, "customer"), eq(schema.documents.ownerId, id)));
+    // Documentos gerados (contratos, garantias) têm dados pessoais: vão com a ficha (RGPD).
+    await db.delete(schema.generatedForms).where(eq(schema.generatedForms.customerId, id));
+    await db.delete(schema.rentals).where(eq(schema.rentals.customerId, id));
     await db.update(schema.leads).set({ customerId: null }).where(eq(schema.leads.customerId, id));
+    await db.update(schema.vehicles).set({ buyerCustomerId: null }).where(eq(schema.vehicles.buyerCustomerId, id));
     await db.delete(schema.customers).where(eq(schema.customers.id, id));
     for (const d of docs) await removeFile(d.fileId);
-    await audit(user, { action: "customer.delete", entityType: "customer", entityId: id, summary: `Apagou a ficha de ${c.fullName} e ${docs.length} documento(s)` });
+    for (const f of forms) if (f.fileId) await removeFile(f.fileId);
+    await audit(user, {
+      action: "customer.delete",
+      entityType: "customer",
+      entityId: id,
+      summary: `Apagou a ficha de ${c.fullName}, ${docs.length} documento(s), ${forms.length} documento(s) gerado(s) e ${rentals.length} aluguer(es) fechado(s)`,
+    });
     revalidatePath("/painel/clientes");
+    revalidatePath("/painel/aluguer");
   }, "Cliente apagado.");
 }
 
@@ -101,12 +116,15 @@ export async function deleteDocument(documentId: string): Promise<ActionResult> 
     const user = await assertPermission("documents.upload");
     const [d] = await db.select().from(schema.documents).where(eq(schema.documents.id, documentId)).limit(1);
     if (!d) throw new UserError("Documento não encontrado.");
+    // Quem pode carregar documentos de uma viatura pode tirá-los; os do cliente pedem acesso à ficha.
     if (d.ownerType === "customer") await assertPermission("customers.edit");
-    else await assertPermission("vehicles.edit");
     await db.delete(schema.documents).where(eq(schema.documents.id, documentId));
     await removeFile(d.fileId);
     await audit(user, { action: "document.delete", entityType: d.ownerType, entityId: d.ownerId, summary: `Apagou o documento "${d.label}"` });
-    revalidatePath(d.ownerType === "vehicle" ? `/painel/viaturas/${d.ownerId}` : `/painel/clientes/${d.ownerId}`);
+    if (d.ownerType === "vehicle") {
+      revalidatePath(`/painel/viaturas/${d.ownerId}`);
+      revalidatePath(`/painel/estoque/${d.ownerId}`);
+    } else revalidatePath(`/painel/clientes/${d.ownerId}`);
   }, "Documento apagado.");
 }
 

@@ -5,6 +5,7 @@
  * e retira do site o que deixou de estar anunciado. Nunca duplica (origem + id do anúncio, ou VIN/matrícula).
  */
 import "server-only";
+import { getDeletedPartnerRefs } from "@/server/settings";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { formatPlate, normalizeVin } from "@/lib/pt-validation";
@@ -227,8 +228,11 @@ export async function syncTampinha(opts: { userId: string; deadline?: number; lo
   const listing = parseListing(await fetchText(`${BASE}/viaturas`));
   r.listed = listing.length;
   if (!listing.length) throw new Error("A lista de viaturas da Tampinha Cars veio vazia. O site pode ter mudado.");
+  // Anúncios que a equipa apagou no painel não voltam a entrar.
+  const deleted = new Set(await getDeletedPartnerRefs(PARTNER));
 
   for (const item of listing) {
+    if (deleted.has(item.ref)) continue;
     if (late()) {
       r.pendingPhotos++;
       continue;
@@ -284,7 +288,8 @@ export async function syncTampinha(opts: { userId: string; deadline?: number; lo
       [existing] = await db
         .select()
         .from(schema.vehicles)
-        .where(and(isNull(schema.vehicles.sourcePartner), or(...(conds as [ReturnType<typeof eq>]))))
+        // Só liga a viaturas do site: carros do Estoque/Aluguer nunca passam a seguir o anúncio do parceiro.
+        .where(and(isNull(schema.vehicles.sourcePartner), eq(schema.vehicles.section, "site"), or(...(conds as [ReturnType<typeof eq>]))))
         .limit(1);
       linked = Boolean(existing);
     }

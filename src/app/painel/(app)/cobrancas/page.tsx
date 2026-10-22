@@ -85,8 +85,8 @@ export default async function ChargesPage() {
       </div>
 
       {/* Esquerda: todos os clientes (com pesquisa). Direita: quem deve. No telemóvel, quem deve aparece primeiro. */}
-      <div className="a-split">
-        <div className="a-split-col">
+      <div className="a-halves">
+        <div className="a-halves-col">
           <ChargeContractList
             items={[...active, ...done].map((c) => ({
               id: c.id,
@@ -101,7 +101,7 @@ export default async function ChargesPage() {
             }))}
           />
         </div>
-        <div className="a-split-col is-first-mobile">
+        <div className="a-halves-col is-first-mobile">
           <InstallmentList title="Em atraso" items={o.late} empty="Ninguém em atraso." />
           <InstallmentList title="Vence hoje" items={o.dueToday} empty="Nada vence hoje." />
           <InstallmentList title="Próximos 7 dias" items={o.upcoming} empty="Nada nos próximos 7 dias." />

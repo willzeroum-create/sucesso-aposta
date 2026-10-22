@@ -13,7 +13,7 @@ export function DeleteCustomer({ id, name }: { id: string; name: string }) {
       <div>
         <strong>Apagar ficha</strong>
         <p className="muted" style={{ fontSize: 13 }}>
-          Remove os dados pessoais e os documentos do cliente (direito ao apagamento, RGPD).
+          Remove os dados pessoais, os documentos, os documentos gerados e os alugueres fechados do cliente (direito ao apagamento, RGPD). Vendas a prestações apagam-se antes nas Cobranças.
         </p>
       </div>
       <button

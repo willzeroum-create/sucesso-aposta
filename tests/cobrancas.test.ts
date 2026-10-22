@@ -111,3 +111,16 @@ test("custos da viatura: total, margem e lucro", () => {
   assert.equal(s.realProfit, null);
   assert.equal(costSummary({ purchasePriceEur: 10_000, priceEur: 12_000, soldPriceEur: 11_500 }, []).realProfit, 1500);
 });
+
+test("alugueres: dias e hora de Lisboa", async () => {
+  const { lisbonDate, rentalDays, lisbonDateTime } = await import("../src/lib/rentals");
+  // 22/10 17:00 (verão, UTC+1) → 29/10 17:00 (inverno, UTC+0): 7 dias, não 8.
+  const start = lisbonDate("2026-10-22", "17:00");
+  const end = lisbonDate("2026-10-29", "17:00");
+  assert.equal(start.toISOString(), "2026-10-22T16:00:00.000Z");
+  assert.equal(end.toISOString(), "2026-10-29T17:00:00.000Z");
+  assert.equal(rentalDays(start, end), 7);
+  assert.equal(rentalDays(lisbonDate("2026-11-01", "10:00"), lisbonDate("2026-11-01", "18:00")), 1);
+  assert.equal(rentalDays(lisbonDate("2026-11-01", "10:00"), lisbonDate("2026-11-03", "15:00")), 3);
+  assert.match(lisbonDateTime(start), /22\/10\/2026,? 17:00/);
+});

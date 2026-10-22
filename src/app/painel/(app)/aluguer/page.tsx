@@ -15,7 +15,8 @@ export const metadata = { title: "Aluguer" };
 export default async function RentalsPage() {
   const user = await requirePagePermission("vehicles.view");
   const canEdit = can(user, "vehicles.status");
-  const canRent = can(user, "forms.generate");
+  // Alugar gera o contrato (forms.generate) e regista o aluguer (vehicles.status): só mostra a quem pode as duas coisas.
+  const canRent = can(user, "forms.generate") && can(user, "vehicles.status");
   const o = await rentalsOverview();
   const fleet = await rentalFleet();
   const covers = fleet.length
@@ -31,7 +32,8 @@ export default async function RentalsPage() {
     const c = own.find((p) => p.id === v.coverPhotoId) ?? own[0];
     return c ? publicUrl(c.key) : null;
   };
-  const activeOf = (id: string) => o.active.find((r) => r.vehicleId === id && r.state !== "agendado");
+  // Ocupado = aluguer a decorrer ou já marcado para começar.
+  const activeOf = (id: string) => o.active.find((r) => r.vehicleId === id);
 
   return (
     <div className="a-page">
@@ -69,8 +71,8 @@ export default async function RentalsPage() {
         </div>
       </div>
 
-      <div className="a-split">
-        <div className="a-split-col is-first-mobile">
+      <div className="a-halves">
+        <div className="a-halves-col is-first-mobile">
           <section className="a-card">
             <div className="a-card-head">
               <div>
@@ -93,7 +95,7 @@ export default async function RentalsPage() {
           </section>
         </div>
 
-        <div className="a-split-col">
+        <div className="a-halves-col">
           <section className="a-card">
             <div className="a-card-head">
               <div>
@@ -129,7 +131,11 @@ export default async function RentalsPage() {
                         <span className="a-stock-tags">
                           {r ? (
                             <span className={`a-pill ${r.state === "atrasado" ? "danger" : "reserved"}`}>
-                              {r.state === "atrasado" ? "Devolução em atraso" : `Alugado até ${lisbonDateTime(new Date(r.endAt))}`}
+                              {r.state === "atrasado"
+                                ? "Devolução em atraso"
+                                : r.state === "agendado"
+                                  ? `Reservado a partir de ${lisbonDateTime(new Date(r.startAt))}`
+                                  : `Alugado até ${lisbonDateTime(new Date(r.endAt))}`}
                             </span>
                           ) : (
                             <span className="a-pill available">Livre</span>
@@ -156,7 +162,7 @@ export default async function RentalsPage() {
         </div>
       </div>
 
-      <RentalHistory rentals={o.history} />
+      <RentalHistory rentals={o.history} canDelete={canEdit} />
     </div>
   );
 }

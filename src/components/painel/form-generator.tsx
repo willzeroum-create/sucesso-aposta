@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileDown, FileSignature } from "lucide-react";
-import { generateForm, previewForm } from "@/app/painel/_actions/forms";
+import { FileDown, FileSignature, Trash2 } from "lucide-react";
+import { deleteGeneratedForm, generateForm, previewForm } from "@/app/painel/_actions/forms";
 import { PLACEHOLDERS, type TemplateId } from "@/lib/form-templates";
 import { dateTime } from "@/lib/labels";
 import { Alert, Spinner, useAction } from "./ui";
@@ -200,12 +200,24 @@ export function FormGenerator({
                   <td className="hide-sm muted" style={{ fontSize: 13 }}>
                     {h.by} · {dateTime(h.createdAt)}
                   </td>
-                  <td className="right">
+                  <td className="right" style={{ whiteSpace: "nowrap" }}>
                     {h.fileId && (
                       <a className="a-btn a-btn-sm" href={`/api/admin/files/${h.fileId}`} target="_blank" rel="noopener">
-                        Abrir PDF
+                        Abrir
                       </a>
-                    )}
+                    )}{" "}
+                    <button
+                      type="button"
+                      className="a-icon-btn"
+                      aria-label={`Apagar ${h.title}`}
+                      title="Apagar documento"
+                      onClick={async () => {
+                        if (!window.confirm(`Apagar “${h.title}”? Não dá para desfazer.`)) return;
+                        if ((await run(() => deleteGeneratedForm(h.id))).ok) router.refresh();
+                      }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </td>
                 </tr>
               ))}

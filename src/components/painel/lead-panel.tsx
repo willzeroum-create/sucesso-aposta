@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, UserPlus } from "lucide-react";
-import { addLeadNote, assignLead, convertLeadToCustomer, createManualLead, setLeadStatus } from "@/app/painel/_actions/leads";
+import { Plus, Trash2, UserPlus } from "lucide-react";
+import { addLeadNote, assignLead, convertLeadToCustomer, createManualLead, deleteLead, setLeadStatus } from "@/app/painel/_actions/leads";
 import { LEAD_STATUS } from "@/lib/labels";
 import { Dialog, Spinner, useAction } from "./ui";
 
@@ -27,9 +27,41 @@ export function LeadControls({
   const router = useRouter();
   const { pending, run } = useAction();
   const [note, setNote] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
+      {canEdit && (
+        <>
+          <button type="button" className="a-btn a-btn-sm a-btn-danger" style={{ justifySelf: "start", order: 99 }} onClick={() => setConfirmDelete(true)}>
+            <Trash2 size={14} /> Apagar pedido
+          </button>
+          <Dialog
+            open={confirmDelete}
+            onClose={() => setConfirmDelete(false)}
+            title="Apagar pedido"
+            footer={
+              <>
+                <button type="button" className="a-btn" onClick={() => setConfirmDelete(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="a-btn a-btn-danger"
+                  disabled={pending}
+                  onClick={async () => {
+                    if ((await run(() => deleteLead(id))).ok) router.push("/painel/crm");
+                  }}
+                >
+                  {pending ? <Spinner /> : <Trash2 size={16} />} Apagar definitivamente
+                </button>
+              </>
+            }
+          >
+            <p>Apaga o pedido e as notas dele. A ficha de cliente, se existir, fica.</p>
+          </Dialog>
+        </>
+      )}
       <div className="a-field">
         <label htmlFor="lead-status">Fase</label>
         <select

@@ -3,7 +3,10 @@ import { and, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import { ArrowUpRight, CalendarClock, Plus } from "lucide-react";
 import { db, schema } from "@/db";
 import { Plate, StatusPill } from "@/components/painel/ui";
-import { daysSince, eur, LEAD_INTENT, relative } from "@/lib/labels";
+import { daysSince, eur, eur2, LEAD_INTENT, relative } from "@/lib/labels";
+import { SECTIONS } from "@/lib/sections";
+import { chargesOverview } from "@/server/cobrancas";
+import { rentalsOverview } from "@/server/rentals";
 import { can, requireUser } from "@/server/auth/session";
 import { aiProvider } from "@/server/ai/provider";
 
@@ -14,10 +17,26 @@ export default async function Home() {
   const seeVehicles = can(user, "vehicles.view");
   const seeLeads = can(user, "leads.view");
 
+  // Contagens por secção: viaturas do site e estoque (venda + aluguer) nunca se misturam.
   const counts = seeVehicles
-    ? await db.select({ status: schema.vehicles.status, n: sql<number>`count(*)::int`, value: sql<number>`coalesce(sum(${schema.vehicles.priceEur}), 0)` }).from(schema.vehicles).groupBy(schema.vehicles.status)
+    ? await db
+        .select({ section: schema.vehicles.section, status: schema.vehicles.status, published: schema.vehicles.published, n: sql<number>`count(*)::int` })
+        .from(schema.vehicles)
+        .groupBy(schema.vehicles.section, schema.vehicles.status, schema.vehicles.published)
     : [];
-  const by = (s: string) => counts.find((c) => c.status === s);
+  const count = (f: (c: (typeof counts)[number]) => boolean) => counts.filter(f).reduce((t, c) => t + Number(c.n), 0);
+  const site = {
+    online: count((c) => c.section === "site" && c.published && c.status !== "sold" && c.status !== "preparation"),
+    preparing: count((c) => c.section === "site" && c.status === "preparation"),
+    reserved: count((c) => c.section === "site" && c.status === "reserved"),
+  };
+  const stock = {
+    sale: count((c) => c.section === "estoque" && c.status !== "sold"),
+    rent: count((c) => c.section === "aluguer" && c.status !== "sold"),
+  };
+  const soldTotal = count((c) => c.status === "sold");
+  const rentals = seeVehicles ? (await rentalsOverview()).totals : null;
+  const charges = can(user, "billing.manage") ? (await chargesOverview()).totals : null;
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -31,7 +50,12 @@ export default async function Home() {
   const [leadCount] = seeLeads ? await db.select({ n: sql<number>`count(*)::int` }).from(schema.leads).where(eq(schema.leads.status, "new")) : [{ n: 0 }];
 
   const preparing = seeVehicles
-    ? await db.select().from(schema.vehicles).where(eq(schema.vehicles.status, "preparation")).orderBy(schema.vehicles.createdAt).limit(6)
+    ? await db
+        .select()
+        .from(schema.vehicles)
+        .where(and(eq(schema.vehicles.status, "preparation"), eq(schema.vehicles.section, "site")))
+        .orderBy(schema.vehicles.createdAt)
+        .limit(6)
     : [];
   const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
   const inspections = seeVehicles
@@ -85,26 +109,39 @@ export default async function Home() {
       {seeVehicles && (
         <div className="a-stats">
           <Link href="/painel/viaturas?estado=available" className="a-stat">
-            <span>Disponíveis</span>
-            <strong>{Number(by("available")?.n ?? 0)}</strong>
-            <small>{eur.format(Number(by("available")?.value ?? 0))} em stock</small>
+            <span>No site</span>
+            <strong>{site.online}</strong>
+            <small>
+              {site.preparing} em preparação · {site.reserved} reservada{site.reserved === 1 ? "" : "s"}
+            </small>
           </Link>
-          <Link href="/painel/viaturas?estado=preparation" className="a-stat">
-            <span>Em preparação</span>
-            <strong>{Number(by("preparation")?.n ?? 0)}</strong>
-            <small>fora do site</small>
+          <Link href="/painel/estoque" className="a-stat">
+            <span>Estoque</span>
+            <strong>{stock.sale + stock.rent}</strong>
+            <small>
+              {stock.sale} venda · {stock.rent} aluguer
+            </small>
           </Link>
-          <Link href="/painel/viaturas?estado=reserved" className="a-stat">
-            <span>Reservadas</span>
-            <strong>{Number(by("reserved")?.n ?? 0)}</strong>
-            <small>a aguardar fecho</small>
+          <Link href="/painel/aluguer" className="a-stat">
+            <span>Alugados agora</span>
+            <strong>{rentals?.out ?? 0}</strong>
+            <small className={rentals?.late ? "is-bad" : undefined}>{rentals?.late ? `${rentals.late} devolução em atraso` : "Nenhuma devolução em atraso"}</small>
           </Link>
           <Link href="/painel/viaturas?estado=sold" className="a-stat">
             <span>Vendidas este mês</span>
             <strong>{Number(soldMonth?.n ?? 0)}</strong>
-            <small>{Number(by("sold")?.n ?? 0)} no total</small>
+            <small>{soldTotal} no total</small>
           </Link>
         </div>
+      )}
+
+      {charges && charges.late > 0 && (
+        <Link href="/painel/cobrancas" className="a-alert a-alert-warn" style={{ color: "inherit", textDecoration: "none" }}>
+          <CalendarClock size={18} />
+          <p>
+            <strong>Cobranças em atraso: {eur2.format(charges.late)}</strong> — abrir Cobranças para cobrar pelo WhatsApp.
+          </p>
+        </Link>
       )}
 
       {!ai && can(user, "documents.upload") && (
@@ -163,7 +200,7 @@ export default async function Home() {
             <div className="a-card-head">
               <div>
                 <h2>Em preparação</h2>
-                <p>Viaturas que ainda não estão à venda no site</p>
+                <p>Viaturas do site que ainda não estão publicadas</p>
               </div>
             </div>
             {preparing.length ? (
@@ -172,7 +209,7 @@ export default async function Home() {
                   {preparing.map((v) => (
                     <tr key={v.id}>
                       <td>
-                        <Link href={`/painel/viaturas/${v.id}`} className="a-row-link">
+                        <Link href={`${SECTIONS[v.section].base}/${v.id}`} className="a-row-link">
                           {v.make} {v.model}
                         </Link>
                         <div className="muted" style={{ fontSize: 13 }}>
@@ -208,7 +245,7 @@ export default async function Home() {
                 {inspections.map((v) => (
                   <tr key={v.id}>
                     <td>
-                      <Link href={`/painel/viaturas/${v.id}`} className="a-row-link">
+                      <Link href={`${SECTIONS[v.section].base}/${v.id}`} className="a-row-link">
                         {v.make} {v.model}
                       </Link>
                     </td>

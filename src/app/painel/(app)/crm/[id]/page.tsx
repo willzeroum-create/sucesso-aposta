@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SECTIONS } from "@/lib/sections";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
 import { ArrowLeft, Mail, MessageCircle, Phone } from "lucide-react";
@@ -75,13 +76,13 @@ export default async function LeadPage(props: PageProps<"/painel/crm/[id]">) {
                   Viatura de interesse
                 </span>
                 <p>
-                  <Link href={`/painel/viaturas/${vehicle.id}`} className="a-row-link" style={{ fontWeight: 600 }}>
+                  <Link href={`${SECTIONS[vehicle.section].base}/${vehicle.id}`} className="a-row-link" style={{ fontWeight: 600 }}>
                     {vehicle.make} {vehicle.model} {vehicle.version}
                   </Link>
                 </p>
               </div>
               <Plate value={vehicle.plate} />
-              {vehicle.priceEur && <span className="num">{eur.format(vehicle.priceEur)}</span>}
+              {vehicle.priceOnRequest ? <span>Sob consulta</span> : vehicle.priceEur ? <span className="num">{eur.format(vehicle.priceEur)}</span> : null}
             </section>
           )}
           <section className="a-card">

@@ -696,24 +696,24 @@
   background: var(--surface);
 }
 /* Duas colunas lado a lado no computador; uma por baixo da outra no telemóvel */
-.a-split {
+.a-halves {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 22px;
   align-items: start;
 }
-.a-split-col {
+.a-halves-col {
   display: grid;
   gap: 22px;
   min-width: 0;
 }
 @media (min-width: 1180px) {
-  .a-split {
+  .a-halves {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 @media (max-width: 1179px) {
-  .a-split-col.is-first-mobile {
+  .a-halves-col.is-first-mobile {
     order: -1;
   }
 }
@@ -1932,4 +1932,16 @@ a.a-stock-item:hover {
 }
 .a-costs-total .is-final dd {
   color: var(--accent);
+}
+
+/* No telemóvel os separadores (ex.: ficha da viatura) partem em linhas: todos ficam à vista */
+@media (max-width: 700px) {
+  .a-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .a-tabs a,
+  .a-tabs button {
+    padding: 9px 11px;
+  }
 }

@@ -98,67 +98,59 @@ export default async function VehiclesPage(props: PageProps<"/painel/viaturas">)
 
       <section className="a-card">
         {rows.length ? (
-          <div className="a-table-wrap">
-            <table className="a-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 80 }}>
-                    <span className="sr-only">Fotografia</span>
-                  </th>
-                  <th>Viatura</th>
-                  <th>Matrícula</th>
-                  <th>Estado</th>
-                  <th className="hide-sm right">Km</th>
-                  <th className="right">Preço</th>
-                  {showCosts && <th className="hide-sm right">Compra</th>}
-                  <th className="hide-sm right">Dias</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((v) => {
-                  const cover = coverOf(v);
-                  return (
-                    <tr key={v.id}>
-                      <td>
-                        {cover ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={cover} alt="" className="a-thumb" loading="lazy" />
-                        ) : (
-                          <span className="a-thumb-empty">
-                            <Car size={18} />
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <Link href={`/painel/viaturas/${v.id}`} className="a-row-link">
-                          {v.make} {v.model}
-                        </Link>
-                        <div className="muted" style={{ fontSize: 13 }}>
-                          {[v.version, v.year].filter(Boolean).join(" · ")}
-                        </div>
-                      </td>
-                      <td>
-                        <Plate value={v.plate} />
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                          <StatusPill status={v.status} />
-                          {v.published && v.status !== "preparation" && (
-                            <span title="Publicada no site" aria-label="Publicada no site" className="muted">
-                              <Globe size={15} />
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="hide-sm right num">{v.mileageKm != null ? int.format(v.mileageKm) : "—"}</td>
-                      <td className="right num">{v.status === "sold" && v.soldPriceEur ? eur.format(v.soldPriceEur) : v.priceOnRequest ? <span className="muted">Sob consulta</span> : v.priceEur ? eur.format(v.priceEur) : "—"}</td>
-                      {showCosts && <td className="hide-sm right num muted">{v.purchasePriceEur ? eur.format(v.purchasePriceEur) : "—"}</td>}
-                      <td className="hide-sm right num muted">{daysSince(v.status === "sold" && v.soldAt ? v.soldAt : v.createdAt)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          // Cartões (como no Estoque): fotografia, nome, matrícula, estado, km e preço — leem-se bem no telemóvel.
+          <div className="a-stock">
+            {rows.map((v) => {
+              const cover = coverOf(v);
+              const price = v.status === "sold" && v.soldPriceEur ? eur.format(v.soldPriceEur) : v.priceOnRequest ? "Sob consulta" : v.priceEur ? eur.format(v.priceEur) : "Sem preço";
+              return (
+                <Link key={v.id} href={`/painel/viaturas/${v.id}`} className="a-stock-item">
+                  <span className="a-stock-photo">
+                    {cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={cover} alt="" loading="lazy" />
+                    ) : (
+                      <Car size={22} />
+                    )}
+                  </span>
+                  <span className="a-stock-main">
+                    <span className="a-stock-title">
+                      <strong>
+                        {v.make} {v.model}
+                      </strong>
+                      {v.plate ? <Plate value={v.plate} /> : <span className="a-pill neutral">Sem matrícula</span>}
+                    </span>
+                    <small className="muted">{[v.version, v.year, v.mileageKm != null ? `${int.format(v.mileageKm)} km` : null].filter(Boolean).join(" · ")}</small>
+                    <span className="a-stock-tags">
+                      <StatusPill status={v.status} />
+                      {v.published && v.status !== "preparation" ? (
+                        <span className="a-pill plain" title="Publicada no site">
+                          <Globe size={13} /> No site
+                        </span>
+                      ) : (
+                        <span className="a-pill neutral">Fora do site</span>
+                      )}
+                      {v.sourcePartner === "tampinha" && <span className="muted" style={{ fontSize: 12.5 }}>Tampinha Cars</span>}
+                      <span className="muted" style={{ fontSize: 12.5 }}>
+                        {daysSince(v.status === "sold" && v.soldAt ? v.soldAt : v.createdAt)} dias
+                      </span>
+                    </span>
+                  </span>
+                  <span className="a-stock-money">
+                    <span>
+                      <small>Preço</small>
+                      <strong>{price}</strong>
+                    </span>
+                    {showCosts && (
+                      <span>
+                        <small>Compra</small>
+                        <strong>{v.purchasePriceEur ? eur.format(v.purchasePriceEur) : "—"}</strong>
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="a-empty">

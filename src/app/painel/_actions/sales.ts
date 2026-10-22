@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, gt, lt, ne } from "drizzle-orm";
 import { z } from "zod";
-import { lisbonDate } from "@/lib/rentals";
+import { lisbonDate, lisbonDateTime } from "@/lib/rentals";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
 import { PLACEHOLDERS, TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
@@ -352,6 +352,17 @@ export async function completeSale(
     }
     if (input.mode === "rent" && input.rental) {
       const r = input.rental;
+      if (vehicle.status === "sold") throw new UserError("Esta viatura está vendida: não pode ser alugada.");
+      const startAt = lisbonDate(r.startDate, r.startTime);
+      const endAt = lisbonDate(r.endDate, r.endTime);
+      if (endAt <= startAt) throw new UserError("O fim do aluguer tem de ser depois do início.");
+      // Não alugar o mesmo carro duas vezes no mesmo período.
+      const [clash] = await db
+        .select({ id: schema.rentals.id, endAt: schema.rentals.endAt })
+        .from(schema.rentals)
+        .where(and(eq(schema.rentals.vehicleId, vehicleId), eq(schema.rentals.status, "active"), lt(schema.rentals.startAt, endAt), gt(schema.rentals.endAt, startAt)))
+        .limit(1);
+      if (clash) throw new UserError(`Esta viatura já está alugada nesse período (até ${lisbonDateTime(clash.endAt)}). Registe a devolução ou escolha outras datas.`);
       const rentalId = newId("rnt");
       await db.insert(schema.rentals).values({
         id: rentalId,

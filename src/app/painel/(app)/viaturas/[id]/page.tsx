@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { CONTRACT_STATUS_LABEL, money } from "@/lib/cobrancas";
+import { chargeContractsFor } from "@/server/cobrancas";
+import { notFound, redirect } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { ArrowLeft, Car, ExternalLink } from "lucide-react";
 import { db, schema } from "@/db";
@@ -24,6 +26,16 @@ import { SectionMover } from "@/components/painel/section-mover";
 import { RentalsCard } from "@/components/painel/rentals";
 import { vehicleRentals } from "@/server/rentals";
 
+/** Nomes dos campos para a ficha só de leitura (quem não pode editar). */
+const FIELD_LABEL: Record<string, string> = {
+  make: "Marca", model: "Modelo", version: "Versão", category: "Carroçaria", year: "Ano", mileageKm: "Quilómetros", fuel: "Combustível",
+  transmission: "Caixa", powerHp: "Potência (cv)", priceEur: "Preço de venda (€)", highlight: "Destaque", description: "Descrição",
+  plate: "Matrícula", vin: "VIN", color: "Cor", engineCc: "Cilindrada", doors: "Portas", seats: "Lugares", firstRegistration: "1.ª matrícula",
+  registrationDate: "Matrícula PT", registrationOwner: "Titular", vehicleType: "Tipo", homologation: "Homologação", grossWeightKg: "Peso bruto",
+  tareKg: "Tara", co2: "CO₂", nextInspection: "Próxima inspeção", internalNotes: "Notas internas", purchasePriceEur: "Preço de compra",
+  purchaseDate: "Data de compra", supplier: "Fornecedor",
+};
+
 const TABS = [
   { key: "dados", label: "Dados" },
   { key: "venda", label: "Venda" },
@@ -41,12 +53,19 @@ export async function generateMetadata(props: PageProps<"/painel/viaturas/[id]">
   return { title: v ? `${v.make} ${v.model}` : "Viatura" };
 }
 
-export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id]">) {
+/**
+ * Ficha da viatura. A mesma página serve "Viaturas" (carros do site) e "Estoque" (venda e aluguer):
+ * se a ligação apontar para a secção errada, reencaminha — assim qualquer link abre no sítio certo.
+ */
+export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id]"> & { stockRoute?: boolean }) {
   const user = await requirePagePermission("vehicles.view");
   const { id } = await props.params;
   const sp = await props.searchParams;
   const [v] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, id)).limit(1);
   if (!v) notFound();
+  const query = typeof sp.tab === "string" ? `?tab=${encodeURIComponent(sp.tab)}` : "";
+  if (!props.stockRoute && v.section !== "site") redirect(`/painel/estoque/${id}${query}`);
+  if (props.stockRoute && v.section === "site") redirect(`/painel/viaturas/${id}${query}`);
 
   const photos = await db
     .select({ id: schema.vehiclePhotos.id, alt: schema.vehiclePhotos.alt, key: schema.files.storageKey })
@@ -142,7 +161,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
       )}
 
       <nav className="a-tabs" aria-label="Secções da viatura">
-        {TABS.filter((t) => (t.key === "documentos" ? canDocs : t.key === "custos" ? canCosts : t.key === "termos" || t.key === "venda" || t.key === "aluguer" ? canForms : true)).map((t) => (
+        {TABS.filter((t) => (t.key === "documentos" ? canDocs : t.key === "custos" ? canCosts : t.key === "aluguer" ? canForms && can(user, "vehicles.status") : t.key === "termos" || t.key === "venda" ? canForms : true)).map((t) => (
           <Link key={t.key} href={`${base}?tab=${t.key}`} aria-current={tab === t.key ? "page" : undefined} scroll={false}>
             {t.label}
             {t.key === "fotos" && <span className="a-tab-count">{gallery.length}</span>}
@@ -156,9 +175,9 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         ) : (
           <section className="a-card a-card-pad">
             <dl className="a-dl">
-              {Object.entries(initial).filter(([, val]) => val).map(([k, val]) => (
+              {Object.entries(initial).filter(([k, val]) => val && k !== "priceOnRequest").map(([k, val]) => (
                 <div key={k} style={{ display: "contents" }}>
-                  <dt>{k}</dt>
+                  <dt>{FIELD_LABEL[k] ?? k}</dt>
                   <dd>{val}</dd>
                 </div>
               ))}
@@ -176,9 +195,11 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         <DocumentsPanel owner={{ type: "vehicle", id: v.id }} docs={await documentsFor("vehicle", v.id)} kinds={VEHICLE_DOCUMENT_KINDS} canUpload={can(user, "documents.upload")} />
       )}
 
+      {tab === "venda" && can(user, "billing.manage") && <ChargesForVehicle vehicleId={v.id} />}
+
       {tab === "aluguer" && <RentalsCard rentals={await vehicleRentals(v.id)} canEdit={can(user, "vehicles.status")} />}
 
-      {(tab === "venda" || tab === "aluguer") && canForms && (
+      {(tab === "venda" || (tab === "aluguer" && can(user, "vehicles.status"))) && canForms && (
         <SalePanel
           key={tab}
           mode={tab === "aluguer" ? "rent" : "sale"}
@@ -260,5 +281,38 @@ async function CostsCard({ vehicle, canEditPurchase }: { vehicle: typeof schema.
         purchaseDate: vehicle.purchaseDate,
       }}
     />
+  );
+}
+
+/** Na aba Venda: vendas a prestações deste carro e o atalho para criar uma (financiada pelo stand). */
+async function ChargesForVehicle({ vehicleId }: { vehicleId: string }) {
+  const contracts = await chargeContractsFor({ vehicleId });
+  return (
+    <section className="a-card">
+      <div className="a-card-head">
+        <div>
+          <h2>Venda a prestações</h2>
+          <p>Quando o próprio stand financia: dívida, prestações e cobranças pelo WhatsApp.</p>
+        </div>
+        <Link href={`/painel/cobrancas/nova?viatura=${vehicleId}`} className="a-btn a-btn-sm a-btn-primary">
+          Nova venda a prestações
+        </Link>
+      </div>
+      {contracts.length > 0 && (
+        <div className="a-docs">
+          {contracts.map((ch) => (
+            <Link key={ch.id} href={`/painel/cobrancas/${ch.id}`} className="a-doc" style={{ gridTemplateColumns: "minmax(0, 1fr) auto", color: "inherit", textDecoration: "none" }}>
+              <span style={{ minWidth: 0 }}>
+                <strong>{ch.customer.name}</strong>
+                <small style={{ display: "block" }}>
+                  Falta {money(ch.balance)} de {money(ch.toCollect)}
+                </small>
+              </span>
+              <span className={`a-pill ${ch.status === "atrasado" ? "danger" : ch.status === "quitado" ? "neutral" : "available"}`}>{CONTRACT_STATUS_LABEL[ch.status]}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

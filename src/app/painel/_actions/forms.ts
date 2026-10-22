@@ -6,7 +6,9 @@ import { z } from "zod";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
 import { TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
+import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
+import { removeFile } from "@/server/storage";
 import { buildValues, createFormDocument, getTemplates, missingValues } from "@/server/forms";
 import { run, UserError } from "@/server/action";
 
@@ -54,4 +56,22 @@ export async function generateForm(raw: z.input<typeof inputSchema>): Promise<Ac
     if (customer) revalidatePath(`/painel/clientes/${customer.id}`);
     return { id: doc.id, url: doc.url };
   }, "Documento gerado.");
+}
+
+/** Apaga um documento gerado (ex.: gerado por engano ou de teste) e o PDF/Word dele. */
+export async function deleteGeneratedForm(id: string): Promise<ActionResult> {
+  return run(async () => {
+    const user = await assertPermission("forms.generate");
+    const [f] = await db.select().from(schema.generatedForms).where(eq(schema.generatedForms.id, id)).limit(1);
+    if (!f) throw new UserError("Documento não encontrado.");
+    await db.delete(schema.generatedForms).where(eq(schema.generatedForms.id, id));
+    if (f.fileId) await removeFile(f.fileId);
+    await audit(user, { action: "form.delete", entityType: f.vehicleId ? "vehicle" : "customer", entityId: f.vehicleId ?? f.customerId, summary: `Apagou um documento gerado (${f.template})` });
+    revalidatePath("/painel/termos");
+    if (f.vehicleId) {
+      revalidatePath(`/painel/viaturas/${f.vehicleId}`);
+      revalidatePath(`/painel/estoque/${f.vehicleId}`);
+    }
+    if (f.customerId) revalidatePath(`/painel/clientes/${f.customerId}`);
+  }, "Documento apagado.");
 }

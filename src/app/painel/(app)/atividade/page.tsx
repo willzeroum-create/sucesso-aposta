@@ -15,12 +15,18 @@ const AREAS: Record<string, string> = {
   settings: "Configurações",
   hero: "Capas do site",
   template: "Modelos",
+  charge: "Cobranças",
+  legalization: "Modelo 9 e homologação",
+  registration: "Compra e venda",
 };
 
 const LINK: Record<string, (id: string) => string> = {
   vehicle: (id) => `/painel/viaturas/${id}`,
   customer: (id) => `/painel/clientes/${id}`,
   lead: (id) => `/painel/crm/${id}`,
+  charge: (id) => `/painel/cobrancas/${id}`,
+  legalization: (id) => `/painel/legalizacao/${id}`,
+  registration: (id) => `/painel/registo/${id}`,
 };
 
 const PAGE = 100;

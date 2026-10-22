@@ -22,7 +22,10 @@ export async function POST(req: Request, ctx: RouteContext<"/api/capture/[token]
     if (!limit.ok) throw new UserError("Demasiados envios. Gere outro código no computador.");
     const [file] = await readFiles(await req.formData(), "files", 1);
     const fileId = await storeCaptured(session, file);
-    if (session.ownerType === "vehicle" || session.ownerType === "photos") revalidatePath(`/painel/viaturas/${session.ownerId}`);
+    if ((session.ownerType === "vehicle" || session.ownerType === "photos") && session.ownerId) {
+      revalidatePath(`/painel/viaturas/${session.ownerId}`);
+      revalidatePath(`/painel/estoque/${session.ownerId}`);
+    }
     if (session.ownerType === "customer") revalidatePath(`/painel/clientes/${session.ownerId}`);
     return NextResponse.json({ ok: true, fileId, count: session.fileIds.length });
   } catch (e) {

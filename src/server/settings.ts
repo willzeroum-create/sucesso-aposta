@@ -84,6 +84,19 @@ export async function writeSetting(key: string, value: unknown, userId: string):
     .onConflictDoUpdate({ target: schema.settings.key, set: { value, updatedBy: userId, updatedAt: new Date() } });
 }
 
+/** Anúncios de parceiros apagados no painel: a sincronização não os volta a criar. */
+export async function getDeletedPartnerRefs(partner: string): Promise<string[]> {
+  const v = await read<Record<string, string[]>>("partner_deleted_refs", {});
+  return Array.isArray(v[partner]) ? v[partner] : [];
+}
+
+export async function addDeletedPartnerRef(partner: string, ref: string, userId: string): Promise<void> {
+  const v = await read<Record<string, string[]>>("partner_deleted_refs", {});
+  const list = new Set(Array.isArray(v[partner]) ? v[partner] : []);
+  list.add(ref);
+  await writeSetting("partner_deleted_refs", { ...v, [partner]: [...list] }, userId);
+}
+
 /** A única origem do SiteConfig público (o dashboard edita esta chave). */
 export function getSiteConfig(): Promise<SiteConfig> {
   return read<SiteConfig>("site", { ...demoSiteConfig, contacts: undefined });

@@ -476,8 +476,9 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
   const [more, setMore] = useState({ count: "1", firstDue: nextDue, every: currentInterval ?? "", amount: contract.unplanned ? String(contract.unplanned).replace(".", ",") : "" });
   const [notes, setNotes] = useState(contract.notes);
   const euros = (v: number) => (v ? String(v).replace(".", ",") : "");
-  const [vals, setVals] = useState({ sale: euros(contract.sale), down: euros(contract.down), debt: euros(contract.toCollect) });
-  const valsChanged = vals.sale !== euros(contract.sale) || vals.down !== euros(contract.down) || vals.debt !== euros(contract.toCollect);
+  const [vals, setVals] = useState({ sale: euros(contract.sale), down: euros(contract.down), debt: euros(contract.toCollect), delivery: contract.deliveryDate ?? "" });
+  const valsChanged =
+    vals.sale !== euros(contract.sale) || vals.down !== euros(contract.down) || vals.debt !== euros(contract.toCollect) || vals.delivery !== (contract.deliveryDate ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const refresh = (ok: boolean) => ok && router.refresh();
 
@@ -664,6 +665,9 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
           <Field label="Valor da dívida (€)" name="edit-debt" hint="Financiado pelo stand: é o que se cobra em prestações.">
             <input id="f-edit-debt" inputMode="decimal" value={vals.debt} onChange={(e) => setVals((v) => ({ ...v, debt: e.target.value }))} />
           </Field>
+          <Field label="Data de entrega" name="edit-delivery">
+            <input id="f-edit-delivery" type="date" value={vals.delivery} onChange={(e) => setVals((v) => ({ ...v, delivery: e.target.value }))} />
+          </Field>
         </div>
         <div>
           <button
@@ -671,7 +675,7 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
             className="a-btn a-btn-sm"
             disabled={pending || !valsChanged || !vals.sale || !vals.debt}
             onClick={async () =>
-              refresh((await run(() => updateChargeContract(contract.id, { sale: parseMoney(vals.sale), down: parseMoney(vals.down) || 0, debt: parseMoney(vals.debt) }))).ok)
+              refresh((await run(() => updateChargeContract(contract.id, { sale: parseMoney(vals.sale), down: parseMoney(vals.down) || 0, debt: parseMoney(vals.debt), deliveryDate: vals.delivery || null }))).ok)
             }
           >
             Guardar valores
