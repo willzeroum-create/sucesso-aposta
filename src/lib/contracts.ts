@@ -10,7 +10,8 @@ export interface Vehicle {
   version: string;
   category: VehicleCategory;
   year: number;
-  mileageKm: number;
+  /** null nas viaturas por encomenda (ainda não há uma unidade concreta). */
+  mileageKm: number | null;
   fuel: VehicleFuel;
   transmission: "automatic" | "manual";
   /** null quando a potência ainda não é conhecida (o site não mostra a linha). */
@@ -21,8 +22,10 @@ export interface Vehicle {
   imageAlt: string;
   highlight?: string;
   status: "available" | "reserved" | "sold";
+  /** Por encomenda: o stand procura/encomenda a unidade; "year" é o ano mínimo ("desde"). */
+  onOrder?: boolean;
   /** Todas as fotografias, pela ordem da galeria (a primeira é a capa). */
-  gallery?: { src: string; alt: string }[];
+  gallery?: { src: string; alt: string; credit?: string; creditUrl?: string }[];
   /** Lista de equipamento (ex.: "Apple CarPlay"). */
   features?: string[];
   description?: string;

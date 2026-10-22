@@ -157,13 +157,15 @@ function parseSite(value: unknown): SiteConfig {
   return result;
 }
 
-function optionalGallery(value: unknown, path: string): { src: string; alt: string }[] | undefined {
+function optionalGallery(value: unknown, path: string): { src: string; alt: string; credit?: string; creditUrl?: string }[] | undefined {
   if (value === undefined || value === null) return undefined;
   if (!Array.isArray(value) || value.length > 40)
     throw new CatalogLoadError(`Invalid catalogue field: ${path} must be a list (max 40).`);
   return value.map((item, i) => {
     const row = object(item, `${path}[${i}]`);
-    return { src: imageUrl(row.src, `${path}[${i}].src`), alt: text(row.alt, `${path}[${i}].alt`, 300) };
+    const credit = optionalText(row.credit, `${path}[${i}].credit`, 300);
+    const creditUrl = typeof row.creditUrl === "string" && /^https:\/\//.test(row.creditUrl) ? row.creditUrl.slice(0, 500) : undefined;
+    return { src: imageUrl(row.src, `${path}[${i}].src`), alt: text(row.alt, `${path}[${i}].alt`, 300), ...(credit ? { credit } : {}), ...(creditUrl ? { creditUrl } : {}) };
   });
 }
 
@@ -194,7 +196,7 @@ function parseVehicle(value: unknown, index: number): Vehicle {
       1900,
       new Date().getUTCFullYear() + 1,
     ),
-    mileageKm: number(row.mileageKm, `${path}.mileageKm`, 0, 2000000),
+    mileageKm: row.mileageKm === null || row.mileageKm === undefined ? null : number(row.mileageKm, `${path}.mileageKm`, 0, 2000000),
     fuel: member(
       row.fuel,
       ["petrol", "diesel", "hybrid", "electric"],
@@ -215,6 +217,7 @@ function parseVehicle(value: unknown, index: number): Vehicle {
       ["available", "reserved", "sold"],
       `${path}.status`,
     ),
+    ...(row.onOrder === true ? { onOrder: true } : {}),
     gallery: optionalGallery(row.gallery, `${path}.gallery`),
     features: optionalList(row.features, `${path}.features`),
     description: optionalText(row.description, `${path}.description`, 4000),

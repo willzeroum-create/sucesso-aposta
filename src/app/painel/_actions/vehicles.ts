@@ -30,6 +30,7 @@ const vehicleSchema = z.object({
   powerHp: optInt(1, 5000),
   priceEur: optMoney(),
   priceOnRequest: z.preprocess((v) => (v === undefined ? undefined : v === "1" || v === "on" || v === "true"), z.boolean().optional()),
+  onOrder: z.preprocess((v) => (v === undefined ? undefined : v === "1" || v === "on" || v === "true"), z.boolean().optional()),
   highlight: optText(120),
   description: optText(4000),
   plate: optText(20).transform((v) => (v ? formatPlate(v) : null)),
@@ -154,6 +155,7 @@ export async function updateVehicle(id: string, form: FormData): Promise<ActionR
     const data = vehicleSchema.parse(fromForm(form));
     if (!can(user, "vehicles.costs")) for (const k of COST_FIELDS) (data as Record<string, unknown>)[k] = before[k];
     data.priceOnRequest ??= before.priceOnRequest;
+    data.onOrder ??= before.onOrder;
     if (before.section === "site") assertPriceOrRequest(data.priceEur, data.priceOnRequest);
     await assertNoDuplicate(data.vin, data.plate, id);
     const slugChanged = before.make !== data.make || before.model !== data.model || before.version !== data.version;

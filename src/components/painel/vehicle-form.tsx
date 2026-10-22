@@ -362,6 +362,21 @@ export function VehicleForm({ id, initial, canCosts, section = "site" }: { id?: 
                 </span>
               </label>
               <input type="hidden" name="priceOnRequest" value={onRequest ? "1" : "0"} />
+              {section === "site" && (
+                <>
+                  <label className="a-check" style={{ marginTop: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={values.onOrder === "1"}
+                      onChange={(e) => setValues((v) => ({ ...v, onOrder: e.target.checked ? "1" : "0" }))}
+                    />
+                    <span>
+                      <strong>Por encomenda</strong> — não está no stand, mas encomendamos. No site aparece sem km e com “Desde {values.year || "ano"}”.
+                    </span>
+                  </label>
+                  <input type="hidden" name="onOrder" value={values.onOrder === "1" ? "1" : "0"} />
+                </>
+              )}
             </Field>
             {f("highlight", "Frase de destaque", { maxLength: 120, placeholder: "ex.: Um só dono, revisões na marca" })}
             <Field label="Descrição" name="description" error={errors.description} wide>

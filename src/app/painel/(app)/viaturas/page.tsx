@@ -130,6 +130,7 @@ export default async function VehiclesPage(props: PageProps<"/painel/viaturas">)
                       ) : (
                         <span className="a-pill neutral">Fora do site</span>
                       )}
+                      {v.onOrder && <span className="a-pill accent">Por encomenda</span>}
                       {v.sourcePartner === "tampinha" && <span className="muted" style={{ fontSize: 12.5 }}>Tampinha Cars</span>}
                       <span className="muted" style={{ fontSize: 12.5 }}>
                         {daysSince(v.status === "sold" && v.soldAt ? v.soldAt : v.createdAt)} dias

@@ -71,6 +71,13 @@
       "when": 1792597193719,
       "tag": "0009_estoque_aluguer",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792671129283,
+      "tag": "0010_por_encomenda",
+      "breakpoints": true
     }
   ]
 }

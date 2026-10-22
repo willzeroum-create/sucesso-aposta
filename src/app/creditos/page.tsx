@@ -1,11 +1,30 @@
 import Image from "next/image";
 import Link from "next/link";
+import { and, eq, isNotNull } from "drizzle-orm";
 import photos from "@/data/photo-credits.json";
+import { db, schema } from "@/db";
+import { publicUrl } from "@/server/storage";
 import styles from "./page.module.css";
 
 export const metadata = { title: "Fotografias e créditos | Aposta com Sucesso Cars" };
+export const dynamic = "force-dynamic";
 
-export default function PhotoCredits() {
+/** Fotografias de terceiros guardadas nas viaturas (ex.: viaturas por encomenda), com autor e licença. */
+async function vehiclePhotoCredits() {
+  try {
+    return await db
+      .select({ id: schema.vehiclePhotos.id, credit: schema.vehiclePhotos.credit, creditUrl: schema.vehiclePhotos.creditUrl, key: schema.files.storageKey, make: schema.vehicles.make, model: schema.vehicles.model, alt: schema.vehiclePhotos.alt })
+      .from(schema.vehiclePhotos)
+      .innerJoin(schema.files, eq(schema.files.id, schema.vehiclePhotos.fileId))
+      .innerJoin(schema.vehicles, eq(schema.vehicles.id, schema.vehiclePhotos.vehicleId))
+      .where(and(isNotNull(schema.vehiclePhotos.credit), eq(schema.vehicles.published, true), eq(schema.vehicles.section, "site")));
+  } catch {
+    return [];
+  }
+}
+
+export default async function PhotoCredits() {
+  const credits = await vehiclePhotoCredits();
   return (
     <main className={styles.page}>
       <Link href="/">← Voltar à coleção</Link>
@@ -14,10 +33,34 @@ export default function PhotoCredits() {
         Fotografias <em>com origem.</em>
       </h1>
       <p>
-        Esta coleção é demonstrativa. As fotografias de referência mostram
-        unidades semelhantes; os preços, quilometragens e características são
-        fictícios e não constituem uma oferta de venda.
+        As viaturas em stock usam fotografias do próprio stand. As viaturas
+        marcadas <strong>“Por encomenda”</strong> e algumas imagens da página
+        usam fotografias de referência de terceiros, com licença livre: mostram
+        o modelo, não a unidade concreta que será encomendada.
       </p>
+      {credits.length > 0 && (
+        <div className={styles.grid}>
+          {credits.map((c) => (
+            <article key={c.id}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={publicUrl(c.key)} alt={c.alt || `${c.make} ${c.model}`} loading="lazy" style={{ width: "100%", height: "auto" }} />
+              <div>
+                <h2>
+                  {c.make} {c.model}
+                </h2>
+                <p>{c.credit}</p>
+                {c.creditUrl && (
+                  <p>
+                    <a href={c.creditUrl} target="_blank" rel="noreferrer">
+                      Fotografia original
+                    </a>
+                  </p>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
       <div className={styles.grid}>
         {photos.vehicles.map((photo) => (
           <article key={photo.id}>

@@ -88,7 +88,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
   const initial: Record<string, string> = Object.fromEntries(
     Object.entries({
       make: v.make, model: v.model, version: v.version, category: v.category, year: v.year, mileageKm: v.mileageKm, fuel: v.fuel,
-      transmission: v.transmission, powerHp: v.powerHp, priceEur: v.priceEur, priceOnRequest: v.priceOnRequest ? "1" : "0", highlight: v.highlight, description: v.description,
+      transmission: v.transmission, powerHp: v.powerHp, priceEur: v.priceEur, priceOnRequest: v.priceOnRequest ? "1" : "0", onOrder: v.onOrder ? "1" : "0", highlight: v.highlight, description: v.description,
       plate: v.plate, vin: v.vin, color: v.color, engineCc: v.engineCc, doors: v.doors, seats: v.seats, firstRegistration: v.firstRegistration,
       registrationDate: v.registrationDate, registrationOwner: v.registrationOwner, vehicleType: v.vehicleType, homologation: v.homologation,
       grossWeightKg: v.grossWeightKg, tareKg: v.tareKg, co2: v.co2, nextInspection: v.nextInspection, internalNotes: v.internalNotes,
@@ -175,7 +175,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         ) : (
           <section className="a-card a-card-pad">
             <dl className="a-dl">
-              {Object.entries(initial).filter(([k, val]) => val && k !== "priceOnRequest").map(([k, val]) => (
+              {Object.entries(initial).filter(([k, val]) => val && k !== "priceOnRequest" && k !== "onOrder").map(([k, val]) => (
                 <div key={k} style={{ display: "contents" }}>
                   <dt>{FIELD_LABEL[k] ?? k}</dt>
                   <dd>{val}</dd>

@@ -170,6 +170,8 @@ export const vehicles = pgTable(
     priceEur: doublePrecision("price_eur"),
     /** Onde a viatura vive no painel: viaturas do site, estoque interno ou frota de aluguer (estas nunca vão para o site). */
     section: text("section", { enum: ["site", "estoque", "aluguer"] }).notNull().default("site"),
+    /** Por encomenda: o stand não tem o carro, mas consegue encomendá-lo. No site: sem km, ano "desde". */
+    onOrder: boolean("on_order").notNull().default(false),
     /** Preço sob consulta: o site mostra "Preço sob consulta" e o preço não sai do painel. */
     priceOnRequest: boolean("price_on_request").notNull().default(false),
     highlight: text("highlight"),
@@ -235,6 +237,9 @@ export const vehiclePhotos = pgTable(
       .references(() => files.id),
     alt: text("alt").notNull().default(""),
     position: integer("position").notNull().default(0),
+    /** Crédito de fotografias de terceiros (ex.: "Autor · CC BY-SA 4.0 · Wikimedia Commons") e página original. */
+    credit: text("credit"),
+    creditUrl: text("credit_url"),
     createdAt: createdAt(),
   },
   (t) => [index("vehicle_photos_vehicle_idx").on(t.vehicleId, t.position)],

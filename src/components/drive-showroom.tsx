@@ -618,7 +618,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                       </div>
                       <div>
                         <dt>QUILÓMETROS</dt>
-                        <dd>{numeric.format(vehicle.mileageKm)}</dd>
+                        <dd>{vehicle.mileageKm !== null ? numeric.format(vehicle.mileageKm) : "Encomenda"}</dd>
                       </div>
                       <div>
                         <dt>MOTOR</dt>
@@ -972,7 +972,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                 { label: "ANO", value: detail.year },
                 {
                   label: "QUILÓMETROS",
-                  value: `${numeric.format(detail.mileageKm)} km`,
+                  value: detail.mileageKm !== null ? `${numeric.format(detail.mileageKm)} km` : "Por encomenda",
                 },
                 { label: "MOTOR", value: fuels[detail.fuel] },
                 { label: "POTÊNCIA", value: detail.powerHp ? `${detail.powerHp} cv` : "" },
@@ -1081,7 +1081,7 @@ export function DriveShowroom({ catalog }: { catalog: CatalogData }) {
                     {
                       label: "Quilómetros",
                       value: (v: Vehicle) =>
-                        `${numeric.format(v.mileageKm)} km`,
+                        v.mileageKm !== null ? `${numeric.format(v.mileageKm)} km` : "Por encomenda",
                     },
                     {
                       label: "Combustível",

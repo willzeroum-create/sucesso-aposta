@@ -618,7 +618,9 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                           : "Reservado"
                         : isIllustrative(vehicle)
                           ? "Exemplo de stock"
-                          : (vehicle.highlight ?? categories[vehicle.category])}
+                          : vehicle.onOrder
+                            ? "Por encomenda"
+                            : (vehicle.highlight ?? categories[vehicle.category])}
                     </span>
                     <button
                       className={`favorite-button ${favorites.includes(vehicle.id) ? "is-favorite" : ""}`}
@@ -657,8 +659,8 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                     </div>
                     <p className="vehicle-version">{vehicle.version}</p>
                     <div className="vehicle-specs">
-                      <span>{vehicle.year}</span>
-                      <span>{number.format(vehicle.mileageKm)} km</span>
+                      <span>{vehicle.onOrder ? `Desde ${vehicle.year}` : vehicle.year}</span>
+                      {vehicle.mileageKm !== null && <span>{number.format(vehicle.mileageKm)} km</span>}
                       <span>{fuels[vehicle.fuel]}</span>
                       <span>
                         {vehicle.transmission === "automatic"
@@ -1002,6 +1004,7 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                 sizes="(max-width: 750px) 95vw, 540px"
               />
               {isIllustrative(detail) && <span>FOTOGRAFIA DE REFERÊNCIA</span>}
+              {detail.onOrder && !isIllustrative(detail) && <span>FOTOGRAFIA ILUSTRATIVA</span>}
               {detailPhotos.length > 1 && (
                 <div
                   className="detail-gallery"
@@ -1034,12 +1037,14 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
               <dl className="detail-specs">
                 <div>
                   <dt>Ano</dt>
-                  <dd>{detail.year}</dd>
+                  <dd>{detail.onOrder ? `Desde ${detail.year}` : detail.year}</dd>
                 </div>
-                <div>
-                  <dt>Quilometragem</dt>
-                  <dd>{number.format(detail.mileageKm)} km</dd>
-                </div>
+                {detail.mileageKm !== null && (
+                  <div>
+                    <dt>Quilometragem</dt>
+                    <dd>{number.format(detail.mileageKm)} km</dd>
+                  </div>
+                )}
                 <div>
                   <dt>Combustível</dt>
                   <dd>{fuels[detail.fuel]}</dd>
@@ -1063,7 +1068,9 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                   <dd>
                     {isIllustrative(detail)
                       ? "Demonstrativo"
-                      : detail.status === "available"
+                      : detail.onOrder
+                        ? "Por encomenda"
+                        : detail.status === "available"
                         ? "Disponível"
                         : detail.status === "reserved"
                           ? "Reservado"
@@ -1071,6 +1078,12 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                   </dd>
                 </div>
               </dl>
+              {detail.onOrder && (
+                <p className="detail-description">
+                  <strong>Por encomenda.</strong> Não temos esta viatura parada no stand: procuramos e encomendamos a unidade
+                  certa para si (ano, versão, cor e quilometragem à sua medida). Fale connosco para saber prazos e preço.
+                </p>
+              )}
               {detail.description && (
                 <p className="detail-description">{detail.description}</p>
               )}
@@ -1088,6 +1101,18 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                 <p className="detail-disclaimer">
                   Exemplo de apresentação. Preço e características fictícios;
                   não corresponde a uma viatura disponível para venda.
+                </p>
+              )}
+              {detail.gallery?.[detailImage]?.credit && (
+                <p className="detail-photo-credit">
+                  Fotografia ilustrativa:{" "}
+                  {detail.gallery[detailImage].creditUrl ? (
+                    <a href={detail.gallery[detailImage].creditUrl} target="_blank" rel="noreferrer">
+                      {detail.gallery[detailImage].credit}
+                    </a>
+                  ) : (
+                    detail.gallery[detailImage].credit
+                  )}
                 </p>
               )}
               {detailReference && (

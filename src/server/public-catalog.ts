@@ -12,7 +12,7 @@ type VehicleRow = typeof schema.vehicles.$inferSelect;
 
 /** Campos obrigatórios para uma viatura poder aparecer no site (contrato Vehicle). */
 export function publicationGaps(
-  v: Pick<VehicleRow, "year" | "mileageKm" | "fuel" | "transmission" | "powerHp" | "priceEur" | "make" | "model" | "version"> & { priceOnRequest?: boolean | null },
+  v: Pick<VehicleRow, "year" | "mileageKm" | "fuel" | "transmission" | "powerHp" | "priceEur" | "make" | "model" | "version"> & { priceOnRequest?: boolean | null; onOrder?: boolean | null },
   hasCover: boolean,
 ): string[] {
   const gaps: string[] = [];
@@ -20,7 +20,7 @@ export function publicationGaps(
   if (!v.model?.trim()) gaps.push("modelo");
   if (!v.version?.trim()) gaps.push("versão");
   if (!v.year) gaps.push("ano");
-  if (v.mileageKm === null || v.mileageKm === undefined) gaps.push("quilómetros");
+  if (!v.onOrder && (v.mileageKm === null || v.mileageKm === undefined)) gaps.push("quilómetros");
   if (!v.fuel) gaps.push("combustível");
   if (!v.transmission) gaps.push("caixa");
   if (!v.priceEur && !v.priceOnRequest) gaps.push("preço");
@@ -44,7 +44,7 @@ export async function buildPublicCatalog(): Promise<PublicCatalogPayload> {
   const ids = rows.map((r) => r.id);
   const photos = ids.length
     ? await db
-        .select({ id: schema.vehiclePhotos.id, vehicleId: schema.vehiclePhotos.vehicleId, alt: schema.vehiclePhotos.alt, position: schema.vehiclePhotos.position, key: schema.files.storageKey })
+        .select({ id: schema.vehiclePhotos.id, vehicleId: schema.vehiclePhotos.vehicleId, alt: schema.vehiclePhotos.alt, position: schema.vehiclePhotos.position, key: schema.files.storageKey, credit: schema.vehiclePhotos.credit, creditUrl: schema.vehiclePhotos.creditUrl })
         .from(schema.vehiclePhotos)
         .innerJoin(schema.files, eq(schema.files.id, schema.vehiclePhotos.fileId))
         .where(inArray(schema.vehiclePhotos.vehicleId, ids))
@@ -66,7 +66,7 @@ export async function buildPublicCatalog(): Promise<PublicCatalogPayload> {
       version: v.version,
       category: v.category,
       year: v.year!,
-      mileageKm: v.mileageKm!,
+      mileageKm: v.onOrder ? null : v.mileageKm!,
       fuel: v.fuel!,
       transmission: v.transmission!,
       powerHp: v.powerHp ?? null,
@@ -75,11 +75,17 @@ export async function buildPublicCatalog(): Promise<PublicCatalogPayload> {
       imageAlt: cover!.alt || `${v.make} ${v.model} ${v.version}`.trim(),
       ...(v.highlight ? { highlight: v.highlight } : {}),
       status: v.status as Vehicle["status"],
+      ...(v.onOrder ? { onOrder: true } : {}),
+      ...(own.length === 1 && cover!.credit
+        ? { gallery: [{ src: publicUrl(cover!.key), alt: cover!.alt || `${v.make} ${v.model}`, credit: cover!.credit, ...(cover!.creditUrl ? { creditUrl: cover!.creditUrl } : {}) }] }
+        : {}),
       ...(own.length > 1
         ? {
             gallery: [cover!, ...own.filter((p) => p.id !== cover!.id)].map((p) => ({
               src: publicUrl(p.key),
               alt: p.alt || `${v.make} ${v.model} ${v.version}`.trim(),
+              ...(p.credit ? { credit: p.credit } : {}),
+              ...(p.creditUrl ? { creditUrl: p.creditUrl } : {}),
             })),
           }
         : {}),
