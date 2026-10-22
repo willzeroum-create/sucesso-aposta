@@ -6,7 +6,8 @@ import { z } from "zod";
 import { lisbonDate, lisbonDateTime } from "@/lib/rentals";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
-import { PLACEHOLDERS, TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
+import { FIELD_LABEL as LABEL, OPTIONAL_FIELDS as OPTIONAL, fieldGroup, normalizeValues, sortFieldKeys, type ContractField } from "@/lib/contract-fields";
+import { TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
 import { formatPlate, formatPostalCodePt, isValidNif, normalizeDate, normalizeVin } from "@/lib/pt-validation";
 import { audit, diff } from "@/server/audit";
 import { assertPermission, can } from "@/server/auth/session";
@@ -73,13 +74,25 @@ const baseSchema = z
     deliveryKm: z.number().int().min(0).max(2_000_000).nullable(),
     place: z.string().trim().max(100),
     notes: z.string().trim().max(2000),
-    documents: z.array(z.enum(TEMPLATE_IDS as [TemplateId, ...TemplateId[]])).max(5),
+    documents: z.array(z.enum(TEMPLATE_IDS as [TemplateId, ...TemplateId[]])).max(6),
     customer: customerOverride.optional(),
     warranty: z
       .object({
         months: z.number().int().min(0).max(120).nullable().optional(),
         number: z.string().trim().max(60).optional(),
         extras: z.string().trim().max(600).optional(),
+      })
+      .optional(),
+    consignment: z
+      .object({
+        make: z.string().trim().max(60).optional(),
+        model: z.string().trim().max(80).optional(),
+        plate: z.string().trim().max(20).optional(),
+        year: z.number().int().min(1900).max(2100).nullable().optional(),
+        vin: z.string().trim().max(30).optional(),
+        km: z.number().int().min(0).max(2_000_000).nullable().optional(),
+        minPriceEur: z.number().min(0).max(10_000_000).nullable().optional(),
+        iban: z.string().trim().max(40).optional(),
       })
       .optional(),
     rental: z
@@ -116,24 +129,8 @@ const dealSchema = baseSchema.and(
 export type ReviewInput = z.input<typeof baseSchema>;
 export type SaleInput = z.input<typeof dealSchema>;
 
-/** Campos que podem ficar vazios; todos os outros são obrigatórios para gerar. */
-const OPTIONAL = new Set([
-  "venda.observacoes", "cliente.email", "cliente.telefone", "garantia.complementos", "garantia.numero", "empresa.instagram",
-  "viatura.versao", "empresa.representante", "empresa.cargo",
-]);
-const ORDER = PLACEHOLDERS.map((p) => p.key);
-const LABEL = Object.fromEntries(PLACEHOLDERS.map((p) => [p.key, p.label]));
-const groupOf = (key: string, mode: "sale" | "rent") =>
-  ({
-    empresa: mode === "rent" ? "Empresa (locador)" : "Empresa (vendedor)",
-    cliente: mode === "rent" ? "Locatário" : "Comprador",
-    viatura: "Viatura",
-    venda: mode === "rent" ? "Contrato" : "Venda",
-    garantia: "Garantia",
-    aluguer: "Aluguer",
-  })[key.split(".")[0]] ?? "Outros";
-
-export type ContractField = { key: string; label: string; group: string; value: string; required: boolean; savesTo: string | null };
+export type { ContractField };
+const groupOf = (key: string, mode: "sale" | "rent") => (key.startsWith("cliente.") && mode === "sale" ? "Comprador" : fieldGroup(key, mode));
 
 /** Onde cada campo é guardado quando a pessoa o completa (para não voltar a escrever). */
 const savesTo = (key: string): string | null => {
@@ -169,6 +166,7 @@ function context(input: z.infer<typeof baseSchema>) {
       mode: input.mode,
       warranty: input.warranty ? { months: input.warranty.months ?? 18, number: input.warranty.number, extras: input.warranty.extras, start: input.date, delivery: input.date } : undefined,
       rental: input.rental,
+      consignment: input.documents.includes("contrato_consignacao") ? input.consignment : undefined,
     },
   };
 }
@@ -190,9 +188,7 @@ export async function reviewSale(vehicleId: string, raw: ReviewInput): Promise<A
     const keys = new Set<string>();
     for (const t of input.documents) for (const k of await templateFieldKeys(t)) keys.add(k);
     keys.delete("documento.referencia");
-    const fields = [...keys]
-      .sort((a, b) => (ORDER.indexOf(a) === -1 ? 999 : ORDER.indexOf(a)) - (ORDER.indexOf(b) === -1 ? 999 : ORDER.indexOf(b)))
-      .map((key) => ({ key, label: LABEL[key] ?? key, group: groupOf(key, input.mode), value: values[key] ?? "", required: !OPTIONAL.has(key), savesTo: savesTo(key) }));
+    const fields = sortFieldKeys(keys).map((key) => ({ key, label: LABEL[key] ?? key, group: groupOf(key, input.mode), value: values[key] ?? "", required: !OPTIONAL.has(key), savesTo: savesTo(key) }));
     return { fields };
   });
 }
@@ -310,8 +306,9 @@ export async function completeSale(
 
     const { sale, ctx } = context(input);
     const before = await buildValues(customer, vehicle, sale, ctx);
-    const final = { ...before };
+    let final = { ...before };
     for (const [k, val] of Object.entries(input.values)) if (val.trim()) final[k] = val.trim();
+    final = normalizeValues(final);
 
     const keys = new Set<string>();
     for (const t of input.documents) for (const k of await templateFieldKeys(t)) keys.add(k);

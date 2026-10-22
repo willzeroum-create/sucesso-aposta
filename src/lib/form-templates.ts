@@ -1,10 +1,11 @@
 /**
  * Documentos gerados pelo painel (partilháveis com o cliente para pré-visualização).
  *
- * Venda  → Termo de garantia + Declaração de circulação (emitente: empresa de vendas).
+ * Venda  → Termo de garantia + Declaração de circulação (+ Contrato de consignação, quando o cliente deixa
+ *          o carro dele no stand para vender) (emitente: empresa de vendas).
  * Aluguer → Contrato de locação (emitente: empresa de aluguer).
  *
- * Estes três vêm em Word (src/server/templates/*.docx), recriados a partir dos documentos reais do stand,
+ * Estes quatro vêm em Word (src/server/templates/*.docx), recriados a partir dos documentos reais do stand,
  * com o mesmo texto e disposição; só mudam os campos {{...}}. O stand pode substituir cada um pelo seu
  * .docx final (com logótipo) em Configurações → Modelos de documentos. Os restantes são texto em PDF.
  */
@@ -12,6 +13,7 @@
 export type TemplateId =
   | "termo_garantia"
   | "declaracao_circulacao"
+  | "contrato_consignacao"
   | "contrato_locacao"
   | "declaracao_compra"
   | "ficha_cliente"
@@ -80,6 +82,15 @@ export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "viatura.categoria_pt", label: "Categoria" },
   { key: "viatura.tipo_pt", label: "Tipo de veículo" },
   { key: "viatura.lugares", label: "Lugares sentados" },
+  { key: "consignacao.marca", label: "Marca do carro em consignação" },
+  { key: "consignacao.modelo", label: "Modelo do carro em consignação" },
+  { key: "consignacao.matricula", label: "Matrícula do carro em consignação" },
+  { key: "consignacao.ano", label: "Ano do carro em consignação" },
+  { key: "consignacao.vin", label: "Nº de quadro (VIN) do carro em consignação" },
+  { key: "consignacao.km", label: "Quilometragem do carro em consignação" },
+  { key: "consignacao.preco_minimo", label: "Preço mínimo de venda" },
+  { key: "consignacao.preco_extenso", label: "Preço mínimo por extenso" },
+  { key: "consignacao.iban", label: "IBAN do consignante" },
   { key: "venda.preco", label: "Preço de venda" },
   { key: "venda.data", label: "Data" },
   { key: "venda.data_extenso", label: "Data por extenso" },
@@ -140,6 +151,19 @@ export const DEFAULT_TEMPLATES: Record<TemplateId, FormTemplate> = {
     body: "{{empresa.nome}}, com o NIF {{empresa.nipc}} e com a sede em {{empresa.morada}}, declara para os devidos efeitos ter vendido como intermediária a {{cliente.nome}} com {{cliente.documento}}, {{cliente.morada}}, a viatura usada abaixo.",
     table: VEHICLE_TABLE,
     signatures: ["{{empresa.nome}}"],
+  },
+  contrato_consignacao: {
+    id: "contrato_consignacao",
+    title: "Contrato de consignação",
+    description: "O cliente deixa o carro dele no stand para vendermos: preço mínimo (também por extenso), 90 dias e IBAN para o pagamento.",
+    needsCustomer: true,
+    needsVehicle: false,
+    mode: "sale",
+    body: `Contrato de consignação entre {{cliente.nome}}, NIF {{cliente.nif}}, {{cliente.morada}} (Consignante) e {{empresa.nome}}, NIF {{empresa.nipc}}, {{empresa.morada}} (Consignatário), para venda do veículo {{consignacao.marca}} {{consignacao.modelo}}, matrícula {{consignacao.matricula}}, pelo preço mínimo de {{consignacao.preco_minimo}} [{{consignacao.preco_extenso}}], durante 90 dias, com pagamento no momento da venda para o IBAN {{consignacao.iban}}.
+
+Feito e assinado em duplicado, em {{venda.local}}, aos {{venda.data_extenso}}.`,
+    table: [],
+    signatures: ["O Consignante", "O Consignatário"],
   },
   contrato_locacao: {
     id: "contrato_locacao",

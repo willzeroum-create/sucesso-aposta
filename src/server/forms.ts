@@ -2,6 +2,7 @@ import "server-only";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { eurosPorExtenso } from "@/lib/extenso";
 import { DEFAULT_TEMPLATES, fillPlaceholders, type FormTemplate, type TemplateId } from "@/lib/form-templates";
 import { formatDatePt, formatPlate } from "@/lib/pt-validation";
 import { getCompanyInfo } from "./settings";
@@ -72,6 +73,26 @@ export interface RentalInput {
   condition?: string;
 }
 
+/** Carro que o cliente deixa no stand para vender (Contrato de consignação). */
+export interface ConsignmentInput {
+  make?: string;
+  model?: string;
+  plate?: string;
+  year?: number | null;
+  vin?: string;
+  km?: number | null;
+  minPriceEur?: number | null;
+  iban?: string;
+}
+
+export type DocContext = { mode?: "sale" | "rent"; warranty?: WarrantyInput; rental?: RentalInput; consignment?: ConsignmentInput };
+
+/** "pt50000201231234567890154" → "PT50 0002 0123 1234 5678 9015 4". */
+export function formatIban(raw: string): string {
+  return raw.replace(/\s/g, "").toUpperCase().replace(/(.{4})(?=.)/g, "$1 ");
+}
+const int = new Intl.NumberFormat("pt-PT");
+
 export const DEFAULT_RENT_PAYMENT = "Pago por transferência bancária MBWAY/IBAN ou em dinheiro no ato da assinatura.";
 export const DEFAULT_RENT_CONDITION =
   "O veículo é entregue em bom estado de funcionamento, limpo e sem danos aparentes, salvo os desgastes normais já anotados em auto de vistoria próprio.";
@@ -100,7 +121,7 @@ export async function buildValues(
   customer: Customer | null,
   vehicle: VehicleRow | null,
   sale: SaleInput,
-  ctx: { mode?: "sale" | "rent"; warranty?: WarrantyInput; rental?: RentalInput } = {},
+  ctx: DocContext = {},
 ): Promise<Record<string, string>> {
   const mode = ctx.mode ?? "sale";
   const company = await getCompanyInfo(mode);
@@ -121,6 +142,7 @@ export async function buildValues(
   const wStart = w.start || date;
   const wMonths = w.months ?? 18;
   const r = ctx.rental ?? {};
+  const k = ctx.consignment ?? {};
 
   return {
     "empresa.nome": company.legalName,
@@ -181,6 +203,15 @@ export async function buildValues(
     "garantia.fim": wMonths ? dateDash(addMonths(wStart, wMonths)) : "",
     "garantia.entrega": dateDash(w.delivery || date),
     "garantia.complementos": w.extras?.trim() ?? "",
+    "consignacao.marca": k.make?.trim() ?? "",
+    "consignacao.modelo": k.model?.trim() ?? "",
+    "consignacao.matricula": k.plate?.trim() ? formatPlate(k.plate) : "",
+    "consignacao.ano": k.year ? String(k.year) : "",
+    "consignacao.vin": k.vin?.trim().toUpperCase() ?? "",
+    "consignacao.km": k.km != null ? `${int.format(k.km)} km` : "",
+    "consignacao.preco_minimo": k.minPriceEur ? eur.format(k.minPriceEur) : "",
+    "consignacao.preco_extenso": k.minPriceEur ? eurosPorExtenso(k.minPriceEur) : "",
+    "consignacao.iban": k.iban?.trim() ? formatIban(k.iban) : "",
     "aluguer.inicio": dateLong(r.startDate),
     "aluguer.inicio_hora": hourText(r.startTime),
     "aluguer.fim": dateLong(r.endDate),
@@ -343,7 +374,7 @@ export async function createFormDocument(
   vehicle: VehicleRow | null,
   sale: SaleInput,
   overrides: Record<string, string> = {},
-  ctx: { mode?: "sale" | "rent"; warranty?: WarrantyInput; rental?: RentalInput } = {},
+  ctx: DocContext = {},
 ): Promise<{ id: string; fileId: string; title: string; url: string; format: "docx" | "pdf" }> {
   const { getSiteConfig } = await import("./settings");
   const { storeGenerated } = await import("./storage");
@@ -358,7 +389,8 @@ export async function createFormDocument(
   const id = newId("frm");
   values["documento.referencia"] = id.slice(-10).toUpperCase();
   const site = await getSiteConfig();
-  const who = customer?.fullName ?? vehicle?.plate ?? id;
+  // Declarações avulsas não têm cliente/viatura registados: o nome vem dos dados escritos.
+  const who = customer?.fullName || values["cliente.nome"] || vehicle?.plate || values["viatura.matricula"] || values["consignacao.matricula"] || id;
   const wordTemplate = (await getTemplateFiles())[templateId as TemplateId];
   const bundled = wordTemplate ? null : await bundledDocx(templateId);
   let stored;

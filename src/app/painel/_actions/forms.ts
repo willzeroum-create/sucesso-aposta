@@ -67,7 +67,7 @@ export async function deleteGeneratedForm(id: string): Promise<ActionResult> {
     await db.delete(schema.generatedForms).where(eq(schema.generatedForms.id, id));
     if (f.fileId) await removeFile(f.fileId);
     await audit(user, { action: "form.delete", entityType: f.vehicleId ? "vehicle" : "customer", entityId: f.vehicleId ?? f.customerId, summary: `Apagou um documento gerado (${f.template})` });
-    revalidatePath("/painel/termos");
+    revalidatePath("/painel/declaracoes");
     if (f.vehicleId) {
       revalidatePath(`/painel/viaturas/${f.vehicleId}`);
       revalidatePath(`/painel/estoque/${f.vehicleId}`);

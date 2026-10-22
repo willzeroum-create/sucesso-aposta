@@ -58,7 +58,7 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
           {perms.vehicles && item("/painel/estoque", "Estoque", Warehouse)}
           {perms.vehicles && item("/painel/aluguer", "Aluguer", KeyRound)}
           {perms.customers && item("/painel/clientes", "Clientes", UserRound)}
-          {perms.forms && item("/painel/termos", "Termos e fichas", FileSignature)}
+          {perms.forms && item("/painel/declaracoes", "Declarações", FileSignature)}
           {perms.forms && item("/painel/legalizacao", "Modelo 9 e homologação", Stamp)}
           {perms.forms && item("/painel/registo", "Compra e venda", ArrowLeftRight)}
           {perms.billing && item("/painel/cobrancas", "Cobranças", Wallet)}

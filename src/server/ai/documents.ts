@@ -348,6 +348,31 @@ export async function readPersonDocuments(parts: AiPart[]): Promise<PersonPropos
   return normalizePersonExtraction(json);
 }
 
+/* ───────────── Declarações avulsas ───────────── */
+
+/**
+ * Página Declarações: uma só caixa recebe o documento do cliente e o da viatura (DUA) misturados.
+ * Lê com os dois leitores em paralelo e junta: "c.campo" = cliente, "v.campo" = viatura.
+ */
+export async function readDeclarationDocuments(parts: AiPart[]) {
+  if (!parts.length) throw new AiError("Envie pelo menos um ficheiro.", 400);
+  const [person, vehicle] = await Promise.all([readPersonDocuments(parts), readVehicleDocuments(parts)]);
+  const personFields = Object.entries(person.fields).filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== "");
+  const vehicleFields = Object.entries(vehicle.fields).filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== "");
+  const legible = person.legible || vehicle.legible;
+  // Avisos só de quem encontrou alguma coisa (o leitor da viatura não se queixa de um Cartão de Cidadão).
+  const warnings = [...(personFields.length ? person.warnings : []), ...(vehicleFields.length ? vehicle.warnings : [])];
+  if (!personFields.length && !vehicleFields.length) warnings.push(...[person.problem, vehicle.problem].filter((p): p is string => Boolean(p)));
+  return {
+    documents: [...new Set([...person.documents, ...vehicle.documents])],
+    legible,
+    problem: legible ? null : person.problem ?? vehicle.problem,
+    summary: [personFields.length ? person.summary : "", vehicleFields.length ? vehicle.summary : ""].filter(Boolean).join(". "),
+    fields: Object.fromEntries([...personFields.map(([k, v]) => [`c.${k}`, v]), ...vehicleFields.map(([k, v]) => [`v.${k}`, v])]) as Record<string, string | number>,
+    warnings: [...new Set(warnings)],
+  };
+}
+
 /* ───────────── Importação (Modelo 9 e homologação) ───────────── */
 
 const IMPORT_FIELDS = [

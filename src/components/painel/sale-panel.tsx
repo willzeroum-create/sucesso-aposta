@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ClipboardCheck, FileDown, Pencil, Search, UserPlus, Users } from "lucide-react";
 import { completeSale, dealCustomer, reviewSale, type ContractField } from "@/app/painel/_actions/sales";
 import { createCustomer } from "@/app/painel/_actions/customers";
+import { eurosPorExtenso, parseEuros } from "@/lib/extenso";
 import { isValidNif } from "@/lib/pt-validation";
 import { DEAL_DOCUMENTS, type DealMode, type TemplateId } from "@/lib/form-templates";
 import { AiReader, type FieldMeta } from "./ai-reader";
+import { ContractFields } from "./contract-fields";
 import { Alert, Field, Spinner, useAction } from "./ui";
 
 type CustomerOption = { id: string; fullName: string; nif: string | null; label: string };
@@ -46,6 +48,25 @@ const BUYER_FIELDS: [key: string, label: string, props?: React.InputHTMLAttribut
   ["country", "País"],
   ["phone", "Telefone", { type: "tel" }],
   ["email", "E-mail", { type: "email" }],
+];
+
+const CONSIGNMENT_FIELDS: FieldMeta[] = [
+  { key: "make", label: "Marca", important: true },
+  { key: "model", label: "Modelo", important: true },
+  { key: "plate", label: "Matrícula", important: true },
+  { key: "year", label: "Ano" },
+  { key: "vin", label: "Nº de quadro (VIN)", important: true },
+  { key: "mileageKm", label: "Quilómetros" },
+];
+const CONSIGNMENT_INPUTS: [key: string, label: string, props?: React.InputHTMLAttributes<HTMLInputElement>, wide?: boolean][] = [
+  ["make", "Marca *"],
+  ["model", "Modelo *"],
+  ["plate", "Matrícula *", { placeholder: "AA-00-BB" }],
+  ["year", "Ano *", { inputMode: "numeric", maxLength: 4 }],
+  ["vin", "Nº de quadro (VIN) *", { maxLength: 17 }],
+  ["mileageKm", "Quilómetros *", { inputMode: "numeric" }],
+  ["price", "Preço mínimo de venda (€) *", { inputMode: "decimal", placeholder: "ex.: 15000" }],
+  ["iban", "IBAN do cliente *", { placeholder: "PT50 …" }, true],
 ];
 
 const RENT_PAYMENT = "Pago por transferência bancária MBWAY/IBAN ou em dinheiro no ato da assinatura.";
@@ -110,6 +131,10 @@ export function SalePanel({
     paymentMethod: RENT_PAYMENT,
   });
   const [done, setDone] = useState<{ title: string; url: string; format: "docx" | "pdf" }[] | null>(null);
+  // Carro que o cliente deixa no stand para vender (Contrato de consignação).
+  const [consignment, setConsignment] = useState<Record<string, string>>({});
+  const withConsignment = docs.has("contrato_consignacao");
+  const consignmentPrice = parseEuros(consignment.price ?? "");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -166,7 +191,7 @@ export function SalePanel({
   const [edited, setEdited] = useState<Record<string, string>>({});
   const [saveToRecords, setSaveToRecords] = useState(true);
   const [saved, setSaved] = useState<string[]>([]);
-  const saleKey = JSON.stringify([customerId, buyer, sale, warranty, rental, [...docs].sort()]);
+  const saleKey = JSON.stringify([customerId, buyer, sale, warranty, rental, [...docs].sort(), withConsignment ? consignment : null]);
   // Qualquer alteração nos passos 1–3 obriga a rever de novo.
   useEffect(() => {
     setReview(null);
@@ -198,6 +223,20 @@ export function SalePanel({
     place: sale.place,
     notes: sale.notes,
     documents: [...docs],
+    ...(withConsignment
+      ? {
+          consignment: {
+            make: consignment.make ?? "",
+            model: consignment.model ?? "",
+            plate: consignment.plate ?? "",
+            year: Number(consignment.year?.replace(/\D/g, "")) || null,
+            vin: consignment.vin ?? "",
+            km: consignment.mileageKm?.trim() ? Number(consignment.mileageKm.replace(/\D/g, "")) : null,
+            minPriceEur: consignmentPrice,
+            iban: consignment.iban ?? "",
+          },
+        }
+      : {}),
   });
 
   async function prepare() {
@@ -522,6 +561,32 @@ export function SalePanel({
               </span>
             </label>
           ))}
+          {withConsignment && (
+            <div className="a-consign">
+              <AiReader
+                mode="vehicle"
+                target={{ ownerType: "none", kind: "dua" }}
+                fields={CONSIGNMENT_FIELDS}
+                current={consignment}
+                onApply={(found) => setConsignment((c) => ({ ...c, ...found }))}
+                title="Carro em consignação"
+                idSuffix="-consignacao"
+                intro="O carro que o cliente deixa no stand para vendermos. Fotografe o DUA para preencher a viatura, ou escreva abaixo."
+              />
+              <div className="a-fields">
+                {CONSIGNMENT_INPUTS.map(([k, label, props, wide]) => (
+                  <Field key={k} label={label} name={`cs-${k}`} wide={wide} hint={k === "price" ? (consignmentPrice ? eurosPorExtenso(consignmentPrice) : "Vai também por extenso no contrato.") : undefined}>
+                    <input
+                      id={`f-cs-${k}`}
+                      value={consignment[k] ?? ""}
+                      onChange={(e) => setConsignment((c) => ({ ...c, [k]: k === "plate" || k === "vin" || k === "iban" ? e.target.value.toUpperCase() : e.target.value }))}
+                      {...props}
+                    />
+                  </Field>
+                ))}
+              </div>
+            </div>
+          )}
           {!isRent && canMarkSold && (
             <label className="a-check" style={{ marginTop: 6, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
               <input type="checkbox" checked={markSold} onChange={(e) => setMarkSold(e.target.checked)} />
@@ -552,35 +617,7 @@ export function SalePanel({
             {missing.length > 0 ? <span className="a-pill danger">{missing.length} por preencher</span> : <span className="a-pill available">Completo</span>}
           </div>
           <div className="a-card-body" style={{ display: "grid", gap: 20 }}>
-            {[...new Set(review.map((f) => f.group))].map((group) => (
-              <fieldset key={group} className="a-fieldset">
-                <legend>{group}</legend>
-                <div className="a-fields">
-                  {review
-                    .filter((f) => f.group === group)
-                    .map((f) => {
-                      const v = valueOf(f);
-                      const empty = f.required && !v.trim();
-                      return (
-                        <div key={f.key} className={`a-field${f.key.endsWith("morada") || f.key === "venda.observacoes" || f.key === "viatura.modelo" ? " wide" : ""}`}>
-                          <label htmlFor={`c-${f.key}`}>
-                            {f.label}
-                            {f.required ? " *" : ""}
-                          </label>
-                          <input
-                            id={`c-${f.key}`}
-                            value={v}
-                            aria-invalid={empty || Boolean(errors[f.key])}
-                            onChange={(e) => setEdited((x) => ({ ...x, [f.key]: e.target.value }))}
-                            placeholder={/data|validade|nascimento|primeira/.test(f.key) ? "dd/mm/aaaa" : ""}
-                          />
-                          {errors[f.key] ? <span className="a-error">{errors[f.key]}</span> : empty ? <span className="a-error">Por preencher</span> : null}
-                        </div>
-                      );
-                    })}
-                </div>
-              </fieldset>
-            ))}
+            <ContractFields fields={review} edited={edited} onEdit={(patch) => setEdited((x) => ({ ...x, ...patch }))} errors={errors} />
             <label className="a-check">
               <input type="checkbox" checked={saveToRecords} onChange={(e) => setSaveToRecords(e.target.checked)} />
               <span>

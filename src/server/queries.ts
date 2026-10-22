@@ -32,6 +32,7 @@ export async function formHistory(filter: { vehicleId?: string; customerId?: str
       id: schema.generatedForms.id,
       template: schema.generatedForms.template,
       fileId: schema.generatedForms.fileId,
+      data: schema.generatedForms.data,
       createdAt: schema.generatedForms.createdAt,
       customer: schema.customers.fullName,
       make: schema.vehicles.make,
@@ -52,10 +53,24 @@ export async function formHistory(filter: { vehicleId?: string; customerId?: str
     )
     .orderBy(desc(schema.generatedForms.createdAt))
     .limit(filter.limit ?? 50);
+  // Declarações avulsas não têm cliente/viatura ligados: usa-se o que ficou escrito no documento.
+  const written = (d: unknown, k: string) => {
+    const v = (d as Record<string, unknown> | null)?.[k];
+    return typeof v === "string" && v.trim() && v !== "—" ? v.trim() : null;
+  };
   return rows.map((r) => ({
     id: r.id,
     title: templates[r.template as keyof typeof templates]?.title ?? LEGACY_TITLES[r.template] ?? r.template,
-    who: [r.customer, r.make ? `${r.make} ${r.model}${r.plate ? ` ${formatPlate(r.plate)}` : ""}` : null].filter(Boolean).join(" — "),
+    who: [
+      r.customer ?? written(r.data, "cliente.nome"),
+      r.make
+        ? `${r.make} ${r.model}${r.plate ? ` ${formatPlate(r.plate)}` : ""}`
+        : [written(r.data, "viatura.marca") ?? written(r.data, "consignacao.marca"), written(r.data, "viatura.modelo") ?? written(r.data, "consignacao.modelo"), written(r.data, "viatura.matricula") ?? written(r.data, "consignacao.matricula")]
+            .filter(Boolean)
+            .join(" ") || null,
+    ]
+      .filter(Boolean)
+      .join(" — "),
     createdAt: r.createdAt.toISOString(),
     fileId: r.fileId,
     by: r.by ?? "—",

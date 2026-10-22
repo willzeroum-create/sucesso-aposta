@@ -182,49 +182,57 @@ export function FormGenerator({
         </div>
       </section>
 
-      {history.length > 0 && (
-        <section className="a-card">
-          <div className="a-card-head">
-            <h2>Documentos gerados</h2>
-          </div>
-          <table className="a-table">
-            <tbody>
-              {history.map((h) => (
-                <tr key={h.id}>
-                  <td>
-                    <strong style={{ fontWeight: 600 }}>{h.title}</strong>
-                    <div className="muted" style={{ fontSize: 13 }}>
-                      {h.who}
-                    </div>
-                  </td>
-                  <td className="hide-sm muted" style={{ fontSize: 13 }}>
-                    {h.by} · {dateTime(h.createdAt)}
-                  </td>
-                  <td className="right" style={{ whiteSpace: "nowrap" }}>
-                    {h.fileId && (
-                      <a className="a-btn a-btn-sm" href={`/api/admin/files/${h.fileId}`} target="_blank" rel="noopener">
-                        Abrir
-                      </a>
-                    )}{" "}
-                    <button
-                      type="button"
-                      className="a-icon-btn"
-                      aria-label={`Apagar ${h.title}`}
-                      title="Apagar documento"
-                      onClick={async () => {
-                        if (!window.confirm(`Apagar “${h.title}”? Não dá para desfazer.`)) return;
-                        if ((await run(() => deleteGeneratedForm(h.id))).ok) router.refresh();
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
+      <GeneratedHistory history={history} />
     </div>
+  );
+}
+
+/** Lista dos documentos gerados, com abrir e apagar (Declarações, Termos da viatura). */
+export function GeneratedHistory({ history, title = "Documentos gerados" }: { history: GeneratedRow[]; title?: string }) {
+  const router = useRouter();
+  const { run } = useAction();
+  if (!history.length) return null;
+  return (
+    <section className="a-card">
+      <div className="a-card-head">
+        <h2>{title}</h2>
+      </div>
+      <table className="a-table">
+        <tbody>
+          {history.map((h) => (
+            <tr key={h.id}>
+              <td>
+                <strong style={{ fontWeight: 600 }}>{h.title}</strong>
+                <div className="muted" style={{ fontSize: 13 }}>
+                  {h.who}
+                </div>
+              </td>
+              <td className="hide-sm muted" style={{ fontSize: 13 }}>
+                {h.by} · {dateTime(h.createdAt)}
+              </td>
+              <td className="right" style={{ whiteSpace: "nowrap" }}>
+                {h.fileId && (
+                  <a className="a-btn a-btn-sm" href={`/api/admin/files/${h.fileId}`} target="_blank" rel="noopener">
+                    Abrir
+                  </a>
+                )}{" "}
+                <button
+                  type="button"
+                  className="a-icon-btn"
+                  aria-label={`Apagar ${h.title}`}
+                  title="Apagar documento"
+                  onClick={async () => {
+                    if (!window.confirm(`Apagar “${h.title}”? Não dá para desfazer.`)) return;
+                    if ((await run(() => deleteGeneratedForm(h.id))).ok) router.refresh();
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }

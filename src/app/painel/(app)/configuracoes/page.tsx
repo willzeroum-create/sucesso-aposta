@@ -44,7 +44,7 @@ export default async function SettingsPage() {
         <div className="a-card-head">
           <div>
             <h2>Empresa de vendas</h2>
-            <p>Emitente do termo de garantia e da declaração de circulação.</p>
+            <p>Emitente do termo de garantia, da declaração de circulação e do contrato de consignação.</p>
           </div>
         </div>
         <div className="a-card-body">
@@ -123,8 +123,8 @@ export default async function SettingsPage() {
             body={t.body}
             customized={customized.has(t.id)}
             word={wordFiles[t.id] ? { name: wordFiles[t.id]!.name, uploadedAt: wordFiles[t.id]!.uploadedAt, uploadedBy: wordFiles[t.id]!.uploadedBy, fields: wordFiles[t.id]!.fields } : null}
-            hasExample={["termo_garantia", "declaracao_circulacao", "contrato_locacao"].includes(t.id)}
-            open={["termo_garantia", "declaracao_circulacao", "contrato_locacao"].includes(t.id)}
+            hasExample={["termo_garantia", "declaracao_circulacao", "contrato_consignacao", "contrato_locacao"].includes(t.id)}
+            open={["termo_garantia", "declaracao_circulacao", "contrato_consignacao", "contrato_locacao"].includes(t.id)}
           />
         ))}
       </div>

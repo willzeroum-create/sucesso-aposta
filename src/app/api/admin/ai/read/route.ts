@@ -3,7 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { kindFromAi, DOCUMENT_KINDS } from "@/lib/document-kinds";
-import { readCarPhotos, readImportDocuments, readPartyDocuments, readPersonDocuments, readRequesterDocuments, readVehicleDocuments, prepareForAi } from "@/server/ai/documents";
+import { readCarPhotos, readDeclarationDocuments, readImportDocuments, readPartyDocuments, readPersonDocuments, readRequesterDocuments, readVehicleDocuments, prepareForAi } from "@/server/ai/documents";
 import { aiModelLabel } from "@/server/ai/provider";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
@@ -15,10 +15,10 @@ import { UserError } from "@/server/action";
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
 
-const MODE_LABEL = { vehicle: "viatura", person: "cliente", import: "importação", requester: "requerente", parties: "compra e venda", carphoto: "foto do carro" } as const;
+const MODE_LABEL = { vehicle: "viatura", person: "cliente", import: "importação", requester: "requerente", parties: "compra e venda", carphoto: "foto do carro", declaration: "declaração" } as const;
 
 const bodySchema = z.object({
-  mode: z.enum(["vehicle", "person", "import", "requester", "parties", "carphoto"]),
+  mode: z.enum(["vehicle", "person", "import", "requester", "parties", "carphoto", "declaration"]),
   fileIds: z.array(z.string().max(60)).min(1).max(8),
 });
 
@@ -52,6 +52,8 @@ export async function POST(req: Request) {
       const proposal =
         mode === "carphoto"
           ? await readCarPhotos(parts)
+          : mode === "declaration"
+          ? await readDeclarationDocuments(parts)
           : mode === "vehicle"
           ? await readVehicleDocuments(parts)
           : mode === "person"
