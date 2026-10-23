@@ -6,7 +6,7 @@ import { db, schema } from "@/db";
 import { publicUrl } from "@/server/storage";
 import styles from "./page.module.css";
 
-export const metadata = { title: "Fotografias e créditos | Aposta com Sucesso Cars" };
+export const metadata = { title: "Fotografias e créditos | Sucesso Promissor" };
 export const dynamic = "force-dynamic";
 
 /** Fotografias de terceiros guardadas nas viaturas (ex.: viaturas por encomenda), com autor e licença. */

@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Organização deste projeto
 
-- Nome: **Aposta com Sucesso Cars**. Frase da marca: "Mais que carros, grandes conquistas." O briefing original está em `codex part.txt`.
+- Nome: **Sucesso Promissor** (logótipo "SP" em public/brand). Frase da marca: "Mais que carros, grandes conquistas." O briefing original está em `codex part.txt`.
 - Identidade visual (20/10/2026): logo em `public/brand/` — `logo-original.jpg` (fonte), `logo-full.png` (transparente, para fundo claro), `logo-emblem.png` (só o "AS" com estrada e carro), `logo-wordmark.png` (nome + CARS + frase). Cores do logo: preto #111111, vermelho #C4120F, vermelho escuro #730A08, branco. Letra do nome: sem serifa geométrica, larga e pesada; "CARS" e a frase com letras muito espaçadas.
 - Codex é responsável pela landing; Claude continuará backend e dashboard.
 - O utilizador escolheu Editorial: `/` e `/conceito-a` usam a versão modernizada. Drive Studio permanece em `/conceito-b`. Consultar `docs/CONCEITOS.md`.

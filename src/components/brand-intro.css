@@ -20,7 +20,7 @@
   inset: 0;
   perspective: 360px;
   /* horizonte logo abaixo do nome: a estrada sai de baixo do logo */
-  perspective-origin: 50% calc(50% + min(27.5vw, 198px) + 10px);
+  perspective-origin: 50% calc(50% + min(23.3vw, 168px) + 10px);
   opacity: 0;
   animation: brand-road-in 0.9s ease-out forwards;
 }
@@ -96,7 +96,7 @@
 
 @media (max-width: 600px) {
   .brand-intro-stage { width: min(90vw, 440px); }
-  .brand-intro-road { perspective: 260px; perspective-origin: 50% calc(50% + min(28.8vw, 141px) + 8px); }
+  .brand-intro-road { perspective: 260px; perspective-origin: 50% calc(50% + min(24.3vw, 119px) + 8px); }
   .brand-intro-road > span { width: 84vw; margin-left: -42vw; }
 }
 @media (prefers-reduced-motion: reduce) {

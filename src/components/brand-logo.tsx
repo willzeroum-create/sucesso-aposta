@@ -1,9 +1,9 @@
 import { useId, type CSSProperties } from "react";
-import { EMBLEM_VIEWBOX, emblemOutlines } from "./brand-paths";
+import { EMBLEM_SIZE, EMBLEM_VIEWBOX, HEADLIGHTS, ROAD_AXIS, emblemOutlines } from "./brand-paths";
 import "./brand-logo.css";
 
 type BrandLogoProps = {
-  /** full: emblema + nome + frase · compact: emblema e nome numa linha · emblem: só o "AS". */
+  /** full: símbolo + nome + frase · compact: símbolo e nome em duas linhas ao lado · emblem: só o "SP". */
   variant?: "full" | "emblem" | "compact";
   /** Versão para fundo escuro (preto passa a creme, vermelho mantém-se). */
   dark?: boolean;
@@ -15,28 +15,30 @@ type BrandLogoProps = {
   className?: string;
 };
 
-/** Ordem e atraso (s) do desenho de cada contorno na entrada. */
+/** Ordem e atraso (s) do desenho de cada contorno na entrada: S, P, estrada e por fim o carro. */
 const DRAW: Record<string, { delay: number; red?: boolean }> = {
-  a: { delay: 0 },
-  stripe: { delay: 0.12, red: true },
-  s: { delay: 0.18, red: true },
-  road: { delay: 0.24 },
-  roof: { delay: 0.42 },
-  body: { delay: 0.5 },
-  spoiler: { delay: 0.62 },
-  light: { delay: 0.72, red: true },
+  s: { delay: 0 },
+  ptop: { delay: 0.1, red: true },
+  p: { delay: 0.16, red: true },
+  stripe: { delay: 0.26, red: true },
+  road: { delay: 0.32 },
+  roof: { delay: 0.46 },
+  body: { delay: 0.54 },
+  spoiler: { delay: 0.64 },
+  light: { delay: 0.74, red: true },
 };
 
-/** Eixo da estrada, do horizonte para quem vê (coordenadas do emblema). */
-const ROAD_AXIS = "M444 166 L313 289 L264 336 L195 403 L140 456";
+/** Eixo do risco vermelho ao lado da estrada (segunda luz, mais rápida). */
+const STRIPE_AXIS = "M560 190 L300 352 L20 516";
 const road = emblemOutlines.find((outline) => outline.part === "road")!.d;
-const lights = [
-  { cx: 478, cy: 339, rx: 96, ry: 40 },
-  { cx: 797, cy: 339, rx: 74, ry: 34 },
-];
+const stripe = emblemOutlines.find((outline) => outline.part === "stripe")!.d;
+
+/** Medidas das imagens do nome (public/brand). */
+const NAME_FULL = { width: 1418, height: 206 };
+const NAME_STACKED = { width: 756, height: 219 };
 
 /**
- * Logo "Aposta com Sucesso Cars": a imagem é o desenho original (fiel à marca);
+ * Logo "Sucesso Promissor": a imagem é o desenho original (fiel à marca);
  * por cima, uma camada SVG com os contornos traçados e os efeitos de luz.
  */
 export function BrandLogo({
@@ -44,7 +46,7 @@ export function BrandLogo({
   dark = false,
   animated = false,
   intro = false,
-  name = "Aposta com Sucesso Cars",
+  name = "Sucesso Promissor",
   className = "",
 }: BrandLogoProps) {
   const id = useId().replace(/[^\w-]/g, "");
@@ -52,7 +54,7 @@ export function BrandLogo({
   const size = variant === "compact" ? "-520" : "";
   const emblem = `/brand/logo-emblem${tone}${size}.webp`;
   const nameSrc = variant === "full" ? `/brand/logo-wordmark${tone}.webp` : `/brand/logo-name${tone}${size}.webp`;
-  const nameSize = variant === "full" ? { width: 1112, height: 218 } : { width: 1112, height: 163 };
+  const nameSize = variant === "full" ? NAME_FULL : NAME_STACKED;
   const mask = (src: string): CSSProperties => ({ WebkitMaskImage: `url(${src})`, maskImage: `url(${src})` });
   const eager = intro ? ({ loading: "eager", fetchPriority: "high" } as const) : {};
   const classes = [
@@ -68,7 +70,7 @@ export function BrandLogo({
     <span className={classes.filter(Boolean).join(" ")} role="img" aria-label={name}>
       <span className="brand-emblem">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={emblem} alt="" width={1017} height={453} decoding="async" draggable={false} {...eager} />
+        <img src={emblem} alt="" {...EMBLEM_SIZE} decoding="async" draggable={false} {...eager} />
         {intro && (
           <svg className="brand-draw" viewBox={EMBLEM_VIEWBOX} aria-hidden="true" focusable="false">
             {emblemOutlines.map((outline, index) => {
@@ -91,6 +93,9 @@ export function BrandLogo({
               <clipPath id={`${id}-road`}>
                 <path d={road} />
               </clipPath>
+              <clipPath id={`${id}-stripe`}>
+                <path d={stripe} />
+              </clipPath>
               <radialGradient id={`${id}-glow`}>
                 <stop offset="0" stopColor="#ff3a24" stopOpacity="1" />
                 <stop offset=".42" stopColor="#e3140f" stopOpacity=".5" />
@@ -109,7 +114,10 @@ export function BrandLogo({
               <path className="brand-streak brand-streak--glow" d={ROAD_AXIS} pathLength={1} filter={`url(#${id}-blur)`} />
               <path className="brand-streak" d={ROAD_AXIS} pathLength={1} />
             </g>
-            {lights.map((light, index) => (
+            <g clipPath={`url(#${id}-stripe)`}>
+              <path className="brand-streak brand-streak--stripe" d={STRIPE_AXIS} pathLength={1} filter={`url(#${id}-blur)`} />
+            </g>
+            {HEADLIGHTS.map((light, index) => (
               <g key={index} className="brand-light">
                 <ellipse className="brand-glow" {...light} fill={`url(#${id}-glow)`} />
                 <ellipse

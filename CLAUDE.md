@@ -23,7 +23,7 @@ Backend e painel implementados — ver `docs/PAINEL.md` (arquitetura, verificaç
 - Gerir configuração do stand, viaturas, fotografias, rascunhos e heroes publicados.
 - Implementar a geração de fundos apenas no servidor, a partir do dashboard autenticado, com revisão antes de publicação.
 
-O nome provisório é **Sucesso Aposta**. A configuração pública deve continuar a ter uma única origem: `SiteConfig`. Até à integração, os valores estão em `demoSiteConfig`. Não inventar telefone, email, morada, avaliações ou stock para preencher campos. Atualizar também os metadados SEO provisórios quando o negócio confirmar a identidade.
+O nome do stand é **Sucesso Promissor** (antes "Aposta com Sucesso Cars"; logótipo em `public/brand`). A configuração pública deve continuar a ter uma única origem: `SiteConfig`. Até à integração, os valores estão em `demoSiteConfig`. Não inventar telefone, email, morada, avaliações ou stock para preencher campos. Atualizar também os metadados SEO provisórios quando o negócio confirmar a identidade.
 
 ## Preservar a landing
 

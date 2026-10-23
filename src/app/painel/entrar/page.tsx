@@ -16,11 +16,11 @@ export default async function LoginPage(props: PageProps<"/painel/entrar">) {
       <div className="a-login-card">
         <div style={{ display: "grid", gap: 14, textAlign: "center" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="a-login-logo" src="/brand/logo-full.png" alt={site?.name ?? "Aposta com Sucesso Cars"} width={1112} height={710} />
+          <img className="a-login-logo" src="/brand/logo-full.png" alt={site?.name ?? "Sucesso Promissor"} width={1422} height={775} />
           <div>
             <h1>Painel do stand</h1>
             <p className="muted" style={{ fontSize: 14 }}>
-              {site?.name ?? "Aposta com Sucesso Cars"}
+              {site?.name ?? "Sucesso Promissor"}
             </p>
           </div>
         </div>

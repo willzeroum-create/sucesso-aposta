@@ -47,7 +47,7 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
         <Link href="/painel" className="a-brand">
           <span className="a-brand-mark" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-emblem-160.png" alt="" width={36} height={16} />
+            <img src="/brand/logo-emblem-160.png" alt="" width={36} height={14} />
           </span>
           <span className="a-brand-name">{standName}</span>
         </Link>
