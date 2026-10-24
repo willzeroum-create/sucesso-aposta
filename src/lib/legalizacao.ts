@@ -453,8 +453,7 @@ export const REGISTRATION_GROUPS: { title: string; hint?: string; fields: Regist
       { key: "imtService", label: "Serviço do IMT" },
       { key: "imtRequest", label: "Nº do processo no IMT" },
       { key: "imtFee", label: "Taxa paga (€)" },
-      { key: "inspectionNumber", label: "Nº do Modelo 112 (inspeção)" },
-      { key: "ptPlate", label: "Matrícula portuguesa", placeholder: "AA-00-BB" },
+      { key: "ptPlate", label: "Matrícula portuguesa", placeholder: "AA-00-BB", hint: "Passa também para a ficha do carro" },
       { key: "plateDate", label: "Matrícula atribuída em", type: "date" },
     ],
   },
@@ -476,5 +475,14 @@ export const REGISTRATION_GROUPS: { title: string; hint?: string; fields: Regist
 export function registoDeadline(plateDate: string | null | undefined): string | null {
   return validIso(plateDate) ? addDays(plateDate, REGISTO_DAYS) : null;
 }
-export const REGISTRATION_KEYS = REGISTRATION_GROUPS.flatMap((g) => g.fields.map((x) => x.key));
+/** Etapa 1: homologação no IMT e inspeção tipo B (Modelo 112). Depois de voltar da inspeção, o carro segue para a Alfândega. */
+export const INSPECTION_FIELDS: RegistrationField[] = [
+  { key: "homologationRequestedAt", label: "Homologação pedida em", type: "date" },
+  { key: "homologationApprovedAt", label: "Homologação aprovada em", type: "date" },
+  { key: "inspectionDate", label: "Inspeção tipo B feita em", type: "date" },
+  { key: "inspectionCenter", label: "Centro de inspeção" },
+  { key: "inspectionNumber", label: "Nº do Modelo 112", hint: "Válido 90 dias úteis" },
+];
+
+export const REGISTRATION_KEYS = [...REGISTRATION_GROUPS.flatMap((g) => g.fields.map((x) => x.key)), ...INSPECTION_FIELDS.map((x) => x.key)];
 export const regTypeLabel = (v: string | undefined) => optionLabel(REG_TYPES, v);

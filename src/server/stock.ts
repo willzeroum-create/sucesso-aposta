@@ -1,13 +1,19 @@
 import "server-only";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import type { Stage } from "@/lib/legalizacao";
+import type { SectionKey } from "@/lib/sections";
+import { legalizationStages } from "./legalization";
 import { activeRentalVehicleIds } from "./rentals";
 import { publicUrl } from "./storage";
 
 export type StockItem = {
   id: string;
-  /** Função do carro no estoque: venda ou aluguer. */
-  section: "estoque" | "aluguer";
+  /** Destino do carro: Venda (site), Aluguer ou Só estoque. */
+  section: SectionKey;
+  published: boolean;
+  /** Etapa da legalização, se o carro estiver a ser legalizado. */
+  legalization: Stage | null;
   make: string;
   model: string;
   version: string;
@@ -30,9 +36,9 @@ export type StockItem = {
   rented: boolean;
 };
 
-/** Viaturas do estoque interno, de venda e de aluguer (fora do site), com fotografia de capa, custos e se estão alugadas. */
+/** Todos os carros da casa (venda no site, aluguer e só estoque), com fotografia de capa, custos, legalização e se estão alugados. */
 export async function stockList(): Promise<StockItem[]> {
-  const rows = await db.select().from(schema.vehicles).where(inArray(schema.vehicles.section, ["estoque", "aluguer"])).orderBy(asc(schema.vehicles.createdAt));
+  const rows = await db.select().from(schema.vehicles).where(eq(schema.vehicles.onOrder, false)).orderBy(asc(schema.vehicles.createdAt));
   const ids = rows.map((r) => r.id);
   if (!ids.length) return [];
   const costs = await db
@@ -47,13 +53,16 @@ export async function stockList(): Promise<StockItem[]> {
     .where(inArray(schema.vehiclePhotos.vehicleId, ids))
     .orderBy(asc(schema.vehiclePhotos.position));
   const rented = await activeRentalVehicleIds();
+  const legal = await legalizationStages(ids);
   return rows.map((v) => {
     const own = photos.filter((p) => p.v === v.id);
     const cover = own.find((p) => p.id === v.coverPhotoId) ?? own[0];
     const c = costs.find((x) => x.v === v.id);
     return {
       id: v.id,
-      section: v.section === "aluguer" ? "aluguer" : "estoque",
+      section: v.section,
+      published: v.published,
+      legalization: legal.get(v.id) ?? null,
       make: v.make,
       model: v.model,
       version: v.version,

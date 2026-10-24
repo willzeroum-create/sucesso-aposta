@@ -12,6 +12,7 @@ import {
   davMissing,
   davSections,
   deadlineText,
+  INSPECTION_FIELDS,
   registoDeadline,
   STAGE_LABEL,
   STAGES,
@@ -208,7 +209,15 @@ export function LegalizationEditor({
   const nextStage = STAGES[Math.min(stageIndex(stage) + 1, STAGES.length - 1)];
   const stepState = (s: Stage) => (stageIndex(stage) > stageIndex(s) ? "done" : stage === s ? "now" : "todo");
   const stepNote: Record<Exclude<Stage, "concluido">, string> = {
-    modelo9: pdfUrl ? LEGALIZATION_STATUS[status] : missing.length ? `${missing.length} em falta` : "Pronto para gerar",
+    modelo9: registration.inspectionDate
+      ? "Inspeção feita"
+      : registration.homologationApprovedAt
+        ? "Homologação aprovada"
+        : pdfUrl
+          ? LEGALIZATION_STATUS[status]
+          : missing.length
+            ? `${missing.length} em falta`
+            : "Pronto para gerar",
     alfandega: customs.davNumber ? `DAV ${customs.davNumber}` : deadlineText(deadline),
     registo: registration.ptPlate ? `Matrícula ${registration.ptPlate}` : "Por fazer",
   };
@@ -488,6 +497,26 @@ export function LegalizationEditor({
                   Ainda não há fotografias. As que forem lidas nos passos 1 e 2 aparecem aqui.
                 </p>
               )}
+            </div>
+          </section>
+          <section className="a-card">
+            <div className="a-card-head">
+              <div>
+                <h2>5. Homologação e inspeção</h2>
+                <p>Quando o carro voltar da inspeção tipo B (Modelo 112), segue para a Alfândega.</p>
+              </div>
+              {stage === "modelo9" && registration.inspectionDate && (
+                <button type="button" className="a-btn a-btn-sm a-btn-primary" onClick={() => (setStage("alfandega"), goTab("alfandega"))}>
+                  Voltou da inspeção: ir para a Alfândega <ArrowRight size={15} />
+                </button>
+              )}
+            </div>
+            <div className="a-card-body a-fields">
+              {INSPECTION_FIELDS.map((f) => (
+                <Field key={f.key} label={f.label} name={`insp-${f.key}`} hint={f.hint}>
+                  <input id={`f-insp-${f.key}`} type={f.type === "date" ? "date" : "text"} value={registration[f.key] ?? ""} onChange={(e) => setReg(f.key, e.target.value)} />
+                </Field>
+              ))}
             </div>
           </section>
         </>

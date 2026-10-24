@@ -3,7 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Lock, Search, Save, Smartphone, Sparkles, X } from "lucide-react";
-import type { SectionKey } from "@/lib/sections";
+import { DESTINATIONS, type SectionKey } from "@/lib/sections";
+import { kindFromAi } from "@/lib/document-kinds";
 import { CaptureDialog, useIsDesktop } from "./capture-dialog";
 import { readWithAi, uploadLoosePhotos } from "./upload";
 import { createVehicle, lookupDutchPlateAction, lookupVinAction, updateVehicle } from "@/app/painel/_actions/vehicles";
@@ -155,9 +156,27 @@ function NewVehiclePhotos({
   );
 }
 
-export function VehicleForm({ id, initial, canCosts, section = "site" }: { id?: string; initial: VehicleValues; canCosts: boolean; section?: SectionKey }) {
+export function VehicleForm({
+  id,
+  initial,
+  canCosts,
+  section: savedSection = "site",
+  canLegalize = false,
+}: {
+  id?: string;
+  initial: VehicleValues;
+  canCosts: boolean;
+  section?: SectionKey;
+  /** Pode abrir a legalização logo ao dar entrada (permissão de documentos). */
+  canLegalize?: boolean;
+}) {
   const router = useRouter();
   const toast = useToast();
+  // Ao dar entrada escolhe-se o destino: Venda (site), Aluguer ou Só estoque.
+  const [dest, setDest] = useState<SectionKey>(savedSection);
+  const section = id ? savedSection : dest;
+  const [importLegal, setImportLegal] = useState(false);
+  const [attachKind, setAttachKind] = useState("outro");
   const [values, setValues] = useState<VehicleValues>(initial);
   const [suggested, setSuggested] = useState<Set<string>>(new Set());
   const [attach, setAttach] = useState<string[]>([]);
@@ -261,6 +280,13 @@ export function VehicleForm({ id, initial, canCosts, section = "site" }: { id?: 
         current={values}
         onApply={(v) => apply(v, false)}
         onUploaded={(ids) => setAttach((a) => [...a, ...ids])}
+        onRead={(p) => {
+          // Guarda os documentos da entrada já com o tipo certo (DUA, livrete estrangeiro, CoC, fatura).
+          const kinds = [...new Set(p.documents.map(kindFromAi))].filter((k) => k !== "outro");
+          const best = kinds.length === 1 ? kinds[0] : kinds.includes("livrete_estrangeiro") ? "livrete_estrangeiro" : kinds.includes("dua") ? "dua" : kinds[0];
+          if (best) setAttachKind(best);
+          if (kinds.includes("livrete_estrangeiro")) setImportLegal(true);
+        }}
         intro={
           id
             ? "Fotografe o DUA, livrete estrangeiro, CoC ou fatura. Os ficheiros ficam nos documentos da viatura."
@@ -280,7 +306,34 @@ export function VehicleForm({ id, initial, canCosts, section = "site" }: { id?: 
       )}
 
       <form className="a-card a-card-body a-form" onSubmit={submit} noValidate>
-        {!id && <input type="hidden" name="section" value={section} />}
+        {!id && (
+          <fieldset className="a-fieldset">
+            <legend>Para onde vai este carro?</legend>
+            <p>Todos ficam no Estoque, com os dados e os custos. O destino pode mudar-se depois na ficha.</p>
+            <div className="a-dest" role="radiogroup" aria-label="Destino do carro">
+              {DESTINATIONS.map((d) => (
+                <button key={d.key} type="button" role="radio" aria-checked={dest === d.key} className="a-dest-option" onClick={() => setDest(d.key)}>
+                  <strong>{d.label}</strong>
+                  <small>{d.hint}</small>
+                </button>
+              ))}
+            </div>
+            {canLegalize && (
+              <label className="a-check" style={{ marginTop: 12 }}>
+                <input type="checkbox" checked={importLegal} onChange={(e) => setImportLegal(e.target.checked)} />
+                <span>
+                  <strong>Carro importado — começar a legalização</strong>
+                  <span className="muted" style={{ display: "block", fontSize: 13 }}>
+                    Abre logo o processo (Modelo 9 e homologação → Alfândega → Registo inicial) com os documentos fotografados acima.
+                  </span>
+                </span>
+              </label>
+            )}
+            <input type="hidden" name="section" value={dest} />
+            <input type="hidden" name="importLegalization" value={importLegal ? "1" : "0"} />
+            <input type="hidden" name="attachKind" value={attachKind} />
+          </fieldset>
+        )}
         {!id && attach.length > 0 && <Alert kind="info">{attach.length} documento(s) serão anexados a esta viatura ao guardar.</Alert>}
         <fieldset className="a-fieldset">
           <legend>Identificação</legend>

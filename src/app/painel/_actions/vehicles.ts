@@ -14,6 +14,8 @@ import { removeFile } from "@/server/storage";
 import { lookupDutchPlate, lookupVin, type VinLookupResult, type VinFields } from "@/server/vin";
 import { optDate, optInt, optMoney, optText, reqText, run, UserError } from "@/server/action";
 import { isSection, SECTIONS, type SectionKey } from "@/lib/sections";
+import { DOCUMENT_KINDS } from "@/lib/document-kinds";
+import { createLegalization } from "@/server/legalization";
 import { addDeletedPartnerRef } from "@/server/settings";
 
 const STATUS_LABEL: Record<string, string> = { preparation: "Em preparação", available: "Disponível", reserved: "Reservado", sold: "Vendido" };
@@ -94,11 +96,19 @@ async function assertNoDuplicate(vin: string | null, plate: string | null, excep
  * Cria a viatura (sempre "Em preparação" e não publicada) na secção pedida, anexa documentos já carregados
  * e as fotografias da viatura enviadas antes de gravar (computador ou telemóvel).
  */
-export async function createVehicle(form: FormData, attachFileIds: string[] = [], photoFileIds: string[] = []): Promise<ActionResult<{ id: string; base: string }>> {
+export async function createVehicle(
+  form: FormData,
+  attachFileIds: string[] = [],
+  photoFileIds: string[] = [],
+): Promise<ActionResult<{ id: string; base: string; legalizationId: string | null }>> {
   return run(async () => {
     const user = await assertPermission("vehicles.edit");
     const raw = fromForm(form);
     const section: SectionKey = isSection(raw.section) ? raw.section : "site";
+    // Carro importado: abre já a legalização (Modelo 9 → Alfândega → Registo inicial) com os documentos da entrada.
+    const importLegalization = raw.importLegalization === "1";
+    if (importLegalization) await assertPermission("forms.generate");
+    const attachKind = typeof raw.attachKind === "string" && raw.attachKind in DOCUMENT_KINDS ? raw.attachKind : "outro";
     const data = vehicleSchema.parse(raw);
     if (!can(user, "vehicles.costs")) for (const k of COST_FIELDS) data[k] = null;
     if (section === "site") assertPriceOrRequest(data.priceEur, data.priceOnRequest ?? false);
@@ -129,8 +139,8 @@ export async function createVehicle(form: FormData, attachFileIds: string[] = []
         id: newId("doc"),
         ownerType: "vehicle",
         ownerId: id,
-        kind: f.mime === "application/pdf" ? "documento" : "documento",
-        label: f.originalName,
+        kind: attachKind,
+        label: DOCUMENT_KINDS[attachKind as keyof typeof DOCUMENT_KINDS],
         fileId: f.id,
         extractionStatus: "applied",
         uploadedBy: user.id,
@@ -142,8 +152,11 @@ export async function createVehicle(form: FormData, attachFileIds: string[] = []
       entityId: id,
       summary: `Deu entrada da viatura ${data.make} ${data.model}${data.plate ? ` (${data.plate})` : ""}${section !== "site" ? ` (${SECTIONS[section].short})` : ""}${cover ? ` com ${photoFiles.length} fotografia(s)` : ""}`,
     });
+    const legalizationId = importLegalization ? await createLegalization(user, { vehicleId: id }) : null;
     revalidatePath(SECTIONS[section].base);
-    return { id, base: SECTIONS[section].base };
+    revalidatePath("/painel/estoque");
+    if (legalizationId) revalidatePath("/painel/legalizacao");
+    return { id, base: SECTIONS[section].base, legalizationId };
   }, "Viatura criada.");
 }
 
@@ -206,7 +219,7 @@ export async function setVehicleSection(id: string, section: SectionKey): Promis
     for (const s of Object.values(SECTIONS)) revalidatePath(s.base);
     if (before.published) revalidatePath("/", "layout");
     return { base: SECTIONS[section].base };
-  }, "Função atualizada.");
+  }, "Destino atualizado.");
 }
 
 /** Estado comercial e publicação no site — a alteração reflete-se imediatamente no catálogo público. */
@@ -267,7 +280,11 @@ export async function deleteVehicle(id: string, confirmText: string): Promise<Ac
     await db.delete(schema.vehiclePhotos).where(eq(schema.vehiclePhotos.vehicleId, id));
     await db.delete(schema.documents).where(and(eq(schema.documents.ownerType, "vehicle"), eq(schema.documents.ownerId, id)));
     await db.delete(schema.vehicles).where(eq(schema.vehicles.id, id));
-    for (const f of [...photos.map((p) => p.fileId), ...docs.map((d) => d.fileId)]) await removeFile(f);
+    // Os documentos da entrada também estão na legalização do carro (mesmo ficheiro): só se apaga o ficheiro que já ninguém usa.
+    for (const f of [...new Set([...photos.map((p) => p.fileId), ...docs.map((d) => d.fileId)])]) {
+      const [stillUsed] = await db.select({ id: schema.documents.id }).from(schema.documents).where(eq(schema.documents.fileId, f)).limit(1);
+      if (!stillUsed) await removeFile(f);
+    }
     await audit(user, { action: "vehicle.delete", entityType: "vehicle", entityId: id, summary: `Apagou a viatura ${v.make} ${v.model}${v.plate ? ` (${v.plate})` : ""} com ${photos.length} fotografias e ${docs.length} documentos` });
     for (const s of Object.values(SECTIONS)) revalidatePath(s.base);
     revalidatePath("/painel/aluguer");

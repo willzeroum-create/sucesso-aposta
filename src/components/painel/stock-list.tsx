@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Car, Search } from "lucide-react";
 import { FUEL, VEHICLE_STATUS } from "@/lib/labels";
+import { STAGE_PILL, STAGE_SHORT } from "@/lib/legalizacao";
+import { SECTIONS } from "@/lib/sections";
 import type { StockItem } from "@/server/stock";
 import { Plate } from "./ui";
 
@@ -13,14 +15,18 @@ const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
 const days = (iso: string) => Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 86_400_000));
 
 const FILTERS = [
-  { key: "stock", label: "Em estoque" },
-  { key: "venda", label: "Venda" },
+  { key: "stock", label: "Todos" },
+  { key: "site", label: "Venda" },
   { key: "aluguer", label: "Aluguer" },
+  { key: "estoque", label: "Só estoque" },
+  { key: "legal", label: "Em legalização" },
   { key: "sold", label: "Vendidos" },
 ] as const;
 type FilterKey = (typeof FILTERS)[number]["key"];
 const inFilter = (v: StockItem, k: FilterKey) =>
-  k === "sold" ? v.status === "sold" : v.status !== "sold" && (k === "stock" || (k === "venda" ? v.section === "estoque" : v.section === "aluguer"));
+  k === "sold"
+    ? v.status === "sold"
+    : v.status !== "sold" && (k === "stock" || (k === "legal" ? v.legalization !== null && v.legalization !== "concluido" : v.section === k));
 
 /** Lista do estoque com pesquisa por marca, modelo, matrícula ou VIN, e totais de custo por carro. */
 export function StockList({ items, base, canCosts }: { items: StockItem[]; base: string; canCosts: boolean }) {
@@ -69,7 +75,7 @@ export function StockList({ items, base, canCosts }: { items: StockItem[]; base:
                       {v.make} {v.model}
                     </strong>
                     {v.plate ? <Plate value={v.plate} /> : <span className="a-pill neutral">Sem matrícula</span>}
-                    <span className="a-role">{v.section === "aluguer" ? "Aluguer" : "Venda"}</span>
+                    <span className="a-role">{SECTIONS[v.section].short}</span>
                   </span>
                   <small className="muted">
                     {[v.version, v.year, v.km != null ? `${int.format(v.km)} km` : null, v.fuel ? FUEL[v.fuel as keyof typeof FUEL] : null, v.color].filter(Boolean).join(" · ") || "Dados por completar"}
@@ -77,6 +83,8 @@ export function StockList({ items, base, canCosts }: { items: StockItem[]; base:
                   <span className="a-stock-tags">
                     <span className={`a-pill ${v.status}`}>{VEHICLE_STATUS[v.status].label}</span>
                     {v.rented && <span className="a-pill reserved">Alugado</span>}
+                    {v.section === "site" && v.status !== "sold" && <span className={`a-pill ${v.published ? "plain" : "neutral"}`}>{v.published ? "No site" : "Fora do site"}</span>}
+                    {v.legalization && v.legalization !== "concluido" && <span className={`a-pill ${STAGE_PILL[v.legalization]}`}>Legalização: {STAGE_SHORT[v.legalization]}</span>}
                     <span className="muted" style={{ fontSize: 12.5 }}>
                       {days(v.since)} dias em estoque · {v.photos} foto{v.photos === 1 ? "" : "s"}
                     </span>

@@ -119,7 +119,9 @@ export async function deleteDocument(documentId: string): Promise<ActionResult> 
     // Quem pode carregar documentos de uma viatura pode tirá-los; os do cliente pedem acesso à ficha.
     if (d.ownerType === "customer") await assertPermission("customers.edit");
     await db.delete(schema.documents).where(eq(schema.documents.id, documentId));
-    await removeFile(d.fileId);
+    // O mesmo ficheiro pode estar também na legalização do carro: só se apaga quando já ninguém o usa.
+    const [stillUsed] = await db.select({ id: schema.documents.id }).from(schema.documents).where(eq(schema.documents.fileId, d.fileId)).limit(1);
+    if (!stillUsed) await removeFile(d.fileId);
     await audit(user, { action: "document.delete", entityType: d.ownerType, entityId: d.ownerId, summary: `Apagou o documento "${d.label}"` });
     if (d.ownerType === "vehicle") {
       revalidatePath(`/painel/viaturas/${d.ownerId}`);

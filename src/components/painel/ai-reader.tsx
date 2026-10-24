@@ -39,6 +39,7 @@ export function AiReader({
   title,
   idSuffix = "",
   onProposal,
+  onRead,
 }: {
   mode: AiReadMode;
   target: { ownerType: "vehicle" | "customer" | "none"; ownerId?: string; kind: string };
@@ -53,6 +54,8 @@ export function AiReader({
   idSuffix?: string;
   /** Quem usa a caixa trata do resultado (ex.: compra e venda escolhe quem é comprador); não preenche campos. */
   onProposal?: (proposal: Proposal & Record<string, unknown>) => void;
+  /** Avisa o que foi lido (ex.: que documentos eram), sem mudar o preenchimento automático. */
+  onRead?: (proposal: Proposal) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
@@ -134,6 +137,7 @@ export function AiReader({
       setStage("reading");
       setProgress("A ler os documentos…");
       const { proposal: p, model: m } = await readWithAi<Proposal>(mode, ids);
+      onRead?.(p);
       if (onProposal) {
         onProposal(p as Proposal & Record<string, unknown>);
         setResult({ filled: [], conflicts: [], missing: [] });

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { CONTRACT_STATUS_LABEL, money } from "@/lib/cobrancas";
 import { chargeContractsFor } from "@/server/cobrancas";
 import { notFound, redirect } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
-import { ArrowLeft, Car, ExternalLink } from "lucide-react";
+import { and, asc, count, eq, sum } from "drizzle-orm";
+import { ArrowLeft, Car, ExternalLink, FileText, Stamp } from "lucide-react";
 import { db, schema } from "@/db";
 import { DocumentsPanel } from "@/components/painel/documents-panel";
 import { FormGenerator } from "@/components/painel/form-generator";
@@ -24,7 +24,11 @@ import { publicUrl } from "@/server/storage";
 import { SECTIONS } from "@/lib/sections";
 import { SectionMover } from "@/components/painel/section-mover";
 import { RentalsCard } from "@/components/painel/rentals";
-import { vehicleRentals } from "@/server/rentals";
+import { activeRentalVehicleIds, vehicleRentals } from "@/server/rentals";
+import { CarJourney } from "@/components/painel/car-journey";
+import { DOCUMENT_KINDS } from "@/lib/document-kinds";
+import { STAGE_LABEL } from "@/lib/legalizacao";
+import { isPtPlate, vehicleLegalization } from "@/server/legalization";
 
 /** Nomes dos campos para a ficha só de leitura (quem não pode editar). */
 const FIELD_LABEL: Record<string, string> = {
@@ -96,7 +100,17 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
     }).map(([k, val]) => [k, val === null || val === undefined ? "" : String(val)]),
   );
 
-  const margin = canCosts && v.purchasePriceEur ? (v.soldPriceEur ?? v.priceEur ?? 0) - v.purchasePriceEur : null;
+  // Margem = preço (ou valor da venda) − compra − custos; sem preço (sob consulta) não há margem a mostrar.
+  const [costTotal] = canCosts ? await db.select({ total: sum(schema.vehicleCosts.amountEur) }).from(schema.vehicleCosts).where(eq(schema.vehicleCosts.vehicleId, v.id)) : [];
+  const sellPrice = v.status === "sold" ? (v.soldPriceEur ?? v.priceEur) : v.priceOnRequest ? null : v.priceEur;
+  const margin = canCosts && v.purchasePriceEur && sellPrice ? sellPrice - v.purchasePriceEur - Number(costTotal?.total ?? 0) : null;
+  // Percurso do carro: entrada → preparação → legalização → destino.
+  const [docCount] = await db
+    .select({ n: count() })
+    .from(schema.documents)
+    .where(and(eq(schema.documents.ownerType, "vehicle"), eq(schema.documents.ownerId, v.id)));
+  const legalization = await vehicleLegalization(v.id);
+  const rented = (await activeRentalVehicleIds()).has(v.id);
 
   return (
     <div className="a-page">
@@ -120,7 +134,7 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
             <p className="muted">{[v.version, v.year, v.mileageKm != null ? `${int.format(v.mileageKm)} km` : null].filter(Boolean).join(" · ")}</p>
             <div className="a-meta">
               <Plate value={v.plate} large />
-              {v.section !== "site" && <span className="a-role">{v.section === "aluguer" ? "Aluguer" : "Venda"}</span>}
+              <span className="a-role">{sec.label}</span>
               {v.priceOnRequest && v.status !== "sold" ? (
                 <span className="a-price">Sob consulta</span>
               ) : v.priceEur ? (
@@ -140,6 +154,21 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
           </div>
         </div>
       </div>
+
+      <CarJourney
+        vehicleId={v.id}
+        base={base}
+        photos={gallery.length}
+        docs={Number(docCount?.n ?? 0)}
+        status={v.status}
+        section={v.section}
+        published={v.published}
+        gaps={gaps}
+        rented={rented}
+        ptPlate={isPtPlate(v.plate)}
+        legalization={legalization}
+        canLegalize={canForms}
+      />
 
       <StatusTrack
         vehicleId={v.id}
@@ -193,6 +222,45 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
 
       {tab === "documentos" && canDocs && (
         <DocumentsPanel owner={{ type: "vehicle", id: v.id }} docs={await documentsFor("vehicle", v.id)} kinds={VEHICLE_DOCUMENT_KINDS} canUpload={can(user, "documents.upload")} />
+      )}
+
+      {tab === "documentos" && canDocs && legalization && (
+        <section className="a-card">
+          <div className="a-card-head">
+            <div>
+              <h2 style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Stamp size={17} aria-hidden="true" /> Documentos da legalização
+              </h2>
+              <p>
+                {STAGE_LABEL[legalization.stage]} · Modelo 9, DAV, registo e o que foi juntado no processo.
+              </p>
+            </div>
+            <Link href={`/painel/legalizacao/${legalization.id}?etapa=documentos`} className="a-btn a-btn-sm">
+              Abrir legalização
+            </Link>
+          </div>
+          {legalization.docs.length ? (
+            <div className="a-docs">
+              {legalization.docs.map((d) => (
+                <a key={d.id} className="a-doc" href={`/api/admin/files/${d.fileId}`} target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "none" }}>
+                  <span className="a-doc-icon" aria-hidden="true">
+                    <FileText size={18} />
+                  </span>
+                  <span style={{ minWidth: 0 }}>
+                    <strong>{DOCUMENT_KINDS[d.kind as keyof typeof DOCUMENT_KINDS] ?? d.label}</strong>
+                    <small style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {d.name} · {dateTime(d.createdAt)}
+                    </small>
+                  </span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="a-empty">
+              <strong>Ainda sem documentos na legalização.</strong>
+            </div>
+          )}
+        </section>
       )}
 
       {tab === "venda" && can(user, "billing.manage") && <ChargesForVehicle vehicleId={v.id} />}

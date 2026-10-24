@@ -62,6 +62,11 @@ export default async function LegalizationPage(props: PageProps<"/painel/legaliz
             </span>
           </p>
         </div>
+        {row.vehicleId && (
+          <Link href={`/painel/estoque/${row.vehicleId}`} className="a-btn">
+            Ver o carro no estoque
+          </Link>
+        )}
       </div>
       <LegalizationEditor
         id={row.id}

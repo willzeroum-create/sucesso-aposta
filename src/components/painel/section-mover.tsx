@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { setVehicleSection } from "@/app/painel/_actions/vehicles";
-import { SECTIONS, type SectionKey } from "@/lib/sections";
+import { DESTINATIONS, SECTIONS, type SectionKey } from "@/lib/sections";
 import { Spinner, useAction } from "./ui";
 
 /**
- * Função do carro: no Estoque escolhe-se "Venda" ou "Aluguer" com um toque.
- * Também permite passar um carro do Estoque para as viaturas do site e vice-versa.
+ * Destino do carro, com um toque: Venda (vai para o site), Aluguer ou Só estoque (não vai para o site).
+ * Sair da Venda tira o carro do site.
  */
 export function SectionMover({ vehicleId, section }: { vehicleId: string; section: SectionKey }) {
   const router = useRouter();
@@ -21,31 +21,19 @@ export function SectionMover({ vehicleId, section }: { vehicleId: string; sectio
     else router.push(`${res.data.base}/${vehicleId}`);
   }
 
-  if (section === "site")
-    return (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", fontSize: 14 }}>
-        <span className="muted">Está nas viaturas do site.</span>
-        <button type="button" className="a-btn a-btn-sm" disabled={pending} onClick={() => move("estoque")}>
-          {pending ? <Spinner size={14} /> : null} Passar para o Estoque
-        </button>
-      </div>
-    );
-
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", fontSize: 14 }}>
-      <span style={{ fontWeight: 600 }}>Função:</span>
-      <div className="a-seg" role="group" aria-label="Função do carro no estoque">
-        <button type="button" aria-pressed={section === "estoque"} disabled={pending} onClick={() => move("estoque")}>
-          Venda
-        </button>
-        <button type="button" aria-pressed={section === "aluguer"} disabled={pending} onClick={() => move("aluguer")}>
-          Aluguer
-        </button>
+    <div style={{ display: "grid", gap: 6, minWidth: 0, flex: "1 1 320px" }}>
+      <span style={{ fontWeight: 600, fontSize: 14, display: "flex", gap: 8, alignItems: "center" }}>
+        Destino do carro {pending && <Spinner size={14} />}
+      </span>
+      <div className="a-dest" role="group" aria-label="Destino do carro">
+        {DESTINATIONS.map((d) => (
+          <button key={d.key} type="button" className="a-dest-option" aria-pressed={section === d.key} disabled={pending} onClick={() => move(d.key)}>
+            <strong>{d.label}</strong>
+            <small>{d.hint}</small>
+          </button>
+        ))}
       </div>
-      {pending && <Spinner size={14} />}
-      <button type="button" className="a-btn a-btn-sm a-btn-ghost" disabled={pending} onClick={() => move("site")}>
-        Pôr nas viaturas do site
-      </button>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { daysSince, eur, eur2, LEAD_INTENT, relative } from "@/lib/labels";
 import { SECTIONS } from "@/lib/sections";
 import { chargesOverview } from "@/server/cobrancas";
 import { rentalsOverview } from "@/server/rentals";
+import { legalCars } from "@/server/legalization";
 import { can, requireUser } from "@/server/auth/session";
 import { aiProvider } from "@/server/ai/provider";
 
@@ -31,12 +32,17 @@ export default async function Home() {
     reserved: count((c) => c.section === "site" && c.status === "reserved"),
   };
   const stock = {
-    sale: count((c) => c.section === "estoque" && c.status !== "sold"),
+    sale: count((c) => c.section === "site" && c.status !== "sold"),
     rent: count((c) => c.section === "aluguer" && c.status !== "sold"),
+    only: count((c) => c.section === "estoque" && c.status !== "sold"),
   };
   const soldTotal = count((c) => c.status === "sold");
   const rentals = seeVehicles ? (await rentalsOverview()).totals : null;
   const charges = can(user, "billing.manage") ? (await chargesOverview()).totals : null;
+  // Legalização: carros em curso e DAV perto do prazo de 20 dias úteis.
+  const legal = can(user, "forms.generate") ? await legalCars() : [];
+  const davRisk = legal.filter((c) => c.deadline.state === "atencao" || c.deadline.state === "atrasado");
+  const legalActive = legal.filter((c) => c.stage !== "concluido").length;
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -117,9 +123,9 @@ export default async function Home() {
           </Link>
           <Link href="/painel/estoque" className="a-stat">
             <span>Estoque</span>
-            <strong>{stock.sale + stock.rent}</strong>
+            <strong>{stock.sale + stock.rent + stock.only}</strong>
             <small>
-              {stock.sale} venda · {stock.rent} aluguer
+              {stock.sale} venda · {stock.rent} aluguer · {stock.only} só estoque
             </small>
           </Link>
           <Link href="/painel/aluguer" className="a-stat">
@@ -140,6 +146,18 @@ export default async function Home() {
           <CalendarClock size={18} />
           <p>
             <strong>Cobranças em atraso: {eur2.format(charges.late)}</strong> — abrir Cobranças para cobrar pelo WhatsApp.
+          </p>
+        </Link>
+      )}
+
+      {davRisk.length > 0 && (
+        <Link href="/painel/legalizacao?etapa=risco" className="a-alert a-alert-warn" style={{ color: "inherit", textDecoration: "none" }}>
+          <CalendarClock size={18} />
+          <p>
+            <strong>
+              {davRisk.length} DAV {davRisk.some((c) => c.deadline.state === "atrasado") ? "atrasada(s) ou " : ""}perto do prazo
+            </strong>{" "}
+            — {davRisk.map((c) => c.title).slice(0, 3).join(", ")}. Abrir a Legalização ({legalActive} carro{legalActive === 1 ? "" : "s"} em curso).
           </p>
         </Link>
       )}

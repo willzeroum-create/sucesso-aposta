@@ -7,25 +7,23 @@ import { z } from "zod";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
 import { DOCUMENT_KINDS } from "@/lib/document-kinds";
-import { clientToRequester, CUSTOMS_KEYS, REGISTRATION_KEYS, STAGE_LABEL, STAGES, type Stage } from "@/lib/legalizacao";
+import { CUSTOMS_KEYS, REGISTRATION_KEYS, STAGE_LABEL, STAGES, type Stage } from "@/lib/legalizacao";
 import {
-  categoriaPT,
   emptyRequester,
   emptyVehicle,
   LEGALIZATION_STATUS,
   modelo9Missing,
   REQUESTER_FIELDS,
-  tipoPT,
   VEHICLE_FIELDS,
   type Modelo9Requester,
   type Modelo9Vehicle,
 } from "@/lib/modelo9";
-import { formatPlate, formatPostalCodePt, isValidNif } from "@/lib/pt-validation";
+import { formatPlate, isValidNif } from "@/lib/pt-validation";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
 import { newId } from "@/server/ids";
+import { createLegalization, findOrCreateClient, isPtPlate, requesterToClient } from "@/server/legalization";
 import { fillModelo9, modelo9FileName } from "@/server/modelo9";
-import { getCompanyInfo } from "@/server/settings";
 import { removeFile, storeGenerated } from "@/server/storage";
 import { run, UserError } from "@/server/action";
 
@@ -57,9 +55,6 @@ const patchSchema = z.object({
 
 export type LegalizationPatch = z.input<typeof patchSchema>;
 
-const FUEL_PT = { petrol: "Gasolina", diesel: "Gasóleo", hybrid: "Híbrido", electric: "Elétrico" } as const;
-const isPtPlate = (plate: string) => /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/.test(formatPlate(plate));
-
 function revalidateLegalization(id: string, clientId?: string | null) {
   revalidatePath(`/painel/legalizacao/${id}`);
   revalidatePath("/painel/legalizacao");
@@ -67,90 +62,35 @@ function revalidateLegalization(id: string, clientId?: string | null) {
   if (clientId) revalidatePath(`/painel/legalizacao/clientes/${clientId}`);
 }
 
-async function companyRequester(): Promise<Modelo9Requester> {
-  const c = await getCompanyInfo("sale");
-  return { ...emptyRequester("empresa"), name: c.legalName, nif: c.nipc, certCode: c.certCode, address: c.address, postalCode: c.postalCode, city: c.city, email: c.email, phone: c.phone };
-}
-
-/** Os dados do requerente passam para a ficha do cliente (fica a "aprender" para o carro seguinte). */
-function requesterToClient(r: Partial<Modelo9Requester>) {
-  const nif = (r.nif ?? "").replace(/\D/g, "");
-  return {
-    kind: r.kind === "particular" ? ("particular" as const) : ("empresa" as const),
-    name: (r.name ?? "").replace(/\s+/g, " ").trim(),
-    nif: nif || null,
-    docNumber: r.docNumber?.trim() || null,
-    certCode: r.certCode?.trim() || null,
-    address: r.address?.trim() || null,
-    postalCode: r.postalCode?.trim() ? formatPostalCodePt(r.postalCode) : null,
-    city: r.city?.trim() || null,
-    email: r.email?.trim().toLowerCase() || null,
-    phone: r.phone?.trim() || null,
-  };
-}
-
-/** Encontra o cliente pelo NIF ou cria-o (requerente com nome e NIF válido). */
-async function findOrCreateClient(r: Partial<Modelo9Requester>, userId: string): Promise<string | null> {
-  const data = requesterToClient(r);
-  if (!data.name || !data.nif || !isValidNif(data.nif)) return null;
-  const [found] = await db.select({ id: schema.legalClients.id }).from(schema.legalClients).where(eq(schema.legalClients.nif, data.nif)).limit(1);
-  if (found) return found.id;
-  const id = newId("lcl");
-  await db.insert(schema.legalClients).values({ id, ...data, createdBy: userId });
-  return id;
-}
-
-/** Novo carro em legalização: do cliente escolhido (ou da empresa de vendas) e, se vier do stock, com os dados da viatura. */
+/** Novo carro em legalização: do cliente escolhido (ou da empresa de vendas) e, se vier do estoque, com os dados e documentos da viatura. */
 export async function newLegalization(form: FormData): Promise<void> {
   const user = await assertPermission("forms.generate");
   const vehicleId = String(form.get("vehicleId") ?? "").trim() || null;
   const clientId = String(form.get("clientId") ?? "").trim() || null;
   const stageRaw = String(form.get("stage") ?? "modelo9");
   const stage: Stage = (STAGES as readonly string[]).includes(stageRaw) ? (stageRaw as Stage) : "modelo9";
-  const vehicle = emptyVehicle();
-  if (vehicleId) {
-    const [v] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, vehicleId)).limit(1);
-    if (!v) throw new UserError("Viatura não encontrada.");
-    const j = (v.vehicleType ?? "").match(/\b([MN][1-3G]{1,2})\b/i)?.[1]?.toUpperCase() ?? "";
-    Object.assign(vehicle, {
-      make: v.make,
-      model: v.model,
-      version: v.version,
-      vin: v.vin ?? "",
-      foreignPlate: v.plate && !isPtPlate(v.plate) ? v.plate : "",
-      firstRegistration: v.firstRegistration ?? "",
-      homologation: v.homologation ?? "",
-      euCategory: j,
-      color: v.color ?? "",
-      fuel: v.fuel ? FUEL_PT[v.fuel] : "",
-      engineCc: v.engineCc ? String(v.engineCc) : "",
-      seats: v.seats ? String(v.seats) : "",
-      grossWeightKg: v.grossWeightKg ? String(v.grossWeightKg) : "",
-      tareKg: v.tareKg ? String(v.tareKg) : "",
-      co2: v.co2 ? String(v.co2) : "",
-    } satisfies Partial<Modelo9Vehicle>);
-    vehicle.category = categoriaPT(vehicle);
-    vehicle.purpose = tipoPT(vehicle);
-  }
-  let requester = await companyRequester();
-  if (clientId) {
-    const [c] = await db.select().from(schema.legalClients).where(eq(schema.legalClients.id, clientId)).limit(1);
-    if (!c) throw new UserError("Cliente não encontrado.");
-    requester = clientToRequester({ ...c, nif: c.nif ?? "", docNumber: c.docNumber ?? "", certCode: c.certCode ?? "", address: c.address ?? "", postalCode: c.postalCode ?? "", city: c.city ?? "", email: c.email ?? "", phone: c.phone ?? "", notes: "" });
-  }
-  const id = newId("leg");
-  await db.insert(schema.legalizations).values({
-    id,
-    vehicleId,
-    clientId: clientId ?? (await findOrCreateClient(requester, user.id)),
-    stage,
-    requester: { ...requester },
-    vehicle: { ...vehicle },
-    createdBy: user.id,
+  const id = await createLegalization(user, { vehicleId, clientId, stage }).catch((e: Error) => {
+    throw new UserError(e.message);
   });
-  await audit(user, { action: "legalization.create", entityType: "legalization", entityId: id, summary: `Abriu um processo de legalização (${STAGE_LABEL[stage]})` });
   revalidateLegalization(id, clientId);
+  if (vehicleId) revalidatePath(`/painel/estoque/${vehicleId}`);
   redirect(`/painel/legalizacao/${id}${stage === "modelo9" ? "" : `?etapa=${stage}`}`);
+}
+
+/** Ficha do carro → "Começar legalização" (se já houver, devolve a que existe). */
+export async function startVehicleLegalization(vehicleId: string): Promise<ActionResult<{ id: string }>> {
+  return run(async () => {
+    const user = await assertPermission("forms.generate");
+    const [v] = await db.select({ id: schema.vehicles.id }).from(schema.vehicles).where(eq(schema.vehicles.id, vehicleId)).limit(1);
+    if (!v) throw new UserError("Viatura não encontrada.");
+    const [existing] = await db.select({ id: schema.legalizations.id }).from(schema.legalizations).where(eq(schema.legalizations.vehicleId, vehicleId)).limit(1);
+    const id = existing?.id ?? (await createLegalization(user, { vehicleId }));
+    revalidateLegalization(id);
+    revalidatePath(`/painel/estoque/${vehicleId}`);
+    revalidatePath(`/painel/viaturas/${vehicleId}`);
+    revalidatePath("/painel/estoque");
+    return { id };
+  }, "Legalização aberta.");
 }
 
 /** Guarda o que foi escrito (o editor grava sozinho, aos poucos). */
@@ -203,6 +143,24 @@ export async function saveLegalization(id: string, raw: LegalizationPatch): Prom
       } else {
         clientId = await findOrCreateClient(req, user.id);
         if (clientId) next.clientId = clientId;
+      }
+    }
+    // Matrícula portuguesa do registo inicial → ficha do carro do estoque.
+    const vehicleId = next.vehicleId !== undefined ? next.vehicleId : row.vehicleId;
+    const ptPlate = patch.registration?.ptPlate?.trim() ? formatPlate(patch.registration.ptPlate) : "";
+    if (vehicleId && ptPlate && isPtPlate(ptPlate) && ptPlate !== formatPlate(row.registration?.ptPlate ?? "")) {
+      const [car] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, vehicleId)).limit(1);
+      const [taken] = await db.select({ id: schema.vehicles.id }).from(schema.vehicles).where(eq(schema.vehicles.plate, ptPlate)).limit(1);
+      if (car && car.plate !== ptPlate && (!taken || taken.id === car.id)) {
+        const reg = { ...row.registration, ...(patch.registration as Record<string, string>) };
+        await db
+          .update(schema.vehicles)
+          .set({ plate: ptPlate, registrationDate: reg.plateDate || car.registrationDate, registrationOwner: reg.holderName || car.registrationOwner, updatedAt: new Date() })
+          .where(eq(schema.vehicles.id, car.id));
+        await audit(user, { action: "vehicle.update", entityType: "vehicle", entityId: car.id, summary: `Matrícula portuguesa ${ptPlate} vinda do registo inicial (antes: ${car.plate ?? "sem matrícula"})` });
+        revalidatePath(`/painel/estoque/${car.id}`);
+        revalidatePath(`/painel/viaturas/${car.id}`);
+        revalidatePath("/painel/estoque");
       }
     }
     if (patch.status) next.status = patch.status;
