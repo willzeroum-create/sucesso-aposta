@@ -339,8 +339,8 @@ export function Declarations({
             <span className="a-decl-tag">
               <Stamp size={12} /> Página própria
             </span>
-            <strong>Modelo 9 e homologação</strong>
-            <small>Matrícula portuguesa para carros importados.</small>
+            <strong>Legalização (Modelo 9, DAV, registo inicial)</strong>
+            <small>Carros importados: do livrete estrangeiro à matrícula portuguesa.</small>
           </Link>
         </div>
       </section>

@@ -2067,3 +2067,172 @@ a.a-stock-item:hover {
     font-size: 12.5px;
   }
 }
+
+/* ───────── Legalização: etapas do carro ───────── */
+
+.a-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.a-step {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.a-step[aria-current="page"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.a-step-n {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.a-step[data-state="done"] .a-step-n {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.a-step[data-state="now"] .a-step-n {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.a-step strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.a-step small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.a-stage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+/* casas da DAV: código + rótulo + valor + copiar */
+.a-casa {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 16px;
+  border-top: 1px solid var(--line);
+}
+.a-casa > b {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.a-casa small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.a-casa strong {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.a-casa[data-missing="true"] strong {
+  color: var(--danger);
+}
+.a-casa-title {
+  padding: 12px 16px 6px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* lista de clientes com os carros sempre à vista */
+.a-client-group + .a-client-group {
+  margin-top: 4px;
+}
+.a-client-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 16px 8px;
+}
+.a-client-head a {
+  color: inherit;
+  font-weight: 650;
+  text-decoration: none;
+}
+.a-client-head a:hover {
+  text-decoration: underline;
+}
+.a-legal-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+.a-legal-row:hover {
+  background: var(--accent-soft);
+}
+.a-legal-row strong {
+  font-weight: 600;
+}
+.a-legal-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.a-legal-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+@media (max-width: 700px) {
+  .a-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .a-legal-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .a-legal-pills {
+    justify-content: flex-start;
+  }
+  .a-casa {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    padding: 9px 12px;
+  }
+}

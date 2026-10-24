@@ -16,7 +16,8 @@ const AREAS: Record<string, string> = {
   hero: "Capas do site",
   template: "Modelos",
   charge: "Cobranças",
-  legalization: "Modelo 9 e homologação",
+  legalization: "Legalização",
+  legal_client: "Clientes da legalização",
   registration: "Compra e venda",
 };
 
@@ -26,6 +27,7 @@ const LINK: Record<string, (id: string) => string> = {
   lead: (id) => `/painel/crm/${id}`,
   charge: (id) => `/painel/cobrancas/${id}`,
   legalization: (id) => `/painel/legalizacao/${id}`,
+  legal_client: (id) => `/painel/legalizacao/clientes/${id}`,
   registration: (id) => `/painel/registo/${id}`,
 };
 

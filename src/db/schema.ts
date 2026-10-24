@@ -348,7 +348,8 @@ export const documents = pgTable(
   "documents",
   {
     id: text("id").primaryKey(),
-    ownerType: text("owner_type", { enum: ["vehicle", "customer"] }).notNull(),
+    /** legalization = documentos de um carro em legalização (Modelo 9, DAV, registo inicial…). */
+    ownerType: text("owner_type", { enum: ["vehicle", "customer", "legalization"] }).notNull(),
     ownerId: text("owner_id").notNull(),
     kind: text("kind").notNull(),
     label: text("label").notNull(),
@@ -421,7 +422,38 @@ export const rentals = pgTable(
   (t) => [index("rentals_vehicle_idx").on(t.vehicleId, t.startAt)],
 );
 
-/** Legalização de carros importados: Modelo 9 do IMT e pedido de homologação. */
+/**
+ * Clientes da legalização (como no LegalCar): empresa ou particular em nome de quem os carros importados
+ * ficam registados (ex.: Sucesso Prudente). Cada cliente tem os carros que já legalizou.
+ */
+export const legalClients = pgTable(
+  "legal_clients",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind", { enum: ["empresa", "particular"] }).notNull().default("empresa"),
+    name: text("name").notNull(),
+    nif: text("nif"),
+    /** Particular: nº do Cartão de Cidadão / passaporte. */
+    docNumber: text("doc_number"),
+    /** Empresa: código de acesso à certidão permanente. */
+    certCode: text("cert_code"),
+    address: text("address"),
+    postalCode: text("postal_code"),
+    city: text("city"),
+    email: text("email"),
+    phone: text("phone"),
+    notes: text("notes"),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("legal_clients_name_idx").on(t.name), index("legal_clients_nif_idx").on(t.nif)],
+);
+
+/**
+ * Legalização de um carro importado, em 3 etapas: Modelo 9 e homologação → Alfândega (DAV) → Registo inicial.
+ * Os documentos do carro ficam em `documents` com owner_type "legalization".
+ */
 export const legalizations = pgTable(
   "legalizations",
   {
@@ -429,6 +461,15 @@ export const legalizations = pgTable(
     /** Viatura do stock a que o processo diz respeito (opcional). */
     vehicleId: text("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
     customerId: text("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    clientId: text("client_id").references(() => legalClients.id, { onDelete: "set null" }),
+    /** Etapa em que o carro está (ver src/lib/legalizacao.ts). */
+    stage: text("stage", { enum: ["modelo9", "alfandega", "registo", "concluido"] }).notNull().default("modelo9"),
+    /** Data de entrada em Portugal (AAAA-MM-DD): conta o prazo de 20 dias úteis da DAV. */
+    entryDate: text("entry_date"),
+    /** Dados da Alfândega (DAV) que não vêm do livrete: fatura, transporte, opções e resultado. */
+    customs: jsonb("customs").$type<Record<string, string>>().notNull().default({}),
+    /** Registo inicial: entrega no IMT, matrícula portuguesa e registo de propriedade. */
+    registration: jsonb("registration").$type<Record<string, string>>().notNull().default({}),
     requester: jsonb("requester").$type<Record<string, string>>().notNull().default({}),
     vehicle: jsonb("vehicle").$type<Record<string, string>>().notNull().default({}),
     /** Fotografias/PDF dos documentos (livrete estrangeiro, CoC, documentos do requerente). */
@@ -440,7 +481,7 @@ export const legalizations = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("legalizations_updated_idx").on(t.updatedAt)],
+  (t) => [index("legalizations_updated_idx").on(t.updatedAt), index("legalizations_client_idx").on(t.clientId), index("legalizations_stage_idx").on(t.stage)],
 );
 
 /** Custos de cada viatura (transporte, legalização, reparações…) para a ficha financeira. */

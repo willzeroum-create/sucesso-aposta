@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
-  Activity, ArrowLeftRight, Car, KeyRound, Warehouse, FileSignature, Globe, Home, LogOut, Megaphone, Menu, Moon, Settings, Stamp, Sun, SunMoon, UserRound, UsersRound, Inbox, Wallet,
+  Activity, ArrowLeftRight, Building2, Car, FileCheck2, KeyRound, Warehouse, FileSignature, Globe, Home, LogOut, Megaphone, Menu, Moon, Settings, Stamp, Sun, SunMoon, UserRound, UsersRound, Inbox, Wallet,
 } from "lucide-react";
 import { logout, setTheme } from "@/app/painel/_actions/auth";
 
@@ -25,9 +25,11 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [path]);
 
-  const current = (href: string) => (href === "/painel" ? path === href : path === href || path.startsWith(`${href}/`)) ? "page" : undefined;
-  const item = (href: string, label: string, Icon: typeof Home, extra?: React.ReactNode) => (
-    <Link href={href} aria-current={current(href)}>
+  // `except`: subpáginas que têm o seu próprio item (ex.: Legalização › Clientes).
+  const current = (href: string, except: string[] = []) =>
+    (href === "/painel" ? path === href : (path === href || path.startsWith(`${href}/`)) && !except.some((e) => path.startsWith(e))) ? "page" : undefined;
+  const item = (href: string, label: string, Icon: typeof Home, extra?: React.ReactNode, except?: string[]) => (
+    <Link href={href} aria-current={current(href, except)}>
       <Icon size={18} aria-hidden="true" />
       {label}
       {extra}
@@ -59,9 +61,12 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
           {perms.vehicles && item("/painel/aluguer", "Aluguer", KeyRound)}
           {perms.customers && item("/painel/clientes", "Clientes", UserRound)}
           {perms.forms && item("/painel/declaracoes", "Declarações", FileSignature)}
-          {perms.forms && item("/painel/legalizacao", "Modelo 9 e homologação", Stamp)}
           {perms.forms && item("/painel/registo", "Compra e venda", ArrowLeftRight)}
           {perms.billing && item("/painel/cobrancas", "Cobranças", Wallet)}
+          {perms.forms && <span className="a-nav-group">Legalização</span>}
+          {perms.forms && item("/painel/legalizacao", "Carros em legalização", Stamp, null, ["/painel/legalizacao/clientes", "/painel/legalizacao/registo-inicial"])}
+          {perms.forms && item("/painel/legalizacao/clientes", "Clientes da legalização", Building2)}
+          {perms.forms && item("/painel/legalizacao/registo-inicial", "Registo inicial", FileCheck2)}
           {(perms.leads || perms.ads || perms.site) && <span className="a-nav-group">Vendas e marketing</span>}
           {perms.leads && item("/painel/crm", "Pedidos (CRM)", Inbox, newLeads > 0 ? <span className="a-count" aria-label={`${newLeads} novos`}>{newLeads}</span> : null)}
           {perms.ads && item("/painel/anuncios", "Anúncios", Megaphone)}

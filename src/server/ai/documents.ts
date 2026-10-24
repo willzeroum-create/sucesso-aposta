@@ -653,3 +653,130 @@ export async function readPartyDocuments(parts: AiPart[]): Promise<PartiesPropos
   const json = await requestJson({ system: PARTIES_PROMPT, parts: [...parts, { text: "Separa as pessoas e extrai os dados de cada uma." }], schema: PARTIES_SCHEMA });
   return normalizePartiesExtraction(json);
 }
+
+/* ───────────── Legalização: fatura de compra e CMR (Alfândega / DAV) ───────────── */
+
+const CUSTOMS_FIELDS = [
+  "vendedor_nome", "vendedor_morada", "vendedor_nif", "vendedor_tipo", "fatura_numero", "fatura_data", "preco", "moeda", "meio_pagamento", "km_fatura",
+  "transportadora_nome", "transportadora_morada", "transportadora_nif", "data_entrega", "km_conta_quilometros",
+] as const;
+
+const fieldsSchema = (keys: readonly string[]) => ({
+  type: "object",
+  additionalProperties: false,
+  required: ["documentos", "legivel", "problema", "resumo", "dados"],
+  properties: {
+    documentos: { type: "array", items: { type: "string" } },
+    legivel: { type: "boolean" },
+    problema: { type: "string" },
+    resumo: { type: "string" },
+    dados: { type: "object", additionalProperties: false, required: [...keys], properties: Object.fromEntries(keys.map((k) => [k, { type: "string" }])) },
+  },
+});
+
+const CUSTOMS_PROMPT = `És o assistente de um despachante em Portugal que legaliza carros importados da Europa. Vais preencher a DAV (Declaração Aduaneira de Veículo) com os dados da COMPRA e do TRANSPORTE de UM carro. Recebes fotos/PDF de: fatura ou declaração de venda (pode estar em neerlandês, alemão, francês…), CMR (guia de transporte internacional) e, às vezes, uma foto do conta-quilómetros. Cruza a informação de todos.
+
+Documentos possíveis (códigos em "documentos"): "fatura", "cmr", "conta_quilometros", "outro".
+
+Responde APENAS com JSON: {"documentos":[],"legivel":true,"problema":"","resumo":"","dados":{...}}
+
+Regras para "dados" ("" quando não constar):
+- vendedor_nome, vendedor_morada (sede completa, com país), vendedor_nif (nº de IVA/VAT, ex. "NL123456789B01", ou NIF): quem VENDE o carro (o emitente da fatura).
+- vendedor_tipo: "1" se o vendedor é uma empresa/stand, "2" se é um particular.
+- fatura_numero e fatura_data (AAAA-MM-DD) da fatura.
+- preco: o valor total pago pelo carro, só o número com ponto decimal (ex.: "12500.00"). moeda: código ISO ("EUR", "CHF"…).
+- meio_pagamento: "3" transferência, "1" numerário, "2" cheque, "4" outro — só se estiver escrito.
+- km_fatura: quilómetros escritos na fatura (só o número).
+- transportadora_nome, transportadora_morada, transportadora_nif: a empresa transportadora do CMR (casa 16 "Carrier/Vervoerder/Frachtführer").
+- data_entrega: data de RECEÇÃO/entrega do carro no destino, no CMR (casa 24 "Goods received"), em AAAA-MM-DD.
+- km_conta_quilometros: quilómetros na foto do conta-quilómetros (só o número).
+- legivel: true se os dados principais se leem; senão "problema" diz o quê.
+- resumo: UMA linha, ex.: "Fatura de AutoHaus GmbH de 12.500 € + CMR de Transportes X".`;
+
+const isoOrEmpty = (v: string) => normalizeDate(v) ?? "";
+const wholeNumber = (v: string) => {
+  const n = parseNumber(v);
+  return n !== null && n > 0 ? String(Math.round(n)) : "";
+};
+
+export function normalizeCustomsExtraction(json: Record<string, unknown>): FieldsProposal {
+  const d = (json.dados && typeof json.dados === "object" ? json.dados : {}) as Record<string, unknown>;
+  const raw = Object.fromEntries(CUSTOMS_FIELDS.map((k) => [k, str(d[k])])) as Record<(typeof CUSTOMS_FIELDS)[number], string>;
+  const price = parseNumber(raw.preco);
+  const fields: Record<string, string> = {
+    sellerName: raw.vendedor_nome.replace(/\s+/g, " "),
+    sellerAddress: raw.vendedor_morada,
+    sellerNif: raw.vendedor_nif.replace(/\s/g, "").toUpperCase(),
+    sellerKind: /^[123]$/.test(raw.vendedor_tipo) ? raw.vendedor_tipo : "",
+    invoiceNumber: raw.fatura_numero,
+    invoiceDate: isoOrEmpty(raw.fatura_data),
+    purchasePrice: price && price > 0 ? price.toFixed(2) : "",
+    currency: raw.moeda.toUpperCase().slice(0, 3),
+    paymentMethod: /^[1-4]$/.test(raw.meio_pagamento) ? raw.meio_pagamento : "",
+    kmAtSale: wholeNumber(raw.km_fatura),
+    carrierName: raw.transportadora_nome.replace(/\s+/g, " "),
+    carrierAddress: raw.transportadora_morada,
+    carrierNif: raw.transportadora_nif.replace(/\s/g, "").toUpperCase(),
+    entryDate: isoOrEmpty(raw.data_entrega),
+    kmAtDav: wholeNumber(raw.km_conta_quilometros),
+  };
+  if (fields.carrierName) fields.entryType = "autotransportado";
+  const warnings: string[] = [];
+  if (!fields.invoiceNumber && !fields.purchasePrice) warnings.push("Não veio a fatura de compra (vendedor, nº, data e preço).");
+  return baseProposal(json, fields, warnings);
+}
+
+export async function readCustomsDocuments(parts: AiPart[]): Promise<FieldsProposal> {
+  if (!parts.length) throw new AiError("Envie pelo menos um ficheiro.", 400);
+  const json = await requestJson({ system: CUSTOMS_PROMPT, parts: [...parts, { text: "Extrai os dados da compra e do transporte para a DAV." }], schema: fieldsSchema(CUSTOMS_FIELDS) });
+  return normalizeCustomsExtraction(json);
+}
+
+/* ───────────── Legalização: comprovativo do registo inicial ───────────── */
+
+const REGISTO_FIELDS = ["tipo", "matricula", "nome", "data", "marca", "modelo", "quadro", "num_documento"] as const;
+
+const REGISTO_PROMPT = `És o assistente de um despachante de legalização de carros em Portugal. Analisa o(s) ficheiro(s) — fotos ou PDF — de um COMPROVATIVO DE REGISTO AUTOMÓVEL (registo inicial de propriedade). Pode vir em VÁRIAS páginas do MESMO registo; junta a informação de todas.
+
+Há DOIS tipos (código em "dados.tipo"):
+1. "conservatoria" — "Comprovativo de Apresentação" da Conservatória do Registo (cabeçalho do IRN / "Documento Único Automóvel"). Tem: Matrícula, Marca, "Apresentação nº X de <data>", "Facto registado: Reg. inicial de propriedade" e "TITULAR: <nome e morada>". O NOME é o do TITULAR.
+2. "solicitador" — "Requerimento de Registo Automóvel" do Automóvel Online (automovelonline.mj.pt). Tem "Nº Pedido", "Data de Pedido", "Data de Venda/Facto", o veículo (Matrícula, Marca, Quadro nº) e dois sujeitos. O NOME é o do SUJEITO ATIVO (comprador), NUNCA o vendedor.
+Também pode ser o próprio Certificado de Matrícula / DUA português: aí usa "conservatoria" e o titular.
+
+Documentos possíveis (códigos em "documentos"): "registo_inicial", "dua", "outro".
+
+Responde APENAS com JSON: {"documentos":[],"legivel":true,"problema":"","resumo":"","dados":{...}}
+
+Regras para "dados" ("" quando não constar):
+- tipo: "conservatoria" ou "solicitador".
+- matricula: matrícula PORTUGUESA (ex.: "BZ-75-FN").
+- nome: TITULAR (conservatória) ou COMPRADOR / sujeito ativo (solicitador), completo.
+- data: data do registo em AAAA-MM-DD (conservatória: data da apresentação; solicitador: data de venda/facto ou, se não houver, data do pedido).
+- marca, modelo, quadro (VIN).
+- num_documento: nº de apresentação (conservatória) ou nº do pedido (solicitador).
+- legivel: true só se matrícula, nome e data se leem bem; senão "problema" diz o quê.
+- resumo: UMA linha, ex.: "Registo inicial na conservatória de BZ-75-FN em nome de Sucesso Prudente".`;
+
+export function normalizeRegistoExtraction(json: Record<string, unknown>): FieldsProposal {
+  const d = (json.dados && typeof json.dados === "object" ? json.dados : {}) as Record<string, unknown>;
+  const raw = Object.fromEntries(REGISTO_FIELDS.map((k) => [k, str(d[k])])) as Record<(typeof REGISTO_FIELDS)[number], string>;
+  const fields: Record<string, string> = {
+    regType: raw.tipo === "solicitador" ? "solicitador" : raw.tipo === "conservatoria" ? "conservatoria" : "",
+    ptPlate: raw.matricula ? formatPlate(raw.matricula) : "",
+    holderName: raw.nome.replace(/\s+/g, " "),
+    regDate: isoOrEmpty(raw.data),
+    regNumber: raw.num_documento,
+    make: raw.marca,
+    model: raw.modelo,
+    vin: raw.quadro ? normalizeVin(raw.quadro) : "",
+  };
+  const warnings: string[] = [];
+  if (!fields.ptPlate) warnings.push("Não veio a matrícula portuguesa.");
+  return baseProposal(json, fields, warnings);
+}
+
+export async function readRegistoDocuments(parts: AiPart[]): Promise<FieldsProposal> {
+  if (!parts.length) throw new AiError("Envie pelo menos um ficheiro.", 400);
+  const json = await requestJson({ system: REGISTO_PROMPT, parts: [...parts, { text: "Extrai os dados do registo inicial." }], schema: fieldsSchema(REGISTO_FIELDS) });
+  return normalizeRegistoExtraction(json);
+}
