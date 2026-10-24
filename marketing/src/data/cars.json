@@ -1,0 +1,646 @@
+[
+  {
+    "id": "veh_mvh186exjw1i6nxg5k",
+    "slug": "ford-mustang-mach-e-2021",
+    "make": "Ford",
+    "model": "Mustang Mach-E",
+    "version": "99 kWh · Preto",
+    "year": 2021,
+    "mileageKm": 158184,
+    "fuel": "Elétrico",
+    "transmission": "Automática",
+    "powerHp": null,
+    "color": "Preto",
+    "features": [],
+    "photos": [
+      {
+        "src": "cars/ford-mustang-mach-e-2021/1.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/ford-mustang-mach-e-2021/2.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/ford-mustang-mach-e-2021/3.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/ford-mustang-mach-e-2021/4.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/ford-mustang-mach-e-2021/5.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/ford-mustang-mach-e-2021/6.webp",
+        "width": 1024,
+        "height": 768
+      }
+    ],
+    "pick": {
+      "cover": 0,
+      "reel": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "source": "Stand",
+    "subtitle": "99 kWh"
+  },
+  {
+    "id": "veh_mvh18c1d3u5cdrdc45",
+    "slug": "polestar-2-2023",
+    "make": "Polestar",
+    "model": "2",
+    "version": "79 kWh · Preto",
+    "year": 2023,
+    "mileageKm": 113806,
+    "fuel": "Elétrico",
+    "transmission": "Automática",
+    "powerHp": null,
+    "color": "Preto",
+    "features": [],
+    "photos": [
+      {
+        "src": "cars/polestar-2-2023/1.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/polestar-2-2023/2.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/polestar-2-2023/3.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/polestar-2-2023/4.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/polestar-2-2023/5.webp",
+        "width": 1024,
+        "height": 768
+      }
+    ],
+    "pick": {
+      "cover": 0,
+      "reel": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "source": "Stand",
+    "subtitle": "79 kWh"
+  },
+  {
+    "id": "veh_mvh188im7q71u9wjab",
+    "slug": "peugeot-2008-2023",
+    "make": "Peugeot",
+    "model": "2008",
+    "version": "1.2 PureTech Active Pack · Branco",
+    "year": 2023,
+    "mileageKm": 112851,
+    "fuel": "Gasolina",
+    "transmission": "Manual",
+    "powerHp": null,
+    "color": "Branco",
+    "features": [],
+    "photos": [
+      {
+        "src": "cars/peugeot-2008-2023/1.webp",
+        "width": 1920,
+        "height": 1440
+      },
+      {
+        "src": "cars/peugeot-2008-2023/2.webp",
+        "width": 1920,
+        "height": 1440
+      },
+      {
+        "src": "cars/peugeot-2008-2023/3.webp",
+        "width": 1920,
+        "height": 1440
+      },
+      {
+        "src": "cars/peugeot-2008-2023/4.webp",
+        "width": 1920,
+        "height": 1440
+      },
+      {
+        "src": "cars/peugeot-2008-2023/5.webp",
+        "width": 1920,
+        "height": 1440
+      },
+      {
+        "src": "cars/peugeot-2008-2023/6.webp",
+        "width": 1920,
+        "height": 1440
+      }
+    ],
+    "pick": {
+      "cover": 0,
+      "reel": [
+        0,
+        1,
+        2,
+        3,
+        5
+      ]
+    },
+    "source": "Stand",
+    "subtitle": "1.2 PureTech Active Pack"
+  },
+  {
+    "id": "veh_mvh184nd9dtziqhi37",
+    "slug": "peugeot-2008-2021",
+    "make": "Peugeot",
+    "model": "2008",
+    "version": "1.2 PureTech Allure · Preto",
+    "year": 2021,
+    "mileageKm": 142625,
+    "fuel": "Gasolina",
+    "transmission": "Automática",
+    "powerHp": null,
+    "color": "Preto",
+    "features": [],
+    "photos": [
+      {
+        "src": "cars/peugeot-2008-2021/1.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/peugeot-2008-2021/2.webp",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "src": "cars/peugeot-2008-2021/3.webp",
+        "width": 1024,
+        "height": 768
+      }
+    ],
+    "pick": {
+      "cover": 0,
+      "reel": [
+        0,
+        1,
+        2
+      ]
+    },
+    "source": "Stand",
+    "subtitle": "1.2 PureTech Allure"
+  },
+  {
+    "id": "veh_mvgto3a9mnjc3as47w",
+    "slug": "jaguar-i-pace-2019",
+    "make": "Jaguar",
+    "model": "I-Pace",
+    "version": "EV400 R-Dynamic SE AWD",
+    "year": 2019,
+    "mileageKm": 90000,
+    "fuel": "Elétrico",
+    "transmission": "Automática",
+    "powerHp": 400,
+    "color": null,
+    "features": [
+      "Livro de Revisões completo",
+      "2ª Chave",
+      "ABS",
+      "AC automático",
+      "AC automático bi-zona",
+      "AC automático de 3 zonas"
+    ],
+    "photos": [
+      {
+        "src": "cars/jaguar-i-pace-2019/1.webp",
+        "width": 1400,
+        "height": 2027
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/2.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/3.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/4.webp",
+        "width": 1400,
+        "height": 1988
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/5.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/6.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/7.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/8.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/9.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/jaguar-i-pace-2019/10.webp",
+        "width": 1400,
+        "height": 1866
+      }
+    ],
+    "pick": {
+      "cover": 0,
+      "reel": [
+        0,
+        2,
+        9,
+        5,
+        8
+      ]
+    },
+    "source": "Tampinha Cars",
+    "subtitle": "EV400 R-Dynamic SE AWD"
+  },
+  {
+    "id": "veh_mvgtn3j4mowvo9zg4i",
+    "slug": "byd-atto-2-2025",
+    "make": "BYD",
+    "model": "Atto 2",
+    "version": "SUV",
+    "year": 2025,
+    "mileageKm": 260,
+    "fuel": "Elétrico",
+    "transmission": "Automática",
+    "powerHp": 177,
+    "color": null,
+    "features": [
+      "Livro de Revisões completo",
+      "2ª Chave",
+      "ABS",
+      "AC automático",
+      "AC automático bi-zona",
+      "Acesso Internet"
+    ],
+    "photos": [
+      {
+        "src": "cars/byd-atto-2-2025/1.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/2.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/3.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/4.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/5.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/6.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/7.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/8.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/9.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/10.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/11.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/12.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/13.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/14.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/15.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/16.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/17.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/18.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/19.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/byd-atto-2-2025/20.webp",
+        "width": 1400,
+        "height": 1866
+      }
+    ],
+    "pick": {
+      "cover": 2,
+      "reel": [
+        2,
+        1,
+        5,
+        7,
+        12
+      ]
+    },
+    "source": "Tampinha Cars",
+    "subtitle": "SUV elétrico"
+  },
+  {
+    "id": "veh_mvgtmsryz6yuuxzk17",
+    "slug": "audi-a3-2020",
+    "make": "Audi",
+    "model": "A3",
+    "version": "TFSI Pro Line",
+    "year": 2020,
+    "mileageKm": 145787,
+    "fuel": "Gasolina",
+    "transmission": "Manual",
+    "powerHp": 116,
+    "color": null,
+    "features": [
+      "Livro de Revisões completo",
+      "2ª Chave",
+      "ABS",
+      "AC automático",
+      "Activação automática de mínimos",
+      "Airbag central do condutor e passageiro"
+    ],
+    "photos": [
+      {
+        "src": "cars/audi-a3-2020/1.webp",
+        "width": 1400,
+        "height": 1614
+      },
+      {
+        "src": "cars/audi-a3-2020/2.webp",
+        "width": 1400,
+        "height": 1634
+      },
+      {
+        "src": "cars/audi-a3-2020/3.webp",
+        "width": 1400,
+        "height": 1584
+      },
+      {
+        "src": "cars/audi-a3-2020/4.webp",
+        "width": 1400,
+        "height": 1614
+      },
+      {
+        "src": "cars/audi-a3-2020/5.webp",
+        "width": 1400,
+        "height": 1625
+      },
+      {
+        "src": "cars/audi-a3-2020/6.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/7.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/8.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/9.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/10.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/11.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/12.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/13.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/14.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/audi-a3-2020/15.webp",
+        "width": 1400,
+        "height": 1866
+      }
+    ],
+    "pick": {
+      "cover": 1,
+      "reel": [
+        1,
+        2,
+        4,
+        7,
+        14
+      ]
+    },
+    "source": "Tampinha Cars",
+    "subtitle": "30 TFSI Pro Line"
+  },
+  {
+    "id": "veh_mvgtpzzd12zbgy7xqq",
+    "slug": "renault-megane-e-tech-2023",
+    "make": "Renault",
+    "model": "Mégane E-Tech",
+    "version": "EQUILIBRE",
+    "year": 2023,
+    "mileageKm": 68000,
+    "fuel": "Elétrico",
+    "transmission": "Automática",
+    "powerHp": 130,
+    "color": null,
+    "features": [
+      "AC automático",
+      "Airbag central do condutor e passageiro",
+      "Airbag do condutor",
+      "Airbag do passageiro",
+      "Airbag joelho condutor",
+      "Airbag joelho passageiro"
+    ],
+    "photos": [
+      {
+        "src": "cars/renault-megane-e-tech-2023/1.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/2.webp",
+        "width": 1400,
+        "height": 1919
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/3.webp",
+        "width": 1400,
+        "height": 1871
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/4.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/5.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/6.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/7.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/8.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/9.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/10.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/11.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/12.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/13.webp",
+        "width": 1400,
+        "height": 1866
+      },
+      {
+        "src": "cars/renault-megane-e-tech-2023/14.webp",
+        "width": 1400,
+        "height": 1866
+      }
+    ],
+    "pick": {
+      "cover": 2,
+      "reel": [
+        2,
+        1,
+        3,
+        7,
+        12
+      ]
+    },
+    "source": "Tampinha Cars",
+    "subtitle": "E-Tech Equilibre"
+  }
+]

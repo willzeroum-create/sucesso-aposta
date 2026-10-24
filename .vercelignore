@@ -9,3 +9,5 @@
 /docs/preview/
 *.log
 /cobrar/
+# Conteúdo para redes sociais (projeto Remotion à parte)
+/marketing/
