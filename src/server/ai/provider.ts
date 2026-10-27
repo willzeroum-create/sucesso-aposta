@@ -77,6 +77,8 @@ export interface JsonRequest {
   parts: AiPart[];
   /** Esquema JSON da resposta (structured outputs na Anthropic; instrução no Gemini). */
   schema: Record<string, unknown>;
+  /** Regra de fidelidade a documentos (datas, NIF, VIN). Desligada na ajuda do painel, que não lê documentos. */
+  fidelity?: boolean;
 }
 
 export async function requestJson(req: JsonRequest): Promise<Record<string, unknown>> {
@@ -86,7 +88,7 @@ export async function requestJson(req: JsonRequest): Promise<Record<string, unkn
       "A leitura por IA não está configurada. Defina GEMINI_API_KEY ou ANTHROPIC_API_KEY no servidor.",
       503,
     );
-  const system = `${req.system}\n\n${fidelityRule()}`;
+  const system = req.fidelity === false ? req.system : `${req.system}\n\n${fidelityRule()}`;
   const text =
     provider === "gemini"
       ? await withRetries(() => callGemini(system, req), [2000, 6000])

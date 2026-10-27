@@ -2334,3 +2334,291 @@ a.a-stock-item:hover {
     font-size: 11.5px;
   }
 }
+
+/* ───────── Ajuda do painel (botão flutuante + conversa com a IA) ───────── */
+
+.a-help-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 6px 20px -6px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 18%);
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.a-help-fab:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.a-help-fab[data-open="true"] {
+  background: var(--ink);
+  color: var(--surface);
+}
+/* Os avisos e as barras "Guardar" no fundo não ficam por baixo do botão. */
+.adm:has(.a-help-fab) .a-toast {
+  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+}
+.adm:has(.a-help-fab) .a-form-foot {
+  padding-right: 84px;
+}
+.a-help {
+  position: fixed;
+  right: 20px;
+  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  width: min(390px, calc(100vw - 32px));
+  height: min(580px, calc(100dvh - 120px));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 18px 50px -12px rgb(0 0 0 / 35%), 0 2px 8px rgb(0 0 0 / 10%);
+  animation: a-help-in 0.16s ease-out;
+}
+@keyframes a-help-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+.a-help-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.a-help-head > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+.a-help-head strong {
+  font-size: 15px;
+}
+.a-help-head span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.a-help-badge {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.a-help-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  background: var(--surface-2);
+}
+.a-help-msg {
+  max-width: 88%;
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.a-help-msg p {
+  margin: 0;
+}
+.a-help-msg p + p,
+.a-help-msg p + ol,
+.a-help-msg p + ul,
+.a-help-msg ol + p,
+.a-help-msg ul + p {
+  margin-top: 6px;
+}
+.a-help-msg ol,
+.a-help-msg ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+}
+.a-help-msg.is-bot {
+  align-self: flex-start;
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
+  background: var(--surface);
+}
+.a-help-msg.is-me {
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  white-space: pre-wrap;
+}
+.a-help-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+.a-help-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.a-help-links a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.a-help-suggest {
+  display: grid;
+  gap: 6px;
+}
+.a-help-suggest button {
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.a-help-suggest button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.a-help-typing {
+  display: flex;
+  gap: 4px;
+  padding: 12px 14px;
+}
+.a-help-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--faint);
+  animation: a-help-dot 1s ease-in-out infinite;
+}
+.a-help-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.a-help-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes a-help-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+.a-help-error {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 13.5px;
+}
+.a-help-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.a-help-form textarea {
+  flex: 1;
+  min-height: 42px;
+  max-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.35;
+  resize: none;
+  field-sizing: content;
+}
+.a-help-form textarea:focus {
+  border-color: var(--focus);
+  outline: 2px solid color-mix(in srgb, var(--focus) 25%, transparent);
+}
+.a-help-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+.a-help-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  .a-help-fab {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .a-help {
+    right: 8px;
+    left: 8px;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    height: min(620px, calc(100dvh - 150px));
+  }
+  .a-help-msg {
+    max-width: 92%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .a-help,
+  .a-help-typing span {
+    animation: none;
+  }
+}
+@media print {
+  .a-help-fab,
+  .a-help {
+    display: none !important;
+  }
+}

@@ -1,7 +1,9 @@
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { Sidebar } from "@/components/painel/sidebar";
+import { HelpAssistant } from "@/components/painel/help-assistant";
 import { PasswordForm } from "@/components/painel/password-form";
+import { aiProvider } from "@/server/ai/provider";
 import { can, requireUser } from "@/server/auth/session";
 import { getSiteConfig } from "@/server/settings";
 
@@ -44,6 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="a-main" id="conteudo">
         {children}
       </main>
+      {aiProvider() && <HelpAssistant firstName={user.name.split(" ")[0] ?? ""} />}
     </div>
   );
 }
