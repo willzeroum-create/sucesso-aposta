@@ -6,6 +6,7 @@ import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
+import { normalizeLogin } from "@/lib/login";
 import { audit, diff } from "@/server/audit";
 import { hashPassword } from "@/server/auth/password";
 import { isPermission } from "@/server/auth/permissions";
@@ -26,7 +27,11 @@ async function activeAdmins(exceptUserId?: string): Promise<number> {
 
 const userSchema = z.object({
   name: z.string().trim().min(2, "Indique o nome.").max(120),
-  email: z.string().trim().toLowerCase().max(254).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "E-mail inválido."),
+  // Utilizador para entrar: só o nome (ex.: "Ítalo") ou um e-mail — não é obrigatório ter e-mail.
+  email: z
+    .string()
+    .transform(normalizeLogin)
+    .pipe(z.string().min(2, "Indique o utilizador para entrar (ex.: italo).").max(254).regex(/^[a-z0-9@._+\- ]+$/, "Use só letras, números, ponto, hífen ou @.")),
   roleId: z.string().min(1, "Escolha a função.").max(60),
 });
 
@@ -39,7 +44,7 @@ export async function createUser(form: FormData): Promise<ActionResult<{ passwor
     if (!role) throw new UserError("Função inválida.", { roleId: "Função inválida." });
     if (role.isSystem && !admin.isAdmin) throw new UserError("Só um administrador pode criar outro administrador.");
     const [dup] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, data.email)).limit(1);
-    if (dup) throw new UserError("Já existe um utilizador com este e-mail.", { email: "E-mail já usado." });
+    if (dup) throw new UserError("Já existe alguém a entrar com este utilizador.", { email: "Utilizador já usado." });
     const password = tempPassword();
     const id = newId("usr");
     await db.insert(schema.users).values({ id, ...data, passwordHash: await hashPassword(password), mustChangePassword: true });
@@ -63,7 +68,7 @@ export async function updateUser(id: string, form: FormData): Promise<ActionResu
       throw new UserError("Tem de existir pelo menos um administrador ativo.");
     if (id === admin.id && !data.active) throw new UserError("Não pode desativar a sua própria conta.");
     const [dup] = await db.select({ id: schema.users.id }).from(schema.users).where(and(eq(schema.users.email, data.email), ne(schema.users.id, id))).limit(1);
-    if (dup) throw new UserError("Já existe um utilizador com este e-mail.", { email: "E-mail já usado." });
+    if (dup) throw new UserError("Já existe alguém a entrar com este utilizador.", { email: "Utilizador já usado." });
     const changes = diff(before, data);
     if (!Object.keys(changes).length) return;
     await db.update(schema.users).set({ ...data, updatedAt: new Date() }).where(eq(schema.users.id, id));

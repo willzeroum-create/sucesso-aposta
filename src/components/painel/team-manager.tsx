@@ -187,9 +187,9 @@ export function TeamManager({ users, roles, meId, meIsAdmin }: { users: User[]; 
               {fields.name && <span className="a-error">{fields.name}</span>}
             </div>
             <div className="a-field wide">
-              <label htmlFor="u-email">E-mail (para entrar)</label>
-              <input id="u-email" name="email" type="email" defaultValue={u?.email} required />
-              {fields.email && <span className="a-error">{fields.email}</span>}
+              <label htmlFor="u-email">Utilizador (para entrar)</label>
+              <input id="u-email" name="email" type="text" defaultValue={u?.email} placeholder="ex.: italo" autoCapitalize="none" autoComplete="off" spellCheck={false} required />
+              {fields.email ? <span className="a-error">{fields.email}</span> : <span className="a-hint">Pode ser só o nome (Ítalo) ou um e-mail. Maiúsculas e acentos não contam.</span>}
             </div>
             <div className="a-field wide">
               <label htmlFor="u-role">Função</label>

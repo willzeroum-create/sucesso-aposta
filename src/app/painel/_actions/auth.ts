@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
+import { normalizeLogin } from "@/lib/login";
 import { audit } from "@/server/audit";
 import { dummyHash, hashPassword, passwordProblem, verifyPassword } from "@/server/auth/password";
 import { clientIp, createSession, destroySession, destroyUserSessions, getSessionUser } from "@/server/auth/session";
@@ -15,7 +16,7 @@ const MAX_FAILS = 5;
 const LOCK_MS = 15 * 60 * 1000;
 
 export async function login(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const email = String(form.get("email") ?? "").trim().toLowerCase().slice(0, 254);
+  const email = normalizeLogin(String(form.get("email") ?? "")).slice(0, 254);
   const password = String(form.get("password") ?? "").slice(0, 200);
   const next = String(form.get("next") ?? "");
   if (!email || !password) return { ok: false, error: "Indique o e-mail (ou utilizador) e a palavra-passe." };
