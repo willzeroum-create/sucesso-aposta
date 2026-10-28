@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
-import { addVehicleCost, deleteVehicleCost, setPurchasePrice } from "@/app/painel/_actions/costs";
+import { addVehicleCost, deleteVehicleCost, setCostNotes, setPurchasePrice } from "@/app/painel/_actions/costs";
 import { COST_CATEGORIES, type CostCategory, type CostSummary } from "@/lib/vehicle-costs";
 import { Plate, Spinner, useAction } from "./ui";
 
@@ -18,6 +18,7 @@ export type CostVehicleInfo = {
   color: string | null;
   supplier: string | null;
   purchaseDate: string | null;
+  notes: string | null;
 };
 
 const eur = (v: number | null | undefined) => (v == null ? "—" : new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v));
@@ -46,6 +47,8 @@ export function CostsPanel({
   const [item, setItem] = useState({ description: "", amount: "" });
   const [purchase, setPurchase] = useState(summary.purchase != null ? String(summary.purchase).replace(".", ",") : "");
   const purchaseChanged = purchase !== (summary.purchase != null ? String(summary.purchase).replace(".", ",") : "");
+  const [notes, setNotes] = useState(info.notes ?? "");
+  const notesChanged = notes.trim() !== (info.notes ?? "").trim();
 
   async function add(e?: React.FormEvent) {
     e?.preventDefault();
@@ -119,6 +122,29 @@ export function CostsPanel({
             )}
           </p>
         )}
+        <div className="a-costs-notes">
+          <label htmlFor="f-cost-notes">Anotações</label>
+          <textarea
+            id="f-cost-notes"
+            className="a-input"
+            rows={4}
+            maxLength={4000}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Coisas avulsas: um custo que talvez entre, o que ficou combinado com o mecânico, peças por pagar…"
+          />
+          {notesChanged && (
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button type="button" className="a-btn" disabled={pending} onClick={() => setNotes(info.notes ?? "")}>
+                Cancelar
+              </button>
+              <button type="button" className="a-btn a-btn-primary" disabled={pending} onClick={async () => (await run(() => setCostNotes(vehicleId, notes))).ok && router.refresh()}>
+                {pending && <Spinner size={14} />}
+                Guardar anotações
+              </button>
+            </div>
+          )}
+        </div>
       </section>
 
       <aside className="a-card a-costs-side" aria-label="Custos adicionais">

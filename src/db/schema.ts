@@ -201,6 +201,8 @@ export const vehicles = pgTable(
     purchaseDate: text("purchase_date"),
     supplier: text("supplier"),
     internalNotes: text("internal_notes"),
+    /** Anotações soltas do separador Custos (ex.: custo que talvez entre, combinado com o mecânico). */
+    costNotes: text("cost_notes"),
     soldAt: timestamp("sold_at", { withTimezone: true, mode: "date" }),
     soldPriceEur: doublePrecision("sold_price_eur"),
     buyerCustomerId: text("buyer_customer_id"),

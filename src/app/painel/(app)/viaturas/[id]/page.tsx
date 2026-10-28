@@ -347,6 +347,7 @@ async function CostsCard({ vehicle, canEditPurchase }: { vehicle: typeof schema.
         color: vehicle.color,
         supplier: vehicle.supplier,
         purchaseDate: vehicle.purchaseDate,
+        notes: vehicle.costNotes,
       }}
     />
   );

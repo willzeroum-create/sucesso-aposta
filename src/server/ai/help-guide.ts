@@ -42,7 +42,7 @@ Chega-se pelos botões "Dar entrada de viatura" (Início e Viaturas), "Dar entra
 - Separadores: "Dados" (formulário com "Guardar alterações" e "Desfazer"; editar exige [vehicles.edit]), "Venda" [forms.generate], "Aluguer" [forms.generate + vehicles.status], "Custos" [vehicles.costs], "Fotografias", "Documentos" [documents.view], "Termos" [forms.generate], "Histórico".
 - Separador "Venda": cartão "Venda a prestações" com "Nova venda a prestações" [billing.manage]; assistente "1. Comprador" ("Cliente existente" / "Novo cliente", "Trocar cliente"), "2. Dados da venda" (preço, data, km, garantia), "3. Documentos" (caixas de cada documento e "Marcar a viatura como vendida"; botão "Rever dados do contrato"), "4. Dados do contrato"; botão final "Registar venda e gerar documentos" (ou "Gerar documentos").
 - Separador "Aluguer": igual, com "1. Locatário" e "2. Dados do aluguer"; botão final "Registar aluguer e gerar contrato"; lista "Alugueres desta viatura".
-- Separador "Custos": "Preço de compra" + "Guardar"; "Custos adicionais" (descrição, valor, botão "+"); total "O carro está a sair por".
+- Separador "Custos": "Preço de compra" + "Guardar"; caixa "Anotações" para coisas avulsas (ex.: um custo que talvez entre) + "Guardar anotações"; "Custos adicionais" (descrição, valor, botão "+"); total "O carro está a sair por".
 - Separador "Fotografias": "Fotografar com o telemóvel" (no computador, mostra um QR válido 15 minutos); zona "Toque para fotografar ou escolher fotografias" (no computador também se pode arrastar); em cada foto setas para mudar a ordem, estrela "Usar como capa", lixo "Apagar fotografia".
 - Separador "Documentos": escolher o tipo e "Fotografar" ou "Carregar"; em cada documento mudar o tipo, "Validade", abrir, descarregar, apagar. Se houver legalização aparece "Documentos da legalização" com "Abrir legalização".
 - Separador "Termos": "Gerar termo ou ficha" (escolher o "Documento"), "Verificar dados", "Gerar PDF"; lista "Documentos gerados" com "Abrir".
@@ -125,7 +125,7 @@ Publicar ou tirar um carro do site (só carros de Venda, [vehicles.status]): abr
 
 Mudar o destino: na ficha, "Destino do carro" → "Venda", "Aluguer" ou "Só estoque".
 
-Lançar custos (reparações, manutenção, etc.): ficha → separador "Custos" → "Preço de compra" + "Guardar"; em "Custos adicionais" descrição + valor + "+". Total em "O carro está a sair por".
+Lançar custos (reparações, manutenção, etc.): ficha → separador "Custos" → "Preço de compra" + "Guardar"; em "Custos adicionais" descrição + valor + "+". Total em "O carro está a sair por". Notas soltas (custo ainda por decidir, combinado com o mecânico): caixa "Anotações" no mesmo separador.
 
 Fotos e documentos de um carro: separador "Fotografias" (a estrela marca a capa; "Fotografar com o telemóvel" no computador) e separador "Documentos" (tipo → "Fotografar" ou "Carregar").
 

@@ -64,3 +64,15 @@ export async function setPurchasePrice(vehicleId: string, amount: number | null)
     revalidatePath("/painel/estoque");
   }, "Preço de compra guardado.");
 }
+
+export async function setCostNotes(vehicleId: string, notes: string): Promise<ActionResult> {
+  return run(async () => {
+    const user = await assertPermission("vehicles.costs");
+    const value = z.string().max(4000, "As anotações têm no máximo 4000 caracteres.").parse(notes).trim() || null;
+    const [v] = await db.select({ before: schema.vehicles.costNotes }).from(schema.vehicles).where(eq(schema.vehicles.id, vehicleId)).limit(1);
+    if (!v) throw new UserError("Viatura não encontrada.");
+    await db.update(schema.vehicles).set({ costNotes: value, updatedAt: new Date() }).where(eq(schema.vehicles.id, vehicleId));
+    await audit(user, { action: "vehicle.update", entityType: "vehicle", entityId: vehicleId, summary: "Atualizou as anotações dos custos", changes: diff({ costNotes: v.before }, { costNotes: value }) });
+    revalidatePath(`/painel/viaturas/${vehicleId}`);
+  }, "Anotações guardadas.");
+}

@@ -1852,6 +1852,22 @@ a.a-stock-item:hover {
 .a-costs-side {
   display: grid;
 }
+.a-costs-notes {
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.a-costs-notes label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.a-costs-notes textarea {
+  min-height: 96px;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.45;
+}
 .a-costs-head {
   display: flex;
   justify-content: space-between;
