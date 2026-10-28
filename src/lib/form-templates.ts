@@ -252,6 +252,7 @@ export const DEAL_DOCUMENTS: Record<DealMode, TemplateId[]> = {
 
 /** Títulos de documentos antigos (para o histórico). */
 export const LEGACY_TITLES: Record<string, string> = {
+  contrato_assuncao: "Contrato de assunção de responsabilidade",
   termo_responsabilidade: "Termo de entrega e responsabilidade",
   contrato_compra_venda: "Contrato de compra e venda de viatura",
 };

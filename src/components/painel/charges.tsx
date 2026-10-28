@@ -258,6 +258,7 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
   const [plan, setPlan] = useState({ count: "6", firstDue: nextMonth, every: "" });
   const [planError, setPlanError] = useState("");
   const [edited, setEdited] = useState<{ dueDate: string; amount: string }[] | null>(null);
+  const [withContract, setWithContract] = useState(true);
 
   const suggestedDebt = Math.max(0, toCents(parseMoney(values.sale) || 0) - toCents(parseMoney(values.down) || 0));
   const debtText = debtTouched ? values.debt : suggestedDebt ? String(toEuros(suggestedDebt)).replace(".", ",") : "";
@@ -299,7 +300,7 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
         installments: rows.map((r) => ({ dueDate: r.dueDate, amount: parseMoney(r.amount) })),
       }),
     );
-    if (res.ok) router.push(`/painel/cobrancas/${res.data.id}`);
+    if (res.ok) router.push(`/painel/cobrancas/${res.data.id}${withContract ? "?contrato=1" : ""}`);
   }
 
   const vf = (k: keyof typeof vehicle, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
@@ -452,7 +453,11 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
             <textarea id="f-cv-notes" rows={2} value={values.notes} onChange={(e) => setValues((v) => ({ ...v, notes: e.target.value }))} />
           </Field>
         </div>
-        <div className="a-form-foot" style={{ margin: 0 }}>
+        <div className="a-form-foot" style={{ margin: 0, flexWrap: "wrap", gap: 12 }}>
+          <label className="a-check" style={{ marginRight: "auto" }}>
+            <input type="checkbox" checked={withContract} onChange={(e) => setWithContract(e.target.checked)} />
+            <span>A seguir, gerar o contrato para assinar</span>
+          </label>
           <button type="button" className="a-btn a-btn-primary" onClick={submit} disabled={pending}>
             {pending ? <Spinner /> : <Check size={16} />} Registar venda a prestações
           </button>
@@ -466,7 +471,8 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
 
 type PaymentInfo = { id: string; installmentId: string | null; date: string; amount: number; method: string; note: string };
 
-export function ChargeContractDetail({ contract, payments }: { contract: Contract; payments: PaymentInfo[] }) {
+/** `documents`: cartão do contrato para assinar, mostrado antes das notas e de "Apagar venda". */
+export function ChargeContractDetail({ contract, payments, documents }: { contract: Contract; payments: PaymentInfo[]; documents?: React.ReactNode }) {
   const router = useRouter();
   const { pending, run } = useAction();
   const [extra, setExtra] = useState({ amount: "", date: new Date().toISOString().slice(0, 10), method: "dinheiro" as PaymentMethod });
@@ -682,6 +688,8 @@ export function ChargeContractDetail({ contract, payments }: { contract: Contrac
           </button>
         </div>
       </section>
+
+      {documents}
 
       <section className="a-card a-card-pad" style={{ display: "grid", gap: 10 }}>
         <Field label="Notas" name="charge-notes" wide>
