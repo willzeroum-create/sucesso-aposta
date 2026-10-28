@@ -70,6 +70,8 @@ export function RegistrationEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   /** Pessoas lidas nos documentos, à espera de se dizer quem é o comprador. */
   const [people, setPeople] = useState<RegistrationParty[] | null>(null);
+  /** Proprietário escrito no documento do carro (normalmente o vendedor). */
+  const [carOwner, setCarOwner] = useState("");
 
   // Grava sozinho pouco depois de cada alteração.
   const snapshot = useMemo(() => JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status, notes }), [buyer, seller, vehicle, contractDate, vehicleId, status, notes]);
@@ -239,7 +241,7 @@ export function RegistrationEditor({
       <AiReader
         mode="parties"
         idSuffix="-registo"
-        title="1. Documentos do comprador e do vendedor"
+        title="1. Documentos das pessoas e do carro"
         target={{ ownerType: "none", kind: "identificacao" }}
         fields={[]}
         current={{}}
@@ -247,9 +249,15 @@ export function RegistrationEditor({
         onProposal={(p) => {
           const list = (Array.isArray(p.people) ? (p.people as Record<string, string>[]) : []).map(partyFromRead);
           setPeople(list.length ? list : null);
+          // O documento do carro (DUA, Certificado de Matrícula) preenche a viatura.
+          const car = p.vehicle as { plate: string; make: string; model: string; vin: string; owner: string } | null | undefined;
+          if (car) {
+            setVehicle((v) => ({ plate: car.plate || v.plate, make: car.make || v.make, model: car.model || v.model, vin: car.vin || v.vin }));
+            setCarOwner(car.owner);
+          }
         }}
         onUploaded={(ids) => void save({ addFileIds: ids })}
-        intro="Fotografe os documentos das duas pessoas de uma vez (Cartão de Cidadão frente e verso, título de residência…). A seguir diz quem é o comprador."
+        intro="Fotografe tudo de uma vez: os documentos das pessoas (Cartão de Cidadão frente e verso, título de residência…) e o documento do carro (DUA ou Certificado de Matrícula). A seguir diz quem é o comprador."
       />
 
       {people && (
@@ -263,6 +271,7 @@ export function RegistrationEditor({
                   : people.length === 2
                     ? "Toque no comprador. O outro fica como vendedor."
                     : "Há mais de duas pessoas nos documentos: escolha o papel de cada uma."}
+                {carOwner ? ` No documento do carro, o proprietário é ${carOwner} (normalmente o vendedor).` : ""}
               </p>
             </div>
           </div>
@@ -279,7 +288,7 @@ export function RegistrationEditor({
             ) : people.length === 2 ? (
               <div className="a-actions">
                 {people.map((pp, i) => (
-                  <button key={i} type="button" className="a-btn a-btn-primary" style={{ minHeight: 48 }} onClick={() => assign(i, 1 - i)}>
+                  <button key={i} type="button" className="a-btn a-btn-primary" style={{ minHeight: 48, maxWidth: "100%", height: "auto", whiteSpace: "normal", flexWrap: "wrap", justifyContent: "flex-start", textAlign: "left" }} onClick={() => assign(i, 1 - i)}>
                     <UserCheck size={16} /> {pp.name || `Pessoa ${i + 1}`}
                     {pp.nif ? <span style={{ fontWeight: 400, opacity: 0.8 }}> · NIF {pp.nif}</span> : null}
                   </button>

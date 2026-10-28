@@ -586,15 +586,23 @@ const PARTY_KEYS = [
   "tipo", "nome", "nif", "tipo_documento", "num_documento", "entidade_emissora", "validade_documento", "codigo_certidao", "morada", "codigo_postal", "localidade", "email",
 ] as const;
 
+const PARTY_VEHICLE_KEYS = ["matricula", "marca", "modelo", "quadro", "proprietario"] as const;
+
 const PARTIES_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["documentos", "legivel", "problema", "resumo", "pessoas"],
+  required: ["documentos", "legivel", "problema", "resumo", "viatura", "pessoas"],
   properties: {
     documentos: { type: "array", items: { type: "string" } },
     legivel: { type: "boolean" },
     problema: { type: "string" },
     resumo: { type: "string" },
+    viatura: {
+      type: "object",
+      additionalProperties: false,
+      required: [...PARTY_VEHICLE_KEYS],
+      properties: Object.fromEntries(PARTY_VEHICLE_KEYS.map((f) => [f, { type: "string" }])),
+    },
     pessoas: {
       type: "array",
       items: {
@@ -607,11 +615,20 @@ const PARTIES_SCHEMA = {
   },
 };
 
-const PARTIES_PROMPT = `És o assistente de um stand de automóveis em Portugal. Recebes fotos dos documentos de identificação das pessoas (ou empresas) de uma compra e venda de um carro: normalmente o comprador e o vendedor, mas pode ser só um deles. Vais separar as PESSOAS e extrair os dados de cada uma para o Requerimento de Registo Automóvel.
+const PARTIES_PROMPT = `És o assistente de um stand de automóveis em Portugal. Recebes fotos dos documentos de uma compra e venda de um carro: os documentos de identificação das pessoas (ou empresas) — normalmente o comprador e o vendedor, mas pode ser só um deles — e, muitas vezes, o documento do CARRO. Vais separar as PESSOAS, extrair os dados de cada uma e os dados do carro para o Requerimento de Registo Automóvel.
 
-Documentos possíveis (códigos em "documentos"): "cartao_cidadao", "titulo_residencia", "passaporte", "bilhete_identidade", "carta_conducao", "certidao_permanente", "cartao_empresa", "comprovativo_morada", "outro".
+Documentos possíveis (códigos em "documentos"): "cartao_cidadao", "titulo_residencia", "passaporte", "bilhete_identidade", "carta_conducao", "certidao_permanente", "cartao_empresa", "comprovativo_morada", "documento_unico" (Documento Único Automóvel / DUA), "certificado_matricula", "livrete", "titulo_propriedade", "outro".
 
-Regras:
+Documento do carro (DUA, Certificado de Matrícula, livrete ou título de registo de propriedade):
+- NÃO é o documento de uma pessoa. Os dados vão para "viatura" e NUNCA crias uma entrada em "pessoas" a partir dele — nem com o nome ou a morada do proprietário que lá aparece.
+- viatura.matricula: a matrícula (ex.: "AA-00-BB"; no Certificado de Matrícula é o campo A).
+- viatura.marca: a marca (Certificado de Matrícula: D.1).
+- viatura.modelo: o modelo / denominação comercial (Certificado de Matrícula: D.3), ex.: "330d", "Golf".
+- viatura.quadro: o nº de quadro / VIN (17 caracteres; Certificado de Matrícula: E).
+- viatura.proprietario: o nome do proprietário/titular inscrito no documento do carro.
+- Sem documento do carro: todos os campos de "viatura" ficam "".
+
+Regras das pessoas:
 - Agrupa por pessoa: a frente e o verso do mesmo documento são da MESMA pessoa; um comprovativo de morada ou a carta de condução juntam-se à pessoa com o mesmo nome. NUNCA juntes duas pessoas diferentes numa só, nem dividas a mesma pessoa em duas.
 - "pessoas": uma entrada por pessoa ou empresa, pela ordem em que aparecem nos ficheiros.
 - Em cada pessoa ("" quando não constar):
@@ -626,12 +643,14 @@ Regras:
   - morada, codigo_postal ("0000-000"), localidade: só de um documento que tenha a morada em Portugal (Título de Residência, comprovativo, certidão); nunca a partir do local de nascimento.
   - email: só se estiver escrito.
 - legivel: true só se nomes, números e datas se leem bem; senão "problema" diz exatamente onde.
-- resumo: UMA linha, ex.: "2 pessoas: Ana Silva (CC frente e verso) e João Costa (Título de Residência)".
+- resumo: UMA linha, ex.: "2 pessoas: Ana Silva (CC frente e verso) e João Costa (Título de Residência); carro AA-00-BB (DUA)".
 
-Responde APENAS com JSON: {"documentos":[],"legivel":true,"problema":"","resumo":"","pessoas":[...]}`;
+Responde APENAS com JSON: {"documentos":[],"legivel":true,"problema":"","resumo":"","viatura":{"matricula":"","marca":"","modelo":"","quadro":"","proprietario":""},"pessoas":[...]}`;
 
 export interface PartiesProposal extends FieldsProposal {
   people: Record<string, string>[];
+  /** Dados do documento do carro, quando veio junto (null se não veio). */
+  vehicle: { plate: string; make: string; model: string; vin: string; owner: string } | null;
 }
 
 export function normalizePartiesExtraction(json: Record<string, unknown>): PartiesProposal {
@@ -644,8 +663,12 @@ export function normalizePartiesExtraction(json: Record<string, unknown>): Parti
       return one.fields;
     })
     .filter((p) => p.name || p.nif || p.docNumber);
+  const v = (json.viatura ?? {}) as Record<string, unknown>;
+  const vin = normalizeVin(str(v.quadro));
+  const vehicle = { plate: formatPlate(str(v.matricula)), make: str(v.marca), model: str(v.modelo), vin, owner: str(v.proprietario) };
+  if (vin && !isValidVinFormat(vin)) warnings.push("O nº de quadro do documento do carro não tem o formato habitual: confirme.");
   const base = baseProposal(json, {}, warnings);
-  return { ...base, people };
+  return { ...base, people, vehicle: vehicle.plate || vehicle.make || vehicle.model || vehicle.vin ? vehicle : null };
 }
 
 export async function readPartyDocuments(parts: AiPart[]): Promise<PartiesProposal> {
