@@ -516,6 +516,8 @@ export const registrations = pgTable(
     guarantor: jsonb("guarantor").$type<Record<string, string>>(),
     /** Checklist do pagamento: ficou algo por pagar, como, e se passou para as Cobranças. */
     payment: jsonb("payment").$type<Record<string, string>>(),
+    /** Declarações e documentos da venda gerados no fim (garantia, circulação…). */
+    docs: jsonb("docs").$type<{ title: string; url: string; format: string; at: string }[]>(),
     vehicle: jsonb("vehicle").$type<Record<string, string>>().notNull().default({}),
     contractDate: text("contract_date"),
     fileIds: jsonb("file_ids").$type<string[]>().notNull().default([]),

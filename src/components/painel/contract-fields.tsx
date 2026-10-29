@@ -10,11 +10,13 @@ export function ContractFields({
   edited,
   onEdit,
   errors,
+  idPrefix = "c",
 }: {
   fields: ContractField[];
   edited: Record<string, string>;
   onEdit: (patch: Record<string, string>) => void;
   errors: Record<string, string | undefined>;
+  idPrefix?: string;
 }) {
   const valueOf = (f: ContractField) => edited[f.key] ?? f.value;
   return (
@@ -30,12 +32,12 @@ export function ContractFields({
                 const empty = f.required && !v.trim();
                 return (
                   <div key={f.key} className={`a-field${WIDE.test(f.key) ? " wide" : ""}`}>
-                    <label htmlFor={`c-${f.key}`}>
+                    <label htmlFor={`${idPrefix}-${f.key}`}>
                       {f.label}
                       {f.required ? " *" : ""}
                     </label>
                     <input
-                      id={`c-${f.key}`}
+                      id={`${idPrefix}-${f.key}`}
                       value={v}
                       aria-invalid={empty || Boolean(errors[f.key])}
                       onChange={(e) => onEdit(withDerived(f.key, e.target.value))}

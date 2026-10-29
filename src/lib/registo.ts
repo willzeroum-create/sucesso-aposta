@@ -4,6 +4,8 @@
  * Q9 = assinaturas (à mão) com o nº e a validade do documento de cada um.
  */
 
+import type { TemplateId } from "./form-templates";
+
 export type PartyKind = "empresa" | "particular";
 /** Tipo de documento no formulário: BI, Cartão de Cidadão, Cédula profissional ou Outro. */
 export type PartyDocType = "cc" | "bi" | "cp" | "outro";
@@ -64,6 +66,26 @@ export function paymentPending(p: RegistrationPayment): number {
   const n = (v: string) => (v.trim() ? parseEurosText(v) || 0 : 0);
   return Math.max(0, Math.round((n(p.sale) - n(p.down) - n(p.bank)) * 100) / 100);
 }
+
+/** Documento da venda gerado no fim da compra e venda. */
+export interface RegistrationDoc {
+  title: string;
+  url: string;
+  format: string;
+  at: string;
+}
+
+/**
+ * "7. Declarações e documentos": os documentos da venda (o "3. Documentos" da ficha do carro) e quem é o
+ * cliente em cada um. Na consignação o carro é o do cliente (preenche-se na revisão), não o da venda.
+ */
+export const REGISTRATION_DOCS: { id: TemplateId; client: "buyer" | "seller"; ownCar?: boolean }[] = [
+  { id: "termo_garantia", client: "buyer" },
+  { id: "declaracao_circulacao", client: "buyer" },
+  { id: "contrato_consignacao", client: "buyer", ownCar: true },
+  { id: "dados_registo", client: "buyer" },
+  { id: "declaracao_compra", client: "seller" },
+];
 
 export const REGISTRATION_STATUS = {
   draft: "Em preparação",

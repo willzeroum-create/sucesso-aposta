@@ -8,14 +8,18 @@ import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
 import { isValidNif } from "@/lib/pt-validation";
 import {
+  DOC_TYPE_LABEL,
   emptyParty,
   emptyRegistrationVehicle,
+  parseEurosText,
   PARTY_FIELDS,
   REGISTRATION_STATUS,
   VEHICLE_FIELDS_RA,
+  type RegistrationDoc,
   type RegistrationParty,
   type RegistrationVehicle,
 } from "@/lib/registo";
+import { generateDeclaration } from "./declarations";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
 import { newId } from "@/server/ids";
@@ -68,7 +72,24 @@ const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon"
 /** Novo processo de compra e venda. Por omissão o stand (empresa de vendas) é o vendedor. */
 export async function newRegistration(form: FormData): Promise<void> {
   const user = await assertPermission("forms.generate");
-  const vehicleId = String(form.get("vehicleId") ?? "").trim() || null;
+  const id = await insertRegistration(user, String(form.get("vehicleId") ?? "").trim() || null);
+  revalidatePath("/painel/registo");
+  redirect(`/painel/registo/${id}`);
+}
+
+/** Separador "Venda" da ficha do carro: começa a compra e venda deste carro sem sair da ficha. */
+export async function startVehicleRegistration(vehicleId: string): Promise<ActionResult<{ id: string }>> {
+  return run(async () => {
+    const user = await assertPermission("forms.generate");
+    const id = await insertRegistration(user, vehicleId);
+    revalidatePath("/painel/registo");
+    revalidatePath(`/painel/viaturas/${vehicleId}`);
+    revalidatePath(`/painel/estoque/${vehicleId}`);
+    return { id };
+  });
+}
+
+async function insertRegistration(user: Awaited<ReturnType<typeof assertPermission>>, vehicleId: string | null): Promise<string> {
   const vehicle: RegistrationVehicle = emptyRegistrationVehicle();
   if (vehicleId) {
     const [v] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, vehicleId)).limit(1);
@@ -88,8 +109,7 @@ export async function newRegistration(form: FormData): Promise<void> {
     createdBy: user.id,
   });
   await audit(user, { action: "registration.create", entityType: "registration", entityId: id, summary: "Abriu um requerimento de registo (compra e venda)" });
-  revalidatePath("/painel/registo");
-  redirect(`/painel/registo/${id}`);
+  return id;
 }
 
 export async function saveRegistration(id: string, raw: RegistrationPatch): Promise<ActionResult<{ updatedAt: string }>> {
@@ -164,6 +184,110 @@ export async function generateRegistration(id: string): Promise<ActionResult<{ u
     if (row.vehicleId) revalidatePath(`/painel/viaturas/${row.vehicleId}`);
     return { url: `/api/admin/files/${stored.id}` };
   }, "Requerimento gerado.");
+}
+
+const jobsSchema = z
+  .array(z.object({ input: z.record(z.string(), z.unknown()), reviewed: z.record(z.string().max(80), z.string().max(600)) }))
+  .max(10);
+const docsOptsSchema = z.object({ markSold: z.boolean().default(false), km: z.number().int().min(0).max(2_000_000).nullable().default(null) });
+
+/** Ficha do comprador (pelo NIF) ou ficha nova com os dados do processo. */
+async function buyerCustomer(p: RegistrationParty, userId: string): Promise<string> {
+  const nif = p.nif.replace(/\D/g, "");
+  if (nif) {
+    const [c] = await db.select({ id: schema.customers.id }).from(schema.customers).where(eq(schema.customers.nif, nif)).limit(1);
+    if (c) return c.id;
+  }
+  const id = newId("cus");
+  const person = p.kind === "particular" && p.docNumber.trim();
+  await db.insert(schema.customers).values({
+    id,
+    fullName: p.name.trim(),
+    nif: nif || null,
+    email: p.email.trim() || null,
+    address: p.address.trim() || null,
+    postalCode: p.postalCode.trim() || null,
+    city: p.city.trim() || null,
+    idDocumentType: person ? (p.docType === "outro" ? p.docTypeOther : DOC_TYPE_LABEL[p.docType]) : null,
+    idDocumentNumber: person ? p.docNumber.trim() : null,
+    idDocumentExpiry: person && /^\d{4}-\d{2}-\d{2}$/.test(p.docExpiry) ? p.docExpiry : null,
+    source: "Compra e venda",
+    createdBy: userId,
+  });
+  return id;
+}
+
+/**
+ * "7. Declarações e documentos": gera os documentos revistos (o mesmo das Declarações, ligado à viatura e à
+ * ficha do cliente com o mesmo NIF) e, se pedido, marca a viatura do stock como vendida ao comprador.
+ */
+export async function generateRegistrationDocs(id: string, rawJobs: unknown, rawOpts: unknown): Promise<ActionResult<{ docs: RegistrationDoc[] }>> {
+  return run(async () => {
+    const user = await assertPermission("forms.generate");
+    const jobs = jobsSchema.parse(rawJobs);
+    const opts = docsOptsSchema.parse(rawOpts ?? {});
+    const [row] = await db.select().from(schema.registrations).where(eq(schema.registrations.id, id)).limit(1);
+    if (!row) throw new UserError("Processo não encontrado.");
+    if (!jobs.length && !opts.markSold) throw new UserError("Escolha pelo menos um documento.");
+
+    if (opts.markSold) {
+      await assertPermission("vehicles.status");
+      if (!row.vehicleId) throw new UserError("Escolha a viatura do stock (parte 4) para a marcar como vendida.");
+      const buyer = { ...emptyParty(), ...row.buyer } as RegistrationParty;
+      if (!buyer.name.trim()) throw new UserError("Falta o nome do comprador para marcar a viatura como vendida.");
+      const nif = buyer.nif.replace(/\D/g, "");
+      if (nif && !isValidNif(nif)) throw new UserError("O NIF do comprador não é válido.");
+      const [v] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, row.vehicleId)).limit(1);
+      if (!v) throw new UserError("Viatura não encontrada.");
+      const customerId = await buyerCustomer(buyer, user.id);
+      if (v.status === "sold" && v.buyerCustomerId && v.buyerCustomerId !== customerId)
+        throw new UserError("Esta viatura já está vendida a outro cliente. Mude o estado primeiro se a venda foi anulada.");
+      const price = parseEurosText(String(row.payment?.sale ?? ""));
+      const patch = {
+        status: "sold" as const,
+        soldAt: new Date(`${row.contractDate || today()}T12:00:00Z`),
+        soldPriceEur: Number.isFinite(price) && price > 0 ? price : v.soldPriceEur,
+        buyerCustomerId: customerId,
+        ...(opts.km != null ? { mileageKm: opts.km } : {}),
+        updatedAt: new Date(),
+      };
+      await db.update(schema.vehicles).set(patch).where(eq(schema.vehicles.id, v.id));
+      await audit(user, { action: "vehicle.sale", entityType: "vehicle", entityId: v.id, summary: `Vendeu ${v.make} ${v.model}${v.plate ? ` (${v.plate})` : ""} a ${buyer.name}` });
+      revalidatePath("/painel/viaturas");
+      revalidatePath(`/painel/clientes/${customerId}`);
+      if (v.published) revalidatePath("/", "layout");
+    }
+
+    const docs: RegistrationDoc[] = [];
+    try {
+      for (const job of jobs) {
+        const input = { ...job.input };
+        // Liga o documento à ficha do cliente com o mesmo NIF, quando existe.
+        const nif = String((input.customer as Record<string, unknown> | undefined)?.nif ?? "").replace(/\D/g, "");
+        if (nif && !input.customerId) {
+          const [c] = await db.select({ id: schema.customers.id }).from(schema.customers).where(eq(schema.customers.nif, nif)).limit(1);
+          if (c) input.customerId = c.id;
+        }
+        const res = await generateDeclaration(input, job.reviewed);
+        if (!res.ok) throw new UserError(res.error, res.fields);
+        docs.push({ ...res.data, at: new Date().toISOString() });
+      }
+    } finally {
+      // Os que já saíram ficam na lista, mesmo que um dos seguintes falhe.
+      if (docs.length) {
+        await db
+          .update(schema.registrations)
+          .set({ docs: [...docs, ...(row.docs ?? [])], updatedAt: new Date() })
+          .where(eq(schema.registrations.id, id));
+      }
+      revalidatePath(`/painel/registo/${id}`);
+      if (row.vehicleId) {
+        revalidatePath(`/painel/viaturas/${row.vehicleId}`);
+        revalidatePath(`/painel/estoque/${row.vehicleId}`);
+      }
+    }
+    return { docs };
+  }, "Pronto.");
 }
 
 export async function deleteRegistration(id: string): Promise<ActionResult> {

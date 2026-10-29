@@ -3,32 +3,95 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, ArrowRight, Building2, FileDown, FileText, Trash2, User, UserCheck, UserPlus, X } from "lucide-react";
-import { deleteRegistration, generateRegistration, saveRegistration, type RegistrationPatch } from "@/app/painel/_actions/registrations";
+import { ArrowLeftRight, ArrowRight, Building2, CheckCircle2, ClipboardCheck, FileDown, FilePlus2, FileText, Trash2, User, UserCheck, UserPlus, X } from "lucide-react";
+import { declarationVehicle, reviewDeclaration } from "@/app/painel/_actions/declarations";
+import {
+  deleteRegistration,
+  generateRegistration,
+  generateRegistrationDocs,
+  saveRegistration,
+  startVehicleRegistration,
+  type RegistrationPatch,
+} from "@/app/painel/_actions/registrations";
 import { dealCustomer } from "@/app/painel/_actions/sales";
+import type { ContractField } from "@/lib/contract-fields";
+import type { TemplateId } from "@/lib/form-templates";
 import {
   defaultIssuer,
   DOC_TYPE_LABEL,
   docTypeFrom,
   emptyParty,
+  parseEurosText,
   PARTY_FIELDS,
   paymentPending,
+  REGISTRATION_DOCS,
   REGISTRATION_STATUS,
   registrationMissing,
   VEHICLE_FIELDS_RA,
   type PartyDocType,
+  type RegistrationDoc,
   type RegistrationParty,
   type RegistrationPayment,
   type RegistrationStatus,
   type RegistrationVehicle,
 } from "@/lib/registo";
 import { AiReader } from "./ai-reader";
+import { ContractFields } from "./contract-fields";
 import { Alert, Dialog, Field, Spinner, useAction } from "./ui";
 
 type Option = { id: string; label: string };
 type StockVehicle = Option & { plate: string; make: string; model: string; vin: string };
 type CompanyPreset = { key: string; label: string; party: RegistrationParty };
 type Role = "buyer" | "seller";
+type DocOption = { id: TemplateId; title: string; description: string };
+/** Revisão dos documentos de um dos lados (comprador ou vendedor é o "cliente" do documento). */
+type DocReview = { client: Role; ids: TemplateId[]; fields: ContractField[]; inputs: Partial<Record<TemplateId, Record<string, unknown>>> };
+
+const FUELS = ["petrol", "diesel", "hybrid", "electric"];
+const todayIso = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon" }).format(new Date());
+const whenPt = (iso: string) =>
+  new Date(iso).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" });
+
+/** Contraente → cliente do documento (o mesmo formato das Declarações). */
+const docCustomer = (p: RegistrationParty) => {
+  const person = p.kind === "particular";
+  return {
+    fullName: p.name,
+    nif: p.nif,
+    idDocumentType: person && p.docNumber.trim() ? (p.docType === "outro" ? p.docTypeOther : DOC_TYPE_LABEL[p.docType]) : "",
+    idDocumentNumber: person ? p.docNumber : "",
+    idDocumentExpiry: person ? p.docExpiry : "",
+    birthDate: "",
+    nationality: "",
+    drivingLicenseNumber: "",
+    drivingLicenseIssuedAt: "",
+    address: p.address,
+    postalCode: p.postalCode,
+    city: p.city,
+    country: "",
+    phone: "",
+    email: p.email,
+  };
+};
+const BLANK_CAR = { make: "", model: "", version: "", plate: "", vin: "", firstRegistration: "", year: null, mileageKm: null, color: "", fuel: "", transmission: "", engineCc: null, powerHp: null, seats: null };
+
+/** Separador "Venda" da ficha do carro sem compra e venda: começa uma ligada a este carro. */
+export function StartVehicleRegistration({ vehicleId }: { vehicleId: string }) {
+  const router = useRouter();
+  const { pending, run } = useAction();
+  return (
+    <button
+      type="button"
+      className="a-btn a-btn-primary"
+      disabled={pending}
+      onClick={async () => {
+        if ((await run(() => startVehicleRegistration(vehicleId), { quiet: true })).ok) router.refresh();
+      }}
+    >
+      {pending ? <Spinner /> : <FilePlus2 size={16} />} Começar a compra e venda
+    </button>
+  );
+}
 
 /** Pessoa lida pela IA → dados completos de um contraente (substitui o que lá estava). */
 function partyFromRead(found: Record<string, string>): RegistrationParty {
@@ -48,10 +111,14 @@ export function RegistrationEditor({
   id,
   initial,
   canCharge,
+  canMarkSold,
+  vehicleSold,
   vehicles,
   customers,
   companies,
+  docOptions,
   pdfUrl: initialPdf,
+  embedded = false,
 }: {
   id: string;
   initial: {
@@ -64,16 +131,25 @@ export function RegistrationEditor({
     notes: string;
     payment: RegistrationPayment;
     guarantor: RegistrationParty | null;
+    docs: RegistrationDoc[];
   };
   /** Pode criar vendas a prestações (Cobranças). */
   canCharge: boolean;
+  /** Pode marcar a viatura do stock como vendida. */
+  canMarkSold: boolean;
+  /** A viatura do stock ligada já está vendida. */
+  vehicleSold: boolean;
   vehicles: StockVehicle[];
   customers: Option[];
   companies: CompanyPreset[];
+  /** Documentos da venda que se podem gerar no fim (parte 7). */
+  docOptions: DocOption[];
   pdfUrl: string | null;
+  /** Dentro do separador "Venda" da ficha do carro (ao apagar fica na ficha). */
+  embedded?: boolean;
 }) {
   const router = useRouter();
-  const { pending, run } = useAction();
+  const { pending, fields: errors, run } = useAction();
   const [buyer, setBuyer] = useState(initial.buyer);
   const [seller, setSeller] = useState(initial.seller);
   const [vehicle, setVehicle] = useState(initial.vehicle);
@@ -197,6 +273,103 @@ export function RegistrationEditor({
   async function openCharges() {
     if (!(await flush())) return;
     router.push(`/painel/cobrancas/nova?registo=${id}`);
+  }
+
+  // 7. Declarações e documentos (o "3. Documentos" da ficha do carro).
+  const standNifs = new Set(companies.map((c) => c.party.nif.replace(/\D/g, "")).filter(Boolean));
+  const isStand = (p: RegistrationParty) => standNifs.has(p.nif.replace(/\D/g, ""));
+  const standBuys = isStand(buyer);
+  const [docSel, setDocSel] = useState<Set<TemplateId>>(
+    () => new Set((isStand(initial.buyer) ? ["declaracao_compra"] : ["termo_garantia", "declaracao_circulacao"]).filter((d) => docOptions.some((o) => o.id === d)) as TemplateId[]),
+  );
+  const [km, setKm] = useState("");
+  const [warranty, setWarranty] = useState("18");
+  const canSell = Boolean(vehicleId) && canMarkSold && !standBuys;
+  const [markSold, setMarkSold] = useState(Boolean(initial.vehicleId) && canMarkSold && !vehicleSold && !isStand(initial.buyer));
+  const [docReview, setDocReview] = useState<DocReview[] | null>(null);
+  const [docEdits, setDocEdits] = useState<Partial<Record<Role, Record<string, string>>>>({});
+  const [docs, setDocs] = useState(initial.docs);
+  const docValue = (g: DocReview, f: ContractField) => docEdits[g.client]?.[f.key] ?? f.value;
+  const docMissing = (docReview ?? []).flatMap((g) => g.fields.filter((f) => f.required && !docValue(g, f).trim()));
+  const sellNow = canSell && !vehicleSold && markSold;
+  const docTitle = (tid: TemplateId) => docOptions.find((d) => d.id === tid)?.title ?? tid;
+
+  async function reviewDocs() {
+    if (!(await flush())) return;
+    // A viatura do stock completa o que o processo não tem (versão, 1.ª matrícula, km…).
+    let base: Record<string, string> = {};
+    if (vehicleId) {
+      const r = await run(() => declarationVehicle(vehicleId), { quiet: true });
+      if (r.ok) base = r.data;
+    }
+    const num = (s?: string) => (s && s.trim() && Number.isFinite(Number(s)) ? Number(s) : null);
+    const car = {
+      ...BLANK_CAR,
+      make: vehicle.make || base.make || "",
+      model: vehicle.model || base.model || "",
+      version: base.version ?? "",
+      plate: vehicle.plate || base.plate || "",
+      vin: vehicle.vin || base.vin || "",
+      firstRegistration: base.firstRegistration ?? "",
+      year: num(base.year),
+      mileageKm: km.trim() ? num(km.replace(/\D/g, "")) : num(base.mileageKm),
+      color: base.color ?? "",
+      fuel: FUELS.includes(base.fuel ?? "") ? base.fuel : "",
+      transmission: base.transmission === "automatic" || base.transmission === "manual" ? base.transmission : "",
+      engineCc: num(base.engineCc),
+      powerHp: num(base.powerHp),
+      seats: num(base.seats),
+    };
+    const price = parseEurosText(payment.sale);
+    const groups: DocReview[] = [];
+    for (const client of ["buyer", "seller"] as const) {
+      const ids = REGISTRATION_DOCS.filter((d) => d.client === client && docSel.has(d.id)).map((d) => d.id);
+      if (!ids.length) continue;
+      const group: DocReview = { client, ids, fields: [], inputs: {} };
+      for (const tid of ids) {
+        const own = REGISTRATION_DOCS.find((d) => d.id === tid)?.ownCar;
+        const input = {
+          template: tid,
+          customerId: null,
+          vehicleId: own ? null : vehicleId || null,
+          customer: docCustomer(client === "buyer" ? buyer : seller),
+          vehicle: own ? BLANK_CAR : car,
+          deal: {
+            priceEur: !own && Number.isFinite(price) && price > 0 ? price : null,
+            date: contractDate || todayIso(),
+            time: "",
+            place: "",
+            notes: "",
+            warrantyMonths: Number(warranty) || 18,
+            warrantyNumber: "",
+            warrantyExtras: "",
+            iban: "",
+          },
+        };
+        group.inputs[tid] = input;
+        const r = await run(() => reviewDeclaration(input));
+        if (!r.ok) return;
+        for (const f of r.data.fields) if (!group.fields.some((x) => x.key === f.key)) group.fields.push(f);
+      }
+      groups.push(group);
+    }
+    setDocEdits({});
+    setDocReview(groups);
+    requestAnimationFrame(() => document.getElementById("dados-documentos")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  async function generateDocs() {
+    if (!(await flush())) return;
+    const jobs = (docReview ?? []).flatMap((g) =>
+      g.ids.map((tid) => ({ input: g.inputs[tid]!, reviewed: Object.fromEntries(g.fields.map((f) => [f.key, docValue(g, f)])) })),
+    );
+    const res = await run(() => generateRegistrationDocs(id, jobs, { markSold: sellNow, km: km.trim() ? Number(km.replace(/\D/g, "")) : null }));
+    if (res.ok) {
+      setDocs((d) => [...res.data.docs, ...d]);
+      setDocReview(null);
+      if (res.data.docs[0]) window.open(res.data.docs[0].url, "_blank", "noopener");
+      router.refresh();
+    }
   }
 
   const partyCard = (role: Role, p: RegistrationParty) => {
@@ -606,6 +779,144 @@ export function RegistrationEditor({
         </div>
       </section>
 
+      {/* 7. Declarações e documentos: o "3. Documentos" da ficha do carro */}
+      <section className="a-card">
+        <div className="a-card-head">
+          <div>
+            <h2>7. Declarações e documentos</h2>
+            <p>Gerados já preenchidos com a viatura, o comprador, o vendedor e a empresa. Os modelos mudam-se em Configurações → Modelos.</p>
+          </div>
+        </div>
+        <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
+          {docOptions.map((d) => {
+            const meta = REGISTRATION_DOCS.find((x) => x.id === d.id);
+            return (
+              <label key={d.id} className="a-check">
+                <input
+                  type="checkbox"
+                  checked={docSel.has(d.id)}
+                  onChange={(e) => {
+                    const next = new Set(docSel);
+                    if (e.target.checked) next.add(d.id);
+                    else next.delete(d.id);
+                    setDocSel(next);
+                    setDocReview(null);
+                  }}
+                />
+                <span>
+                  <strong style={{ fontWeight: 600 }}>{d.title}</strong>
+                  <span className="muted" style={{ display: "block", fontSize: 13 }}>
+                    {d.description} {meta?.client === "seller" ? "Cliente: o vendedor." : meta?.ownCar ? "Cliente: o comprador, com o carro dele." : ""}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+          <div className="a-fields">
+            <Field label="Preço de venda (€)" name="docs-price" hint="O mesmo do 6. Pagamento.">
+              <input id="f-docs-price" inputMode="decimal" value={payment.sale} onChange={(e) => pay("sale", e.target.value)} placeholder="ex.: 15000" />
+            </Field>
+            <Field label="Quilómetros na entrega" name="docs-km" hint={vehicleId ? "Vazio = os da ficha do carro." : undefined}>
+              <input id="f-docs-km" inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} />
+            </Field>
+            {docSel.has("termo_garantia") && (
+              <Field label="Garantia (meses)" name="docs-warranty">
+                <input id="f-docs-warranty" inputMode="numeric" value={warranty} onChange={(e) => setWarranty(e.target.value.replace(/\D/g, "").slice(0, 3))} />
+              </Field>
+            )}
+          </div>
+          {canSell &&
+            (vehicleSold ? (
+              <p className="muted" style={{ margin: 0, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+                Esta viatura já está marcada como vendida.
+              </p>
+            ) : (
+              <label className="a-check" style={{ paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+                <input type="checkbox" checked={markSold} onChange={(e) => setMarkSold(e.target.checked)} />
+                <span>
+                  <strong style={{ fontWeight: 600 }}>Marcar a viatura como vendida</strong>
+                  <span className="muted" style={{ display: "block", fontSize: 13 }}>
+                    Associa o comprador (cria a ficha se não existir), regista preço e data e, no site, passa a “Vendido”.
+                  </span>
+                </span>
+              </label>
+            ))}
+        </div>
+        <div className="a-form-foot" style={{ margin: 0, flexWrap: "wrap", gap: 12 }}>
+          {docSel.size > 0 ? (
+            <button type="button" className="a-btn a-btn-primary" onClick={reviewDocs} disabled={pending}>
+              {pending && !docReview ? <Spinner /> : <ClipboardCheck size={16} />} Rever dados dos documentos
+            </button>
+          ) : sellNow ? (
+            <button type="button" className="a-btn a-btn-primary" onClick={generateDocs} disabled={pending}>
+              {pending ? <Spinner /> : <CheckCircle2 size={16} />} Marcar como vendida
+            </button>
+          ) : (
+            <span className="muted" style={{ fontSize: 13 }}>
+              Escolha pelo menos um documento.
+            </span>
+          )}
+        </div>
+        {docs.length > 0 && (
+          <ul className="a-assume-list">
+            {docs.map((d, i) => (
+              <li key={`${d.url}-${i}`}>
+                <FileText size={16} aria-hidden />
+                <span>
+                  <strong>{d.title}</strong>
+                  <small className="muted">
+                    {d.format === "docx" ? "Word" : "PDF"} · {whenPt(d.at)}
+                  </small>
+                </span>
+                <a className="a-btn a-btn-sm" href={d.url} target="_blank" rel="noopener">
+                  <FileDown size={14} /> Abrir
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {docReview && (
+        <section className="a-card" id="dados-documentos" style={{ scrollMarginTop: 16 }}>
+          <div className="a-card-head">
+            <div>
+              <h2>Dados dos documentos</h2>
+              <p>Tudo o que vai aparecer nos documentos. Confira, corrija e complete o que falta — só depois se gera.</p>
+            </div>
+            {docMissing.length > 0 ? <span className="a-pill danger">{docMissing.length} por preencher</span> : <span className="a-pill available">Completo</span>}
+          </div>
+          <div className="a-card-body" style={{ display: "grid", gap: 20 }}>
+            {docReview.map((g) => (
+              <div key={g.client} style={{ display: "grid", gap: 12 }}>
+                {docReview.length > 1 && (
+                  <h3 className="a-section-title" style={{ margin: 0 }}>
+                    {g.client === "buyer" ? "Cliente: o comprador" : "Cliente: o vendedor"} — {g.ids.map(docTitle).join(", ")}
+                  </h3>
+                )}
+                <ContractFields
+                  idPrefix={`doc-${g.client}`}
+                  fields={g.fields}
+                  edited={docEdits[g.client] ?? {}}
+                  onEdit={(patch) => setDocEdits((x) => ({ ...x, [g.client]: { ...(x[g.client] ?? {}), ...patch } }))}
+                  errors={errors}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="a-form-foot" style={{ margin: 0, flexWrap: "wrap", gap: 12 }}>
+            <button type="button" className="a-btn a-btn-primary" onClick={generateDocs} disabled={pending || docMissing.length > 0}>
+              {pending ? <Spinner /> : <CheckCircle2 size={16} />} {sellNow ? "Marcar como vendida e gerar documentos" : "Gerar documentos"}
+            </button>
+            {docMissing.length > 0 && (
+              <span className="muted" style={{ fontSize: 13 }}>
+                Falta preencher: {[...new Set(docMissing.map((f) => f.label))].join(", ")}.
+              </span>
+            )}
+          </div>
+        </section>
+      )}
+
       <section className="a-card a-card-pad" style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <strong>Apagar processo</strong>
@@ -630,7 +941,10 @@ export function RegistrationEditor({
                 className="a-btn a-btn-danger"
                 disabled={pending}
                 onClick={async () => {
-                  if ((await run(() => deleteRegistration(id))).ok) router.push("/painel/registo");
+                  if ((await run(() => deleteRegistration(id))).ok) {
+                    if (embedded) router.refresh();
+                    else router.push("/painel/registo");
+                  }
                 }}
               >
                 Apagar

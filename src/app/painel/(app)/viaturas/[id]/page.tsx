@@ -13,6 +13,9 @@ import { Plate } from "@/components/painel/ui";
 import { VehicleForm } from "@/components/painel/vehicle-form";
 import { DeleteVehicle } from "@/components/painel/delete-vehicle";
 import { SalePanel } from "@/components/painel/sale-panel";
+import { RegistrationEditor, StartVehicleRegistration } from "@/components/painel/registration-editor";
+import { latestVehicleRegistration, registrationEditorProps } from "@/server/registration-editor";
+import type { SessionUser } from "@/server/auth/session";
 import { CostsPanel } from "@/components/painel/costs-panel";
 import { costSummary } from "@/lib/vehicle-costs";
 import { VEHICLE_DOCUMENT_KINDS } from "@/lib/document-kinds";
@@ -263,19 +266,20 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         </section>
       )}
 
+      {tab === "venda" && canForms && <VehicleSale vehicleId={v.id} user={user} />}
+
       {tab === "venda" && can(user, "billing.manage") && <ChargesForVehicle vehicleId={v.id} />}
 
       {tab === "aluguer" && <RentalsCard rentals={await vehicleRentals(v.id)} canEdit={can(user, "vehicles.status")} />}
 
-      {(tab === "venda" || (tab === "aluguer" && can(user, "vehicles.status"))) && canForms && (
+      {tab === "aluguer" && can(user, "vehicles.status") && canForms && (
         <SalePanel
-          key={tab}
-          mode={tab === "aluguer" ? "rent" : "sale"}
+          mode="rent"
           vehicleId={v.id}
           vehicleLabel={`${v.make} ${v.model}`}
           customers={customers}
-          documents={(await templateInfos()).filter((t) => t.mode === (tab === "aluguer" ? "rent" : "sale") && t.id !== "declaracao_compra")}
-          defaults={{ customerId: tab === "aluguer" ? null : v.buyerCustomerId, priceEur: v.soldPriceEur ?? v.priceEur, km: v.mileageKm }}
+          documents={(await templateInfos()).filter((t) => t.mode === "rent")}
+          defaults={{ customerId: null, priceEur: v.soldPriceEur ?? v.priceEur, km: v.mileageKm }}
           sold={v.status === "sold" ? { buyer: buyer?.fullName ?? null, date: v.soldAt ? v.soldAt.toLocaleDateString("pt-PT") : null } : null}
           canMarkSold={can(user, "vehicles.status")}
           canCreateCustomer={can(user, "customers.edit")}
@@ -350,6 +354,39 @@ async function CostsCard({ vehicle, canEditPurchase }: { vehicle: typeof schema.
         notes: vehicle.costNotes,
       }}
     />
+  );
+}
+
+/** Na aba Venda: a mesma Compra e venda da página própria, ligada a este carro. */
+async function VehicleSale({ vehicleId, user }: { vehicleId: string; user: SessionUser }) {
+  const row = await latestVehicleRegistration(vehicleId);
+  if (!row)
+    return (
+      <section className="a-card">
+        <div className="a-card-head">
+          <div>
+            <h2>Compra e venda</h2>
+            <p>A mesma da página Compra e venda: documentos lidos com IA, comprador, vendedor, fiador, requerimento do IRN, pagamento e declarações (garantia, circulação…).</p>
+          </div>
+        </div>
+        <div className="a-card-body">
+          <StartVehicleRegistration vehicleId={vehicleId} />
+        </div>
+      </section>
+    );
+  const props = await registrationEditorProps(row, user);
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div className="a-actions" style={{ justifyContent: "space-between" }}>
+        <h2 className="a-section-title" style={{ margin: 0 }}>
+          Compra e venda
+        </h2>
+        <Link href={`/painel/registo/${row.id}`} className="a-btn a-btn-sm">
+          Abrir em página própria
+        </Link>
+      </div>
+      <RegistrationEditor {...props} embedded />
+    </div>
   );
 }
 

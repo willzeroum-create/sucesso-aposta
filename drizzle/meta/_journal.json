@@ -127,6 +127,13 @@
       "when": 1793273490454,
       "tag": "0017_fiador_compra_venda",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793277017996,
+      "tag": "0018_compra_venda_documentos",
+      "breakpoints": true
     }
   ]
 }
