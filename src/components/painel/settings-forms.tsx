@@ -97,7 +97,7 @@ function WordTemplate({ id, word, hasExample }: { id: string; word: WordFile; ha
             <FileText size={18} /> <strong>Documento Word em uso: {word.name}</strong>
           </p>
           <p className="muted" style={{ fontSize: 13 }}>
-            Carregado por {word.uploadedBy} em {new Date(word.uploadedAt).toLocaleString("pt-PT")} · {word.fields.length} campos preenchidos automaticamente. Cada venda gera uma cópia em Word com os dados do comprador e da viatura.
+            Carregado por {word.uploadedBy} em {new Date(word.uploadedAt).toLocaleString("pt-PT")} · {word.fields.length} campos preenchidos automaticamente. Cada venda gera, a partir deste Word, um PDF com os dados do comprador e da viatura.
           </p>
           <div className="a-actions">
             <a className="a-btn a-btn-sm" href={`/api/admin/templates/${id}`}>

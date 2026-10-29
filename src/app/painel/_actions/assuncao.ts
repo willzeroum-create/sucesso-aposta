@@ -9,6 +9,7 @@ import { ASSUNCAO_TEMPLATE, ASSUNCAO_TITLE, assuncaoValues, type Outorgante } fr
 import { isIsoDate } from "@/lib/cobrancas";
 import { assuncaoDocx } from "@/server/assuncao-docx";
 import { STAND_PARTY_KEY } from "@/server/assuncao";
+import { docxToPdf, pdfName } from "@/server/docx-pdf";
 import { DOCX_MIME } from "@/server/docx-template";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
@@ -70,7 +71,9 @@ export async function generateAssumptionContract(chargeId: string, raw: Assuncao
 
     const docx = await assuncaoDocx(d);
     const name = `${ASSUNCAO_TITLE} - ${d[standSide === "primeiro" ? "segundo" : "primeiro"].nome}`.replace(/[\\/:*?"<>|]/g, "") + ".docx";
-    const stored = await storeGenerated(docx, DOCX_MIME, name, user.id);
+    // Entrega-se em PDF (o stand não tem o Office); o Word fica só se a conversão falhar.
+    const pdf = await docxToPdf(docx).catch((e) => (console.error("Word → PDF falhou:", e), null));
+    const stored = pdf ? await storeGenerated(pdf, "application/pdf", pdfName(name), user.id) : await storeGenerated(docx, DOCX_MIME, name, user.id);
     const id = newId("frm");
     await db.insert(schema.generatedForms).values({
       id,
@@ -101,6 +104,6 @@ export async function generateAssumptionContract(chargeId: string, raw: Assuncao
     revalidatePath(`/painel/cobrancas/${chargeId}`);
     revalidatePath(`/painel/clientes/${c.customerId}`);
     if (c.vehicleId) revalidatePath(`/painel/viaturas/${c.vehicleId}`);
-    return { id, url: `/api/admin/files/${stored.id}`, name };
+    return { id, url: `/api/admin/files/${stored.id}`, name: pdf ? pdfName(name) : name };
   }, "Contrato gerado.");
 }

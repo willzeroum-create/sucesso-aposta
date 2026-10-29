@@ -270,10 +270,36 @@ export function RegistrationEditor({
       </div>
     </div>
   );
-  async function openCharges() {
-    if (!(await flush())) return;
-    router.push(`/painel/cobrancas/nova?registo=${id}`);
+  /** As Cobranças abrem numa janela nova: esta fica aberta para continuar a preencher. */
+  const chargesOpened = useRef(false);
+  function openCharges() {
+    const url = `/painel/cobrancas/nova?registo=${id}`;
+    chargesOpened.current = true;
+    if (snapshot === lastSaved.current) {
+      window.open(url, "_blank", "noopener");
+      return;
+    }
+    // Com alterações por gravar: a janela abre já no clique (senão o navegador bloqueia) e só recebe o
+    // endereço depois de gravar.
+    const win = window.open("", "_blank");
+    void flush().then((ok) => {
+      if (!ok) return win?.close();
+      if (win) {
+        win.opener = null;
+        win.location.href = url;
+      } else window.open(url, "_blank");
+    });
   }
+  // Ao voltar a esta janela depois de abrir as Cobranças, vê se a venda a prestações já foi criada.
+  useEffect(() => {
+    const onFocus = () => chargesOpened.current && router.refresh();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [router]);
+  const linkedCharge = initial.payment.chargeId;
+  useEffect(() => {
+    if (linkedCharge) setPayment((p) => (p.chargeId === linkedCharge ? p : { ...p, owed: "sim", how: "prestacoes", toCharges: "sim", chargeId: linkedCharge }));
+  }, [linkedCharge]);
 
   // 7. Declarações e documentos (o "3. Documentos" da ficha do carro).
   const standNifs = new Set(companies.map((c) => c.party.nif.replace(/\D/g, "")).filter(Boolean));
@@ -743,7 +769,9 @@ export function RegistrationEditor({
                 (payment.chargeId ? (
                   <Alert kind="ok" title="Já está nas Cobranças">
                     <p>
-                      <Link href={`/painel/cobrancas/${payment.chargeId}`}>Abrir a venda a prestações</Link>
+                      <Link href={`/painel/cobrancas/${payment.chargeId}`} target="_blank" rel="noopener">
+                        Abrir a venda a prestações
+                      </Link>
                     </p>
                   </Alert>
                 ) : (
@@ -756,7 +784,7 @@ export function RegistrationEditor({
                       (canCharge ? (
                         <div className="a-pay-next">
                           <p className="muted">
-                            Abre a venda a prestações já preenchida com o comprador{guarantor ? ", o fiador" : ""}, o carro e os valores. Lá escolhe as prestações e gera o contrato para assinar.
+                            Abre a venda a prestações já preenchida com o comprador{guarantor ? ", o fiador" : ""}, o carro e os valores. Abre numa janela nova (esta fica aberta para continuar): lá escolhe as prestações e gera o contrato para assinar.
                           </p>
                           <button type="button" className="a-btn a-btn-primary" onClick={openCharges} disabled={pending}>
                             <ArrowRight size={16} /> Abrir nas Cobranças
@@ -865,7 +893,7 @@ export function RegistrationEditor({
                 <span>
                   <strong>{d.title}</strong>
                   <small className="muted">
-                    {d.format === "docx" ? "Word" : "PDF"} · {whenPt(d.at)}
+                    PDF · {whenPt(d.at)}
                   </small>
                 </span>
                 <a className="a-btn a-btn-sm" href={d.url} target="_blank" rel="noopener">

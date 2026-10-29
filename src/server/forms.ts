@@ -394,6 +394,7 @@ export async function createFormDocument(
   const wordTemplate = (await getTemplateFiles())[templateId as TemplateId];
   const bundled = wordTemplate ? null : await bundledDocx(templateId);
   let stored;
+  let asWord = false;
   if (wordTemplate || bundled) {
     // Documento do stand em Word: preenche os campos e mantém o formato original.
     const { getObject } = await import("./storage");
@@ -405,7 +406,12 @@ export async function createFormDocument(
     }
     if (!original) throw new Error("O modelo Word deste documento não foi encontrado. Volte a carregá-lo em Configurações.");
     const docx = fillDocx(original, values);
-    stored = await storeGenerated(docx, DOCX_MIME, `${template.title} - ${who}.docx`.replace(/[\\/:*?"<>|]/g, ""), user.id);
+    const name = `${template.title} - ${who}`.replace(/[\\/:*?"<>|]/g, "");
+    // O stand não tem o Office: entrega-se sempre em PDF (o Word fica só se a conversão falhar).
+    const { docxToPdf } = await import("./docx-pdf");
+    const pdf = await docxToPdf(docx).catch((e) => (console.error("Word → PDF falhou:", e), null));
+    stored = pdf ? await storeGenerated(pdf, "application/pdf", `${name}.pdf`, user.id) : await storeGenerated(docx, DOCX_MIME, `${name}.docx`, user.id);
+    asWord = !pdf;
   } else {
     const pdf = await renderPdf(template, values, { reference: values["documento.referencia"], standName: site.name });
     stored = await storeGenerated(pdf, "application/pdf", `${template.title} - ${who}.pdf`.replace(/[\\/:*?"<>|]/g, ""), user.id);
@@ -417,5 +423,5 @@ export async function createFormDocument(
     entityId: vehicle?.id ?? customer?.id ?? null,
     summary: `Gerou "${template.title}"${customer ? ` para ${customer.fullName}` : ""}${vehicle ? ` — ${vehicle.make} ${vehicle.model}${vehicle.plate ? ` ${vehicle.plate}` : ""}` : ""}`,
   });
-  return { id, fileId: stored.id, title: template.title, url: `/api/admin/files/${stored.id}`, format: wordTemplate || bundled ? "docx" : "pdf" };
+  return { id, fileId: stored.id, title: template.title, url: `/api/admin/files/${stored.id}`, format: asWord ? "docx" : "pdf" };
 }

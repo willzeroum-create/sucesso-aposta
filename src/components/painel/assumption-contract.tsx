@@ -20,7 +20,7 @@ const strip = ({ label: _l, city: _c, ...o }: Stand): Outorgante => o;
 
 /**
  * Contrato de assunção de responsabilidade de uma venda a prestações: tudo vem preenchido da cobrança
- * e do stand; a pessoa revê e gera o Word para imprimir e assinar.
+ * e do stand; a pessoa revê e gera o PDF para imprimir e assinar.
  */
 export function AssumptionContract({
   chargeId,
@@ -136,7 +136,7 @@ export function AssumptionContract({
       <div className="a-card-head">
         <div>
           <h2>Contrato de assunção de responsabilidade</h2>
-          <p>Minuta do advogado (18 cláusulas e pacto de livrança), preenchida com os dados desta venda. Gera um Word para imprimir e assinar com reconhecimento presencial.</p>
+          <p>Minuta do advogado (18 cláusulas e pacto de livrança), preenchida com os dados desta venda. Gera um PDF para imprimir e assinar com reconhecimento presencial.</p>
         </div>
         <button type="button" className="a-btn a-btn-primary a-btn-sm" onClick={() => setOpen(true)}>
           <FileText size={15} /> {generated.length ? "Gerar outra vez" : "Gerar contrato"}
@@ -149,7 +149,7 @@ export function AssumptionContract({
               <FileText size={16} aria-hidden />
               <span>
                 <strong>{when(g.createdAt)}</strong>
-                <small className="muted">Word · {g.by}</small>
+                <small className="muted">PDF · {g.by}</small>
               </span>
               {g.fileId && (
                 <a className="a-btn a-btn-sm" href={`/api/admin/files/${g.fileId}`} download>
@@ -183,7 +183,7 @@ export function AssumptionContract({
               Cancelar
             </button>
             <button type="button" className="a-btn a-btn-primary" onClick={generate} disabled={pending}>
-              {pending ? <Spinner size={14} /> : <Download size={15} />} Gerar Word
+              {pending ? <Spinner size={14} /> : <Download size={15} />} Gerar PDF
             </button>
           </>
         }

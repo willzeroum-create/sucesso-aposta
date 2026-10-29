@@ -8,6 +8,7 @@
  * Estes quatro vêm em Word (src/server/templates/*.docx), recriados a partir dos documentos reais do stand,
  * com o mesmo texto e disposição; só mudam os campos {{...}}. O stand pode substituir cada um pelo seu
  * .docx final (com logótipo) em Configurações → Modelos de documentos. Os restantes são texto em PDF.
+ * Tudo é entregue em PDF: o Word preenchido passa a PDF no servidor (src/server/docx-pdf.ts).
  */
 
 export type TemplateId =

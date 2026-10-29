@@ -571,7 +571,7 @@ export function Declarations({
               </Alert>
               <div className="a-actions">
                 <a className="a-btn a-btn-primary" href={done.url} target="_blank" rel="noopener">
-                  <FileDown size={16} /> Abrir {done.format === "docx" ? "(Word)" : "(PDF)"}
+                  <FileDown size={16} /> Abrir (PDF)
                 </a>
                 <button
                   type="button"

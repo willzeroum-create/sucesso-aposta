@@ -277,7 +277,7 @@ export function SalePanel({
         <div className="a-actions">
           {done.map((d) => (
             <a key={d.url} className="a-btn a-btn-primary" href={d.url} target="_blank" rel="noopener">
-              <FileDown size={16} /> {d.title} ({d.format === "docx" ? "Word" : "PDF"})
+              <FileDown size={16} /> {d.title} (PDF)
             </a>
           ))}
         </div>
@@ -537,7 +537,7 @@ export function SalePanel({
         <div className="a-card-head">
           <div>
             <h2>3. Documentos</h2>
-            <p>Gerados já preenchidos com a viatura, o {who} e a empresa. Os modelos Word trocam-se em Configurações → Modelos.</p>
+            <p>Gerados já preenchidos com a viatura, o {who} e a empresa. Saem em PDF; os modelos trocam-se em Configurações → Modelos.</p>
           </div>
         </div>
         <div className="a-card-body" style={{ display: "grid", gap: 10 }}>
