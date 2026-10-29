@@ -51,7 +51,7 @@ const DEFAULT_COMPANY: Record<CompanyKind, CompanyInfo> = {
   },
   rent: {
     legalName: "Aposta Promissora Unipessoal Lda",
-    nipc: "515319147",
+    nipc: "517503867",
     address: "Rua Marechal Gomes da Costa nº123",
     postalCode: "",
     city: "Famões/Odivelas - Lisboa",
