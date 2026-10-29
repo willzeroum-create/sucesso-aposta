@@ -57,6 +57,7 @@ export default async function RegistrationPage(props: PageProps<"/painel/registo
           status: row.status,
           notes: row.notes ?? "",
           payment: { ...emptyPayment(), ...(row.payment ?? {}) } as RegistrationPayment,
+          guarantor: row.guarantor ? ({ ...emptyParty(), ...row.guarantor } as RegistrationParty) : null,
         }}
         canCharge={can(user, "billing.manage")}
         vehicles={stock.map((v) => ({ id: v.id, label: `${v.make} ${v.model}${v.plate ? ` · ${v.plate}` : ""}`, plate: v.plate ?? "", make: v.make, model: v.model, vin: v.vin ?? "" }))}

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, ArrowRight, Building2, FileDown, FileText, Trash2, User, UserCheck } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Building2, FileDown, FileText, Trash2, User, UserCheck, UserPlus, X } from "lucide-react";
 import { deleteRegistration, generateRegistration, saveRegistration, type RegistrationPatch } from "@/app/painel/_actions/registrations";
 import { dealCustomer } from "@/app/painel/_actions/sales";
 import {
@@ -63,6 +63,7 @@ export function RegistrationEditor({
     status: RegistrationStatus;
     notes: string;
     payment: RegistrationPayment;
+    guarantor: RegistrationParty | null;
   };
   /** Pode criar vendas a prestações (Cobranças). */
   canCharge: boolean;
@@ -81,6 +82,8 @@ export function RegistrationEditor({
   const [status, setStatus] = useState(initial.status);
   const [notes, setNotes] = useState(initial.notes);
   const [payment, setPayment] = useState(initial.payment);
+  /** Fiador / 2.º titular: só para o contrato das Cobranças, nunca para o requerimento. */
+  const [guarantor, setGuarantor] = useState(initial.guarantor);
   const [pdfUrl, setPdfUrl] = useState(initialPdf);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -91,8 +94,8 @@ export function RegistrationEditor({
 
   // Grava sozinho pouco depois de cada alteração.
   const snapshot = useMemo(
-    () => JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment }),
-    [buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment],
+    () => JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment, guarantor }),
+    [buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment, guarantor],
   );
   const lastSaved = useRef(snapshot);
   const save = useCallback(
@@ -115,10 +118,11 @@ export function RegistrationEditor({
       status,
       notes,
       payment: (({ chargeId: _c, ...p }) => p)(payment),
+      guarantor: guarantor ? ({ ...guarantor } as Record<string, string>) : null,
     });
     if (ok) lastSaved.current = snapshot;
     return ok;
-  }, [snapshot, save, buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment]);
+  }, [snapshot, save, buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment, guarantor]);
   useEffect(() => {
     if (snapshot === lastSaved.current) return;
     const t = setTimeout(() => void flush(), 900);
@@ -168,7 +172,7 @@ export function RegistrationEditor({
       setPdfUrl(res.data.url);
       if (status === "draft") {
         setStatus("generated");
-        lastSaved.current = JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status: "generated", notes, payment });
+        lastSaved.current = JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status: "generated", notes, payment, guarantor });
       }
       window.open(res.data.url, "_blank", "noopener");
       router.refresh();
@@ -297,7 +301,7 @@ export function RegistrationEditor({
           }
         }}
         onUploaded={(ids) => void save({ addFileIds: ids })}
-        intro="Fotografe tudo de uma vez: os documentos das pessoas (Cartão de Cidadão frente e verso, título de residência…) e o documento do carro (DUA ou Certificado de Matrícula). A seguir diz quem é o comprador."
+        intro="Fotografe tudo de uma vez: os documentos das pessoas (Cartão de Cidadão frente e verso, título de residência…) e o documento do carro (DUA ou Certificado de Matrícula). A seguir diz quem é o comprador (e o fiador, se houver)."
       />
 
       {people && (
@@ -310,7 +314,7 @@ export function RegistrationEditor({
                   ? `${people[0].name || "Pessoa sem nome legível"}: escolha o papel.`
                   : people.length === 2
                     ? "Toque no comprador. O outro fica como vendedor."
-                    : "Há mais de duas pessoas nos documentos: escolha o papel de cada uma."}
+                    : "Há mais de duas pessoas nos documentos: escolha o papel de cada uma (comprador, vendedor ou fiador)."}
                 {carOwner ? ` No documento do carro, o proprietário é ${carOwner} (normalmente o vendedor).` : ""}
               </p>
             </div>
@@ -324,16 +328,31 @@ export function RegistrationEditor({
                 <button type="button" className="a-btn" onClick={() => assign(null, 0)}>
                   <UserCheck size={16} /> Vendedor
                 </button>
+                <button type="button" className="a-btn" onClick={() => (setGuarantor(people[0]), setPeople(null))}>
+                  <UserPlus size={16} /> Fiador
+                </button>
               </div>
             ) : people.length === 2 ? (
-              <div className="a-actions">
-                {people.map((pp, i) => (
-                  <button key={i} type="button" className="a-btn a-btn-primary" style={{ minHeight: 48, maxWidth: "100%", height: "auto", whiteSpace: "normal", flexWrap: "wrap", justifyContent: "flex-start", textAlign: "left" }} onClick={() => assign(i, 1 - i)}>
-                    <UserCheck size={16} /> {pp.name || `Pessoa ${i + 1}`}
-                    {pp.nif ? <span style={{ fontWeight: 400, opacity: 0.8 }}> · NIF {pp.nif}</span> : null}
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="a-actions">
+                  {people.map((pp, i) => (
+                    <button key={i} type="button" className="a-btn a-btn-primary" style={{ minHeight: 48, maxWidth: "100%", height: "auto", whiteSpace: "normal", flexWrap: "wrap", justifyContent: "flex-start", textAlign: "left" }} onClick={() => assign(i, 1 - i)}>
+                      <UserCheck size={16} /> {pp.name || `Pessoa ${i + 1}`}
+                      {pp.nif ? <span style={{ fontWeight: 400, opacity: 0.8 }}> · NIF {pp.nif}</span> : null}
+                    </button>
+                  ))}
+                </div>
+                <div className="a-pay-q">
+                  <span>Algum é o fiador?</span>
+                  <div className="a-actions">
+                    {people.map((pp, i) => (
+                      <button key={i} type="button" className="a-btn a-btn-sm" onClick={() => (setGuarantor(pp), setBuyer(people[1 - i]), setPeople(null))}>
+                        <UserPlus size={15} /> {pp.name || `Pessoa ${i + 1}`} é o fiador
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
             ) : (
               people.map((pp, i) => (
                 <div key={i} className="a-actions" style={{ justifyContent: "space-between" }}>
@@ -344,6 +363,9 @@ export function RegistrationEditor({
                     </button>
                     <button type="button" className="a-btn a-btn-sm" onClick={() => setSeller(pp)}>
                       Vendedor
+                    </button>
+                    <button type="button" className="a-btn a-btn-sm" onClick={() => setGuarantor(pp)}>
+                      Fiador
                     </button>
                   </span>
                 </div>
@@ -374,6 +396,42 @@ export function RegistrationEditor({
       </div>
 
       {partyCard("seller", seller)}
+
+      {/* Fiador / 2.º titular: fica guardado para as Cobranças, não vai para o requerimento */}
+      {guarantor ? (
+        <section className="a-card">
+          <div className="a-card-head">
+            <div>
+              <h2>Fiador / 2.º titular</h2>
+              <p>Não vai para o requerimento do IRN. Entra no contrato das Cobranças como avalista.</p>
+            </div>
+            <button type="button" className="a-btn a-btn-sm a-btn-ghost" onClick={() => setGuarantor(null)}>
+              <X size={15} /> Tirar
+            </button>
+          </div>
+          <div className="a-card-body a-fields">
+            {(
+              [
+                ["name", "Nome", true],
+                ["nif", "NIF", false],
+                ["address", "Morada", true],
+                ["postalCode", "Código postal", false],
+                ["city", "Localidade", false],
+              ] as [keyof RegistrationParty, string, boolean][]
+            ).map(([k, label, wide]) => (
+              <Field key={k} label={label} name={`guarantor-${k}`} wide={wide}>
+                <input id={`f-guarantor-${k}`} value={(guarantor[k] as string) ?? ""} onChange={(e) => setGuarantor((g) => (g ? { ...g, [k]: e.target.value } : g))} />
+              </Field>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <button type="button" className="a-btn a-btn-sm a-btn-ghost" onClick={() => setGuarantor(emptyParty())}>
+            <UserPlus size={15} /> Fiador / 2.º titular (opcional, só para as Cobranças)
+          </button>
+        </div>
+      )}
 
       {/* 4. Viatura (opcional, à mão) */}
       <section className="a-card">
@@ -525,7 +583,7 @@ export function RegistrationEditor({
                       (canCharge ? (
                         <div className="a-pay-next">
                           <p className="muted">
-                            Abre a venda a prestações já preenchida com o comprador, o carro e os valores. Lá escolhe as prestações, junta o 2.º titular / fiador se houver e gera o contrato para assinar.
+                            Abre a venda a prestações já preenchida com o comprador{guarantor ? ", o fiador" : ""}, o carro e os valores. Lá escolhe as prestações e gera o contrato para assinar.
                           </p>
                           <button type="button" className="a-btn a-btn-primary" onClick={openCharges} disabled={pending}>
                             <ArrowRight size={16} /> Abrir nas Cobranças

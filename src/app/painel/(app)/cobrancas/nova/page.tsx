@@ -11,7 +11,7 @@ export const metadata = { title: "Nova venda a prestações" };
 
 const euros = (v: number) => (v ? String(v).replace(".", ",") : "");
 
-/** Vem da compra e venda: comprador, carro e valores já preenchidos para conferir (o 2.º titular junta-se aqui). */
+/** Vem da compra e venda: comprador, fiador (se foi lido nos documentos), carro e valores, para conferir. */
 async function fromRegistration(registrationId: string, customers: { id: string; nif: string | null }[]): Promise<ChargePrefill | null> {
   const [r] = await db.select().from(schema.registrations).where(eq(schema.registrations.id, registrationId)).limit(1);
   if (!r) return null;
@@ -48,7 +48,7 @@ async function fromRegistration(registrationId: string, customers: { id: string;
     from: `da compra e venda${v.plate ? ` ${v.plate}` : ""}`,
     registrationId: r.id,
     holder: holder(r.buyer),
-    second: null,
+    second: r.guarantor ? holder(r.guarantor) : null,
     vehicleId: r.vehicleId ?? "",
     vehicle: { make: v.make ?? "", model: v.model ?? "", plate: v.plate ?? "", vin: v.vin ?? "" },
     deliveryDate: r.contractDate ?? "",

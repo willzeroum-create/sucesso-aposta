@@ -512,6 +512,8 @@ export const registrations = pgTable(
     vehicleId: text("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
     buyer: jsonb("buyer").$type<Record<string, string>>().notNull().default({}),
     seller: jsonb("seller").$type<Record<string, string>>().notNull().default({}),
+    /** Fiador / 2.º titular lido nos documentos: não vai para o requerimento, só para as Cobranças. */
+    guarantor: jsonb("guarantor").$type<Record<string, string>>(),
     /** Checklist do pagamento: ficou algo por pagar, como, e se passou para as Cobranças. */
     payment: jsonb("payment").$type<Record<string, string>>(),
     vehicle: jsonb("vehicle").$type<Record<string, string>>().notNull().default({}),

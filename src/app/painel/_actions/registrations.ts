@@ -52,6 +52,8 @@ const patchSchema = z.object({
   buyer: partySchema.optional(),
   seller: partySchema.optional(),
   vehicle: vehicleSchema.optional(),
+  /** Fiador / 2.º titular (null = tirar). Não entra no requerimento. */
+  guarantor: partySchema.nullable().optional(),
   payment: paymentSchema.optional(),
   contractDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, "Data inválida.").optional(),
   vehicleId: z.string().max(60).nullable().optional(),
@@ -100,6 +102,7 @@ export async function saveRegistration(id: string, raw: RegistrationPatch): Prom
     if (patch.buyer) next.buyer = { ...row.buyer, ...(patch.buyer as Record<string, string>) };
     if (patch.seller) next.seller = { ...row.seller, ...(patch.seller as Record<string, string>) };
     if (patch.vehicle) next.vehicle = { ...row.vehicle, ...(patch.vehicle as Record<string, string>) };
+    if (patch.guarantor !== undefined) next.guarantor = patch.guarantor ? { ...(patch.guarantor as Record<string, string>) } : null;
     // O chargeId só muda quando se cria a venda a prestações (não vem do navegador).
     if (patch.payment) next.payment = { ...(row.payment ?? {}), ...(patch.payment as Record<string, string>) };
     if (patch.contractDate !== undefined) next.contractDate = patch.contractDate || null;

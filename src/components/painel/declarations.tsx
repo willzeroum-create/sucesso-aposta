@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowLeftRight, CheckCircle2, ClipboardCheck, FileDown, FilePlus2, FileSignature, Search, Stamp, X } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, ArrowRight, Banknote, CheckCircle2, ClipboardCheck, FileDown, FilePlus2, FileSignature, Search, Stamp, X } from "lucide-react";
 import { declarationVehicle, generateDeclaration, reviewDeclaration } from "@/app/painel/_actions/declarations";
 import { dealCustomer } from "@/app/painel/_actions/sales";
 import type { ContractField } from "@/lib/contract-fields";
@@ -136,16 +136,23 @@ export function Declarations({
   vehicles,
   history,
   initial,
+  charges,
 }: {
   docs: DeclarationDoc[];
   customers: Option[];
   vehicles: Option[];
   history: GeneratedRow[];
   initial: TemplateId | null;
+  /** Vendas a prestações para o contrato de pagamento (null = sem acesso às Cobranças). */
+  charges: Option[] | null;
 }) {
   const router = useRouter();
   const { pending, fields: errors, run } = useAction();
   const [selected, setSelected] = useState<TemplateId | null>(initial && docs.some((d) => d.id === initial) ? initial : null);
+  /** Cartão "Contrato de pagamento a prestações": escolher a venda e abrir o contrato nas Cobranças. */
+  const [pickCharge, setPickCharge] = useState(false);
+  const [chargeId, setChargeId] = useState("");
+  const chargeRef = useRef<HTMLElement>(null);
   const [customer, setCustomer] = useState<Record<string, string>>(emptyCustomer);
   const [customerLink, setCustomerLink] = useState<Option | null>(null);
   const [vehicle, setVehicle] = useState<Record<string, string>>({});
@@ -178,6 +185,7 @@ export function Declarations({
 
   function choose(id: TemplateId) {
     setSelected(id);
+    setPickCharge(false);
     setDone(null);
     window.history.replaceState(null, "", `/painel/declaracoes?doc=${id}`);
     requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -328,6 +336,25 @@ export function Declarations({
               </button>
             );
           })}
+          {charges && (
+            <button
+              type="button"
+              className="a-decl-card"
+              aria-pressed={pickCharge}
+              onClick={() => {
+                setSelected(null);
+                setPickCharge(true);
+                window.history.replaceState(null, "", "/painel/declaracoes");
+                requestAnimationFrame(() => chargeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+              }}
+            >
+              <span className="a-decl-tag">
+                <Banknote size={12} /> Cobranças
+              </span>
+              <strong>Contrato de pagamento a prestações</strong>
+              <small>Assunção de responsabilidade, com prestações e fiador da venda a prestações.</small>
+            </button>
+          )}
           <Link href="/painel/registo" className="a-decl-card">
             <span className="a-decl-tag">
               <ArrowLeftRight size={12} /> Página própria
@@ -344,6 +371,47 @@ export function Declarations({
           </Link>
         </div>
       </section>
+
+      {charges && pickCharge && (
+        <section ref={chargeRef} className="a-card" style={{ scrollMarginTop: 16 }}>
+          <div className="a-card-head">
+            <div>
+              <h2>Contrato de pagamento a prestações</h2>
+              <p>Contrato de assunção de responsabilidade (minuta do advogado). Vem preenchido com as prestações, a dívida e o 2.º titular / fiador da venda.</p>
+            </div>
+          </div>
+          <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
+            {charges.length > 0 ? (
+              <div className="a-fields">
+                <Field label="Venda a prestações" name="decl-charge" wide>
+                  <select id="f-decl-charge" className="a-input" value={chargeId} onChange={(e) => setChargeId(e.target.value)}>
+                    <option value="">Escolher…</option>
+                    {charges.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            ) : (
+              <p className="muted" style={{ margin: 0 }}>
+                Ainda não há vendas a prestações. Registe a venda primeiro: o contrato abre logo a seguir.
+              </p>
+            )}
+            <div className="a-actions">
+              {charges.length > 0 && (
+                <button type="button" className="a-btn a-btn-primary" disabled={!chargeId} onClick={() => router.push(`/painel/cobrancas/${chargeId}?contrato=1`)}>
+                  <ArrowRight size={16} /> Abrir o contrato
+                </button>
+              )}
+              <Link href="/painel/cobrancas/nova" className="a-btn">
+                <FilePlus2 size={16} /> Nova venda a prestações
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {doc && (
         <div ref={formRef} style={{ display: "grid", gap: 20, scrollMarginTop: 16 }}>

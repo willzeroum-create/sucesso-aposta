@@ -120,6 +120,13 @@
       "when": 1793272176417,
       "tag": "0016_fiador_e_segundo_titular",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793273490454,
+      "tag": "0017_fiador_compra_venda",
+      "breakpoints": true
     }
   ]
 }
