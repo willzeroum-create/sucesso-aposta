@@ -1852,6 +1852,42 @@ a.a-stock-item:hover {
 .a-costs-side {
   display: grid;
 }
+/* Configurações → Modelos: texto do documento parágrafo a parágrafo */
+.a-tpl-paragraphs {
+  display: grid;
+  gap: 6px;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 2px 4px 2px 0;
+}
+.a-tpl-paragraphs textarea {
+  width: 100%;
+  resize: vertical;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 6px 10px;
+}
+.a-tpl-paragraphs textarea.is-table {
+  border-left: 3px solid var(--line-strong);
+}
+.a-tpl-actions {
+  flex-wrap: wrap;
+}
+.a-fix-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+@media (max-width: 640px) {
+  .a-fix-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .a-fix-row input:nth-child(2) {
+    grid-column: 1;
+  }
+}
+
 /* Segundo titular (cobranças e contrato) */
 .a-second-holder {
   display: grid;

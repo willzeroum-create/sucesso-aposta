@@ -5,11 +5,16 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import type { ActionResult } from "@/lib/action-result";
-import { TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
+import { ASSUNCAO_FIXES_KEY } from "@/lib/assuncao";
+import { PLACEHOLDERS, TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
 import { isValidNif } from "@/lib/pt-validation";
 import { audit, diff } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
+import { docxSetParagraphs } from "@/server/docx-edit";
+import { inspectDocx, TemplateFileError } from "@/server/docx-template";
+import { activeTemplateDocx, getTemplateFiles } from "@/server/forms";
 import { newId } from "@/server/ids";
+import { storeTemplateFile } from "@/server/storage";
 import { getCompanyInfo, getPrivacySettings, getSiteConfig, writeSetting } from "@/server/settings";
 import { run, UserError } from "@/server/action";
 
@@ -102,6 +107,57 @@ export async function saveTemplate(id: string, title: string, body: string): Pro
     await audit(user, { action: "settings.template", entityType: "template", entityId: id, summary: `Editou o modelo "${title.trim()}"` });
     revalidatePath("/painel/configuracoes");
   }, "Modelo guardado.");
+}
+
+/**
+ * Corrige o texto de um documento em Word (Configurações → Modelos): grava uma cópia do Word em uso com os
+ * parágrafos alterados e passa a usá-la. Os documentos gerados a seguir já saem assim (em PDF).
+ */
+export async function saveTemplateText(id: string, raw: { index: number; text: string }[]): Promise<ActionResult> {
+  return run(async () => {
+    const user = await assertPermission("site.edit");
+    if (!TEMPLATE_IDS.includes(id as TemplateId)) throw new UserError("Modelo inválido.");
+    const edits = z
+      .array(z.object({ index: z.number().int().min(0).max(5000), text: z.string().max(4000, "Parágrafo demasiado longo.") }))
+      .min(1, "Não há alterações para guardar.")
+      .max(500)
+      .parse(raw);
+    const current = await activeTemplateDocx(id);
+    if (!current) throw new UserError("Este documento não tem modelo Word.");
+    const next = docxSetParagraphs(current, edits);
+    let inspected;
+    try {
+      inspected = inspectDocx(next);
+    } catch (e) {
+      if (e instanceof TemplateFileError) throw new UserError(`${e.message} Confira as chavetas {{ }}.`);
+      throw e;
+    }
+    if (inspected.unknown.length)
+      throw new UserError(`Estes campos não existem e ficariam em branco: ${inspected.unknown.map((f) => `{{${f}}}`).join(", ")}. Escreva-os como estavam.`);
+    const name = `${id}-editado.docx`;
+    const stored = await storeTemplateFile(next, name, user.id);
+    const all = await getTemplateFiles();
+    all[id as TemplateId] = { fileId: stored.id, name: "Texto editado no painel", uploadedAt: new Date().toISOString(), uploadedBy: user.name, fields: inspected.fields };
+    await writeSetting("templateFiles", all, user.id);
+    await audit(user, { action: "settings.template_text", entityType: "template", entityId: id, summary: `Corrigiu o texto do documento "${id}" (${edits.length} parágrafo(s))` });
+    revalidatePath("/painel/configuracoes");
+  }, "Documento guardado. Os próximos já saem assim.");
+}
+
+/** Correções ao texto do contrato de assunção (texto errado → certo). */
+export async function saveAssuncaoFixes(raw: { from: string; to: string }[]): Promise<ActionResult> {
+  return run(async () => {
+    const user = await assertPermission("site.edit");
+    const list = z
+      .array(z.object({ from: z.string().max(600), to: z.string().max(600) }))
+      .max(100)
+      .parse(raw)
+      .filter((f) => f.from.trim());
+    if (list.some((f) => PLACEHOLDERS.some((p) => f.from.includes(`{{${p.key}}}`)))) throw new UserError("Não use campos {{...}} nas correções.");
+    await writeSetting(ASSUNCAO_FIXES_KEY, list, user.id);
+    await audit(user, { action: "settings.assuncao_fixes", entityType: "template", entityId: "contrato_assuncao", summary: `Guardou ${list.length} correção(ões) ao texto do contrato de assunção` });
+    revalidatePath("/painel/configuracoes");
+  }, "Correções guardadas. Os próximos contratos já saem assim.");
 }
 
 export async function resetTemplate(id: string): Promise<ActionResult> {

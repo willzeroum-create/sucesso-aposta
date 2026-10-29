@@ -39,6 +39,33 @@ export interface AssuncaoInput {
   data: string;
 }
 
+/** Correção ao texto do contrato feita em Configurações. */
+export interface AssuncaoFix {
+  from: string;
+  to: string;
+}
+export const ASSUNCAO_FIXES_KEY = "assuncao_fixes";
+
+/** Dados de exemplo para ver o contrato em Configurações. */
+export const ASSUNCAO_SAMPLE: AssuncaoInput = {
+  primeiro: { empresa: true, nome: "Empresa do stand", nif: "500000000", morada: "Morada do stand", representante: "Representante", representanteNif: "" },
+  segundo: { empresa: false, nome: "Nome do cliente", nif: "100000000", morada: "Morada do cliente", representante: "", representanteNif: "" },
+  viatura: "Marca Modelo",
+  matricula: "AA-00-BB",
+  entidade: "",
+  prestacao: 250,
+  numPrestacoes: 40,
+  divida: 10000,
+  primeiraData: "2026-11-30",
+  iuc: 150,
+  penal: 500,
+  avalista: "Nome do fiador",
+  avalistaNif: "200000000",
+  avalistaMorada: "Morada do fiador",
+  local: "Lisboa",
+  data: "2026-10-29",
+};
+
 export type AssuncaoBlock =
   | { kind: "title"; text: string }
   | { kind: "text"; text: string; bold?: boolean; gap?: boolean }

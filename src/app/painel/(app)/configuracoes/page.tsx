@@ -1,11 +1,13 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { SimpleSettingsForm, TemplateEditor } from "@/components/painel/settings-forms";
+import { AssuncaoFixesEditor, SimpleSettingsForm, TemplateEditor } from "@/components/painel/settings-forms";
 import { Alert } from "@/components/painel/ui";
 import { aiModelLabel } from "@/server/ai/provider";
 import { vindecoderConfigured } from "@/server/vin";
 import { requirePagePermission } from "@/server/auth/session";
-import { getTemplateFiles, getTemplates } from "@/server/forms";
+import { getAssuncaoFixes } from "@/server/assuncao";
+import { docxParagraphs } from "@/server/docx-edit";
+import { activeTemplateDocx, getTemplateFiles, getTemplates } from "@/server/forms";
 import { getCompanyInfo, getPrivacySettings } from "@/server/settings";
 import { storageDriver } from "@/server/storage";
 
@@ -20,6 +22,16 @@ export default async function SettingsPage() {
   const wordFiles = await getTemplateFiles();
   const [custom] = await db.select().from(schema.settings).where(eq(schema.settings.key, "templates")).limit(1);
   const customized = new Set(Object.keys((custom?.value ?? {}) as object));
+  // Documentos em Word: o texto do Word em uso, parágrafo a parágrafo, para corrigir aqui.
+  const paragraphs = Object.fromEntries(
+    await Promise.all(
+      Object.keys(templates).map(async (id) => {
+        const docx = await activeTemplateDocx(id);
+        return [id, docx ? docxParagraphs(docx) : null] as const;
+      }),
+    ),
+  );
+  const assuncaoFixes = await getAssuncaoFixes();
   const ai = aiModelLabel();
   const integrations = [
     { name: "Base de dados", ok: true, detail: `PostgreSQL${process.env.DATABASE_URL?.includes("supabase") ? " (Supabase)" : ""}` },
@@ -113,7 +125,7 @@ export default async function SettingsPage() {
       <div style={{ display: "grid", gap: 10 }}>
         <h2 className="a-section-title">Modelos de documentos</h2>
         <Alert kind="info">
-          Carregue o contrato e o termo reais do stand em Word: cada venda gera uma cópia já preenchida com o comprador e a viatura. Os exemplos incluídos servem só para testar e devem ser substituídos pelos documentos revistos pelo vosso jurista.
+          Abra o documento, corrija o que estiver errado e guarde: tudo o que for gerado a seguir já sai com a correção, sempre em PDF. “Ver como está (PDF)” mostra o documento com os campos por preencher.
         </Alert>
         {Object.values(templates).map((t) => (
           <TemplateEditor
@@ -124,9 +136,10 @@ export default async function SettingsPage() {
             customized={customized.has(t.id)}
             word={wordFiles[t.id] ? { name: wordFiles[t.id]!.name, uploadedAt: wordFiles[t.id]!.uploadedAt, uploadedBy: wordFiles[t.id]!.uploadedBy, fields: wordFiles[t.id]!.fields } : null}
             hasExample={["termo_garantia", "declaracao_circulacao", "contrato_consignacao", "contrato_locacao"].includes(t.id)}
-            open={["termo_garantia", "declaracao_circulacao", "contrato_consignacao", "contrato_locacao"].includes(t.id)}
+            paragraphs={paragraphs[t.id] ?? null}
           />
         ))}
+        <AssuncaoFixesEditor initial={assuncaoFixes} />
       </div>
 
       <section className="a-card">

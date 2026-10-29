@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileText, RotateCcw, Save, Trash2, Upload } from "lucide-react";
-import { resetTemplate, saveCompany, savePrivacy, saveTemplate } from "@/app/painel/_actions/site";
+import { Download, FileText, Plus, RotateCcw, Save, Trash2, Upload } from "lucide-react";
+import { resetTemplate, saveAssuncaoFixes, saveCompany, savePrivacy, saveTemplate, saveTemplateText } from "@/app/painel/_actions/site";
 import { PLACEHOLDERS } from "@/lib/form-templates";
 import { Spinner, useAction, useToast } from "./ui";
 
@@ -135,20 +135,120 @@ function WordTemplate({ id, word, hasExample }: { id: string; word: WordFile; ha
   );
 }
 
-export function TemplateEditor({ id, title, body, customized, word, hasExample, open }: { id: string; title: string; body: string; customized: boolean; word: WordFile; hasExample: boolean; open?: boolean }) {
+type Paragraph = { index: number; text: string; inTable: boolean };
+
+/** Texto de um documento em Word, parágrafo a parágrafo: corrigir e guardar, sem precisar do Office. */
+function WordTextEditor({ id, paragraphs, edited }: { id: string; paragraphs: Paragraph[]; edited: boolean }) {
+  const router = useRouter();
+  const { pending, run } = useAction();
+  const [texts, setTexts] = useState<Record<number, string>>({});
+  const changed = paragraphs.filter((p) => texts[p.index] !== undefined && texts[p.index] !== p.text);
+  async function reset() {
+    if (!confirm("Voltar ao documento original do painel? As correções feitas aqui perdem-se.")) return;
+    const res = await fetch(`/api/admin/templates/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setTexts({});
+      router.refresh();
+    }
+  }
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+        Corrija o texto e carregue em “Guardar alterações”: os documentos gerados a seguir já saem assim (em PDF). Não apague o que está entre chavetas, como {"{{cliente.nome}}"}: é onde entram os dados. Um parágrafo alterado fica todo com a letra do seu início (negrito, tamanho).
+      </p>
+      <div className="a-tpl-paragraphs">
+        {paragraphs.map((p) => {
+          const value = texts[p.index] ?? p.text;
+          return (
+            <textarea
+              key={p.index}
+              aria-label={`Parágrafo ${p.index + 1}`}
+              className={p.inTable ? "is-table" : undefined}
+              rows={Math.min(10, Math.max(1, Math.ceil(value.length / 95) + (value.match(/\n/g)?.length ?? 0)))}
+              value={value}
+              onChange={(e) => setTexts((x) => ({ ...x, [p.index]: e.target.value }))}
+            />
+          );
+        })}
+      </div>
+      <div className="a-actions a-tpl-actions">
+        <button
+          type="button"
+          className="a-btn a-btn-primary"
+          disabled={pending || !changed.length}
+          onClick={async () => {
+            const res = await run(() => saveTemplateText(id, changed.map((p) => ({ index: p.index, text: texts[p.index] }))));
+            if (res.ok) {
+              setTexts({});
+              router.refresh();
+            }
+          }}
+        >
+          {pending ? <Spinner /> : <Save size={16} />} Guardar alterações{changed.length ? ` (${changed.length})` : ""}
+        </button>
+        <a className="a-btn" href={`/api/admin/templates/${id}?pdf=1`} target="_blank" rel="noopener">
+          <FileText size={16} /> Ver como está (PDF)
+        </a>
+        {edited && (
+          <button type="button" className="a-btn a-btn-ghost" onClick={reset}>
+            <RotateCcw size={16} /> Repor original
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function TemplateEditor({
+  id,
+  title,
+  body,
+  customized,
+  word,
+  hasExample,
+  paragraphs,
+}: {
+  id: string;
+  title: string;
+  body: string;
+  customized: boolean;
+  word: WordFile;
+  hasExample: boolean;
+  /** Parágrafos do Word em uso (null = documento só de texto, em PDF). */
+  paragraphs: Paragraph[] | null;
+}) {
   const router = useRouter();
   const { pending, run } = useAction();
   const [t, setT] = useState(title);
   const [b, setB] = useState(body);
+  if (paragraphs)
+    return (
+      <details className="a-card">
+        <summary className="a-card-head" style={{ cursor: "pointer", listStyle: "revert" }}>
+          <h2 style={{ display: "inline" }}>{title}</h2>
+          {word && <span className="a-pill accent plain">{word.name === "Texto editado no painel" ? "Corrigido" : "Word do stand"}</span>}
+        </summary>
+        <div className="a-card-body a-form" style={{ gap: 14 }}>
+          <WordTextEditor key={word?.uploadedAt ?? "original"} id={id} paragraphs={paragraphs} edited={Boolean(word)} />
+          <details>
+            <summary className="muted" style={{ cursor: "pointer", fontSize: 13 }}>
+              Usar outro ficheiro Word (avançado)
+            </summary>
+            <div style={{ marginTop: 10 }}>
+              <WordTemplate id={id} word={word} hasExample={hasExample} />
+            </div>
+          </details>
+        </div>
+      </details>
+    );
   return (
-    <details className="a-card" open={open}>
+    <details className="a-card">
       <summary className="a-card-head" style={{ cursor: "pointer", listStyle: "revert" }}>
         <h2 style={{ display: "inline" }}>{title}</h2>
-        {word ? <span className="a-pill available plain">Documento Word</span> : customized && <span className="a-pill accent plain">Texto personalizado</span>}
+        {customized && <span className="a-pill accent plain">Corrigido</span>}
       </summary>
       <div className="a-card-body a-form" style={{ gap: 14 }}>
-        <WordTemplate id={id} word={word} hasExample={hasExample} />
-        <p className="muted" style={{ fontSize: 13 }}>{word ? "Texto-base (só é usado se deixar de usar o documento Word):" : "Texto-base usado no PDF:"}</p>
+        <p className="muted" style={{ fontSize: 13 }}>Corrija o título ou o texto e guarde: os documentos gerados a seguir já saem assim (em PDF).</p>
 
         <div className="a-field">
           <label htmlFor={`t-${id}`}>Título</label>
@@ -179,6 +279,57 @@ export function TemplateEditor({ id, title, body, customized, word, hasExample, 
               <RotateCcw size={16} /> Repor original
             </button>
           )}
+        </div>
+        <details>
+          <summary className="muted" style={{ cursor: "pointer", fontSize: 13 }}>
+            Usar um ficheiro Word (avançado)
+          </summary>
+          <div style={{ marginTop: 10 }}>
+            <WordTemplate id={id} word={word} hasExample={hasExample} />
+          </div>
+        </details>
+      </div>
+    </details>
+  );
+}
+
+/** Contrato de assunção (Cobranças): o texto vem da minuta; aqui corrige-se uma palavra ou frase em todos os contratos. */
+export function AssuncaoFixesEditor({ initial }: { initial: { from: string; to: string }[] }) {
+  const router = useRouter();
+  const { pending, run } = useAction();
+  const [rows, setRows] = useState(initial.length ? initial : [{ from: "", to: "" }]);
+  const set = (i: number, k: "from" | "to", v: string) => setRows((r) => r.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  return (
+    <details className="a-card">
+      <summary className="a-card-head" style={{ cursor: "pointer", listStyle: "revert" }}>
+        <h2 style={{ display: "inline" }}>Contrato de assunção de responsabilidade (Cobranças)</h2>
+        {initial.length > 0 && <span className="a-pill accent plain">{initial.length} correção(ões)</span>}
+      </summary>
+      <div className="a-card-body a-form" style={{ gap: 14 }}>
+        <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+          O texto é o da minuta do advogado, com as partes que mudam de venda para venda. Para corrigir uma palavra ou frase, escreva o texto como está no contrato e como deve ficar: vale para todos os contratos gerados a seguir.
+        </p>
+        <div style={{ display: "grid", gap: 8 }}>
+          {rows.map((r, i) => (
+            <div key={i} className="a-fix-row">
+              <input aria-label={`Texto atual ${i + 1}`} placeholder="Texto como está no contrato" value={r.from} onChange={(e) => set(i, "from", e.target.value)} />
+              <input aria-label={`Texto novo ${i + 1}`} placeholder="Como deve ficar" value={r.to} onChange={(e) => set(i, "to", e.target.value)} />
+              <button type="button" className="a-icon-btn" aria-label={`Tirar correção ${i + 1}`} onClick={() => setRows((x) => (x.length > 1 ? x.filter((_, j) => j !== i) : [{ from: "", to: "" }]))}>
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="a-actions a-tpl-actions">
+          <button type="button" className="a-btn a-btn-sm" onClick={() => setRows((x) => [...x, { from: "", to: "" }])}>
+            <Plus size={15} /> Outra correção
+          </button>
+          <button type="button" className="a-btn a-btn-primary" disabled={pending} onClick={async () => (await run(() => saveAssuncaoFixes(rows))).ok && router.refresh()}>
+            {pending ? <Spinner /> : <Save size={16} />} Guardar correções
+          </button>
+          <a className="a-btn" href="/api/admin/assuncao-exemplo" target="_blank" rel="noopener">
+            <FileText size={16} /> Ver contrato de exemplo (PDF)
+          </a>
         </div>
       </div>
     </details>

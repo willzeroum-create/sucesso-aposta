@@ -4,7 +4,8 @@ import { TEMPLATE_IDS, type TemplateId } from "@/lib/form-templates";
 import { audit } from "@/server/audit";
 import { assertPermission } from "@/server/auth/session";
 import { DOCX_MIME, inspectDocx, TemplateFileError } from "@/server/docx-template";
-import { bundledDocx, getTemplateFiles } from "@/server/forms";
+import { docxToPdf } from "@/server/docx-pdf";
+import { activeTemplateDocx, bundledDocx, getTemplateFiles } from "@/server/forms";
 import { assertSameOrigin, jsonError, readFiles } from "@/server/http";
 import { writeSetting } from "@/server/settings";
 import { storeTemplateFile } from "@/server/storage";
@@ -23,6 +24,14 @@ export async function GET(req: Request, ctx: RouteContext<"/api/admin/templates/
   try {
     await assertPermission("forms.generate");
     const id = templateId((await ctx.params).id);
+    if (new URL(req.url).searchParams.has("pdf")) {
+      // Como o documento está agora (com os campos {{...}} à vista), para conferir as correções.
+      const docx = await activeTemplateDocx(id);
+      if (!docx) throw new UserError("Este documento não tem modelo Word.");
+      return new Response(new Uint8Array(await docxToPdf(docx)), {
+        headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${id}.pdf"`, "Cache-Control": "no-store" },
+      });
+    }
     if (new URL(req.url).searchParams.has("exemplo")) {
       // Modelo Word incluído no painel (recriado do original do stand), para adaptar e voltar a carregar.
       const data = await bundledDocx(id);

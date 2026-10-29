@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
   // Word → PDF (src/server/docx-pdf.ts): o Chromium e o que a página de conversão carrega.
   outputFileTracingIncludes: {
     "/painel/**": DOCX_PDF_FILES,
-    "/api/admin/files/**": DOCX_PDF_FILES,
+    "/api/admin/**": DOCX_PDF_FILES,
   },
   async headers() {
     const base = [

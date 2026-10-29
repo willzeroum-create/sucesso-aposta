@@ -4,7 +4,7 @@
  */
 import "server-only";
 import PizZip from "pizzip";
-import { assuncaoBlocks, type AssuncaoBlock, type AssuncaoInput } from "@/lib/assuncao";
+import { assuncaoBlocks, type AssuncaoBlock, type AssuncaoFix, type AssuncaoInput } from "@/lib/assuncao";
 import { bundledDocx } from "./forms";
 
 const SIZE = 22; // 11 pt
@@ -43,14 +43,29 @@ function blockXml(b: AssuncaoBlock): string {
   }
 }
 
-export async function assuncaoDocx(input: AssuncaoInput): Promise<Buffer> {
+/** Correções guardadas em Configurações (texto errado → certo), aplicadas a todo o contrato. */
+function fixBlock(b: AssuncaoBlock, fixes: AssuncaoFix[]): AssuncaoBlock {
+  const fix = (t: string) => fixes.reduce((s, f) => (f.from ? s.split(f.from).join(f.to) : s), t);
+  switch (b.kind) {
+    case "clause":
+      return { ...b, title: fix(b.title) };
+    case "item":
+      return { ...b, text: fix(b.text) };
+    case "signatures":
+      return { ...b, labels: b.labels.map(fix) };
+    default:
+      return { ...b, text: fix(b.text) };
+  }
+}
+
+export async function assuncaoDocx(input: AssuncaoInput, fixes: AssuncaoFix[] = []): Promise<Buffer> {
   const base = await bundledDocx("contrato_consignacao");
   if (!base) throw new Error("Falta o Word base dos contratos.");
   const zip = new PizZip(base);
   let xml = zip.file("word/document.xml")!.asText();
   const start = xml.indexOf("<w:body>") + "<w:body>".length;
   const sect = xml.indexOf("<w:sectPr");
-  xml = xml.slice(0, start) + assuncaoBlocks(input).map(blockXml).join("") + xml.slice(sect);
+  xml = xml.slice(0, start) + assuncaoBlocks(input).map((b) => blockXml(fixBlock(b, fixes))).join("") + xml.slice(sect);
   zip.file("word/document.xml", xml);
   const core = zip.file("docProps/core.xml");
   if (core) zip.file("docProps/core.xml", core.asText().replace(/<dc:title>.*?<\/dc:title>/, "").replace(/<dc:creator>.*?<\/dc:creator>/, "<dc:creator>Painel do stand</dc:creator>"));

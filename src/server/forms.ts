@@ -23,6 +23,18 @@ export async function getTemplateFiles(): Promise<Partial<Record<TemplateId, Tem
 
 type Customer = typeof schema.customers.$inferSelect;
 
+/** O Word em uso de um documento: o editado/carregado em Configurações ou, sem isso, o original do painel. */
+export async function activeTemplateDocx(templateId: string): Promise<Buffer | null> {
+  const info = (await getTemplateFiles())[templateId as TemplateId];
+  if (info) {
+    const { getObject } = await import("./storage");
+    const [file] = await db.select().from(schema.files).where(eq(schema.files.id, info.fileId)).limit(1);
+    const data = file ? await getObject(file.storageKey) : null;
+    if (data) return data;
+  }
+  return bundledDocx(templateId);
+}
+
 /** Documentos Word incluídos no painel (recriados dos originais do stand). */
 export async function bundledDocx(templateId: string): Promise<Buffer | null> {
   const { BUNDLED_DOCX } = await import("./templates/bundled");

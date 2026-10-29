@@ -2,12 +2,19 @@
 import "server-only";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { ASSUNCAO_TEMPLATE, type AssuncaoInput, type Outorgante } from "@/lib/assuncao";
+import { ASSUNCAO_FIXES_KEY, ASSUNCAO_TEMPLATE, type AssuncaoFix, type AssuncaoInput, type Outorgante } from "@/lib/assuncao";
 import { todayLisbon } from "@/lib/cobrancas";
 import { formatPlate } from "@/lib/pt-validation";
 import { getCompanyInfo, type CompanyKind } from "./settings";
 
 export const STAND_PARTY_KEY = "assuncao_stand";
+
+/** Correções ao texto do contrato (Configurações → Modelos). */
+export async function getAssuncaoFixes(): Promise<AssuncaoFix[]> {
+  const [row] = await db.select().from(schema.settings).where(eq(schema.settings.key, ASSUNCAO_FIXES_KEY)).limit(1);
+  const list = Array.isArray(row?.value) ? (row.value as AssuncaoFix[]) : [];
+  return list.filter((f) => typeof f?.from === "string" && f.from.trim() && typeof f.to === "string");
+}
 
 export type StandParties = Record<CompanyKind, Outorgante & { label: string; city: string }>;
 

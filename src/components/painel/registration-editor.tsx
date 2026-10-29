@@ -319,6 +319,9 @@ export function RegistrationEditor({
   const docMissing = (docReview ?? []).flatMap((g) => g.fields.filter((f) => f.required && !docValue(g, f).trim()));
   const sellNow = canSell && !vehicleSold && markSold;
   const docTitle = (tid: TemplateId) => docOptions.find((d) => d.id === tid)?.title ?? tid;
+  // Garantia e circulação são de quando o stand vende; a "venda ao stand" é de quando o stand compra.
+  const shownDocs = docOptions.filter((d) => (standBuys ? d.id !== "termo_garantia" && d.id !== "declaracao_circulacao" : d.id !== "declaracao_compra"));
+  const chosen = new Set([...docSel].filter((d) => shownDocs.some((o) => o.id === d)));
 
   async function reviewDocs() {
     if (!(await flush())) return;
@@ -349,7 +352,7 @@ export function RegistrationEditor({
     const price = parseEurosText(payment.sale);
     const groups: DocReview[] = [];
     for (const client of ["buyer", "seller"] as const) {
-      const ids = REGISTRATION_DOCS.filter((d) => d.client === client && docSel.has(d.id)).map((d) => d.id);
+      const ids = REGISTRATION_DOCS.filter((d) => d.client === client && chosen.has(d.id)).map((d) => d.id);
       if (!ids.length) continue;
       const group: DocReview = { client, ids, fields: [], inputs: {} };
       for (const tid of ids) {
@@ -835,7 +838,7 @@ export function RegistrationEditor({
         )}
 
         <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
-          {docOptions.map((d) => {
+          {shownDocs.map((d) => {
             const meta = REGISTRATION_DOCS.find((x) => x.id === d.id);
             return (
               <label key={d.id} className="a-check">
@@ -866,7 +869,7 @@ export function RegistrationEditor({
             <Field label="Quilómetros na entrega" name="docs-km" hint={vehicleId ? "Vazio = os da ficha do carro." : undefined}>
               <input id="f-docs-km" inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} />
             </Field>
-            {docSel.has("termo_garantia") && (
+            {chosen.has("termo_garantia") && (
               <Field label="Garantia (meses)" name="docs-warranty">
                 <input id="f-docs-warranty" inputMode="numeric" value={warranty} onChange={(e) => setWarranty(e.target.value.replace(/\D/g, "").slice(0, 3))} />
               </Field>
@@ -890,7 +893,7 @@ export function RegistrationEditor({
             ))}
         </div>
         <div className="a-form-foot" style={{ margin: 0, flexWrap: "wrap", gap: 12 }}>
-          {docSel.size > 0 ? (
+          {chosen.size > 0 ? (
             <button type="button" className="a-btn a-btn-primary" onClick={reviewDocs} disabled={pending}>
               {pending && !docReview ? <Spinner /> : <ClipboardCheck size={16} />} Rever dados dos documentos
             </button>

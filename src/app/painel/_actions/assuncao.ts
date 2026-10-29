@@ -8,7 +8,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { ASSUNCAO_TEMPLATE, ASSUNCAO_TITLE, assuncaoValues, type Outorgante } from "@/lib/assuncao";
 import { isIsoDate } from "@/lib/cobrancas";
 import { assuncaoDocx } from "@/server/assuncao-docx";
-import { STAND_PARTY_KEY } from "@/server/assuncao";
+import { getAssuncaoFixes, STAND_PARTY_KEY } from "@/server/assuncao";
 import { docxToPdf, pdfName } from "@/server/docx-pdf";
 import { DOCX_MIME } from "@/server/docx-template";
 import { audit } from "@/server/audit";
@@ -69,7 +69,7 @@ export async function generateAssumptionContract(chargeId: string, raw: Assuncao
       .limit(1);
     if (!c) throw new UserError("Venda a prestações não encontrada.");
 
-    const docx = await assuncaoDocx(d);
+    const docx = await assuncaoDocx(d, await getAssuncaoFixes());
     const name = `${ASSUNCAO_TITLE} - ${d[standSide === "primeiro" ? "segundo" : "primeiro"].nome}`.replace(/[\\/:*?"<>|]/g, "") + ".docx";
     // Entrega-se em PDF (o stand não tem o Office); o Word fica só se a conversão falhar.
     const pdf = await docxToPdf(docx).catch((e) => (console.error("Word → PDF falhou:", e), null));
