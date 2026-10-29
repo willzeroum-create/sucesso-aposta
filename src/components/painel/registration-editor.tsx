@@ -812,9 +812,28 @@ export function RegistrationEditor({
         <div className="a-card-head">
           <div>
             <h2>7. Declarações e documentos</h2>
-            <p>Gerados já preenchidos com a viatura, o comprador, o vendedor e a empresa. Os modelos mudam-se em Configurações → Modelos.</p>
+            <p>Gerados em PDF, já preenchidos com a viatura, o comprador, o vendedor e a empresa. Os modelos mudam-se em Configurações → Modelos.</p>
           </div>
         </div>
+        {docs.length > 0 && (
+          <ul className="a-assume-list" aria-label="Documentos já gerados">
+            {docs.map((d, i) => (
+              <li key={`${d.url}-${i}`}>
+                <FileText size={16} aria-hidden />
+                <span>
+                  <strong>{d.title}</strong>
+                  <small className="muted">
+                    PDF · {whenPt(d.at)}
+                  </small>
+                </span>
+                <a className="a-btn a-btn-sm" href={d.url} target="_blank" rel="noopener">
+                  <FileDown size={14} /> Abrir PDF
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
         <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
           {docOptions.map((d) => {
             const meta = REGISTRATION_DOCS.find((x) => x.id === d.id);
@@ -885,24 +904,6 @@ export function RegistrationEditor({
             </span>
           )}
         </div>
-        {docs.length > 0 && (
-          <ul className="a-assume-list">
-            {docs.map((d, i) => (
-              <li key={`${d.url}-${i}`}>
-                <FileText size={16} aria-hidden />
-                <span>
-                  <strong>{d.title}</strong>
-                  <small className="muted">
-                    PDF · {whenPt(d.at)}
-                  </small>
-                </span>
-                <a className="a-btn a-btn-sm" href={d.url} target="_blank" rel="noopener">
-                  <FileDown size={14} /> Abrir
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
 
       {docReview && (

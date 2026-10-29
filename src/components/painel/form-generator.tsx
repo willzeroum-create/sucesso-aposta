@@ -213,7 +213,7 @@ export function GeneratedHistory({ history, title = "Documentos gerados" }: { hi
               <td className="right" style={{ whiteSpace: "nowrap" }}>
                 {h.fileId && (
                   <a className="a-btn a-btn-sm" href={`/api/admin/files/${h.fileId}`} target="_blank" rel="noopener">
-                    Abrir
+                    Abrir PDF
                   </a>
                 )}{" "}
                 <button

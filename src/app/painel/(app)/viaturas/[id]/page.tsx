@@ -6,7 +6,7 @@ import { and, asc, count, eq, sum } from "drizzle-orm";
 import { ArrowLeft, Car, ExternalLink, FileText, Stamp } from "lucide-react";
 import { db, schema } from "@/db";
 import { DocumentsPanel } from "@/components/painel/documents-panel";
-import { FormGenerator } from "@/components/painel/form-generator";
+import { FormGenerator, GeneratedHistory } from "@/components/painel/form-generator";
 import { PhotoManager } from "@/components/painel/photo-manager";
 import { StatusTrack } from "@/components/painel/status-track";
 import { Plate } from "@/components/painel/ui";
@@ -223,6 +223,8 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
         </section>
       )}
 
+      {tab === "documentos" && canForms && <GeneratedHistory history={await formHistory({ vehicleId: v.id })} title="Documentos gerados (garantia, declarações, contratos)" />}
+
       {tab === "documentos" && canDocs && (
         <DocumentsPanel owner={{ type: "vehicle", id: v.id }} docs={await documentsFor("vehicle", v.id)} kinds={VEHICLE_DOCUMENT_KINDS} canUpload={can(user, "documents.upload")} />
       )}
@@ -265,6 +267,8 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
           )}
         </section>
       )}
+
+      {tab === "venda" && canForms && <GeneratedHistory history={await formHistory({ vehicleId: v.id })} title="Documentos desta venda" />}
 
       {tab === "venda" && canForms && <VehicleSale vehicleId={v.id} user={user} />}
 
