@@ -512,6 +512,8 @@ export const registrations = pgTable(
     vehicleId: text("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
     buyer: jsonb("buyer").$type<Record<string, string>>().notNull().default({}),
     seller: jsonb("seller").$type<Record<string, string>>().notNull().default({}),
+    /** Checklist do pagamento: ficou algo por pagar, como, e se passou para as Cobranças. */
+    payment: jsonb("payment").$type<Record<string, string>>(),
     vehicle: jsonb("vehicle").$type<Record<string, string>>().notNull().default({}),
     contractDate: text("contract_date"),
     fileIds: jsonb("file_ids").$type<string[]>().notNull().default([]),
@@ -535,6 +537,8 @@ export const chargeContracts = pgTable(
     customerId: text("customer_id")
       .notNull()
       .references(() => customers.id),
+    /** Segundo titular / fiador (opcional): garante a dívida; no contrato entra como avalista. */
+    secondCustomerId: text("second_customer_id").references(() => customers.id, { onDelete: "set null" }),
     vehicleId: text("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
     make: text("make").notNull().default(""),
     model: text("model").notNull().default(""),

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ChargeContractList, InstallmentActions, InstallmentPill } from "@/components/painel/charges";
-import { datePt, money, type InstallmentView } from "@/lib/cobrancas";
+import { datePt, holderNames, money, type InstallmentView } from "@/lib/cobrancas";
 import { requirePagePermission } from "@/server/auth/session";
 import { chargesOverview } from "@/server/cobrancas";
 
@@ -90,7 +90,7 @@ export default async function ChargesPage() {
           <ChargeContractList
             items={[...active, ...done].map((c) => ({
               id: c.id,
-              name: c.customer.name,
+              name: holderNames(c),
               phone: c.customer.phone,
               vehicle: c.vehicle.label,
               plate: c.vehicle.plate,

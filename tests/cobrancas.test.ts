@@ -8,6 +8,8 @@ const contract = (over: Partial<ContractRow> = {}): ContractRow => ({
   customerId: "u1",
   customerName: "Ana Silva",
   customerPhone: "912345678",
+  secondCustomerId: null,
+  secondCustomerName: null,
   vehicleId: null,
   make: "Peugeot",
   model: "308",

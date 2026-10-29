@@ -31,8 +31,10 @@ export interface AssuncaoInput {
   primeiraData: string;
   iuc: number | null;
   penal: number | null;
+  /** Avalista = o 2.º titular / fiador da venda. */
   avalista: string;
   avalistaNif: string;
+  avalistaMorada: string;
   local: string;
   data: string;
 }
@@ -71,7 +73,8 @@ export function assuncaoBlocks(d: AssuncaoInput): AssuncaoBlock[] {
   const viatura = or(d.viatura);
   const matricula = or(d.matricula);
   const avalista = d.avalista.trim();
-  const avalistaId = avalista ? `${avalista}${d.avalistaNif.trim() ? `, NIF ${d.avalistaNif.trim()},` : ""}` : "";
+  const avalistaExtra = [d.avalistaNif.trim() && `NIF ${d.avalistaNif.trim()}`, d.avalistaMorada.trim() && `residente em ${d.avalistaMorada.trim()}`].filter(Boolean);
+  const avalistaId = avalista ? `${[avalista, ...avalistaExtra].join(", ")}${avalistaExtra.length ? "," : ""}` : "";
   const prestacao = d.prestacao ? eur(d.prestacao) : BLANK;
   const out: AssuncaoBlock[] = [];
   const clause = (number: number, title: string, items: string[], plain = false) => {

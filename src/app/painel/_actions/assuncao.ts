@@ -48,6 +48,7 @@ const assuncaoSchema = z.object({
   penal: money("A cláusula penal"),
   avalista: text(160),
   avalistaNif: text(20),
+  avalistaMorada: text(300),
   local: text(80),
   data: z.string().refine(isIsoDate, "Indique a data."),
 });

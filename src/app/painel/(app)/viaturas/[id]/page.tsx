@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CONTRACT_STATUS_LABEL, money } from "@/lib/cobrancas";
+import { CONTRACT_STATUS_LABEL, holderNames, money } from "@/lib/cobrancas";
 import { chargeContractsFor } from "@/server/cobrancas";
 import { notFound, redirect } from "next/navigation";
 import { and, asc, count, eq, sum } from "drizzle-orm";
@@ -372,7 +372,7 @@ async function ChargesForVehicle({ vehicleId }: { vehicleId: string }) {
           {contracts.map((ch) => (
             <Link key={ch.id} href={`/painel/cobrancas/${ch.id}`} className="a-doc" style={{ gridTemplateColumns: "minmax(0, 1fr) auto", color: "inherit", textDecoration: "none" }}>
               <span style={{ minWidth: 0 }}>
-                <strong>{ch.customer.name}</strong>
+                <strong>{holderNames(ch)}</strong>
                 <small style={{ display: "block" }}>
                   Falta {money(ch.balance)} de {money(ch.toCollect)}
                 </small>

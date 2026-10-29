@@ -79,6 +79,11 @@ export default async function CustomerPage(props: PageProps<"/painel/clientes/[i
                         <div className="muted" style={{ fontSize: 13 }}>
                           Falta {money(ch.balance)} de {money(ch.toCollect)}
                         </div>
+                        {ch.secondCustomer && (
+                          <div className="muted" style={{ fontSize: 13 }}>
+                            {ch.secondCustomer.id === id ? `2.º titular / fiador (cliente: ${ch.customer.name})` : `2.º titular / fiador: ${ch.secondCustomer.name}`}
+                          </div>
+                        )}
                       </td>
                       <td className="right">
                         <span className={`a-pill ${ch.status === "atrasado" ? "danger" : ch.status === "quitado" ? "neutral" : "available"}`}>{CONTRACT_STATUS_LABEL[ch.status]}</span>

@@ -251,11 +251,14 @@ export function AssumptionContract({
           <fieldset className="a-assume-party">
             <legend>Avalista e assinatura</legend>
             <div className="a-fields">
-              <Field label="Avalista (opcional)" name="as-avalista" error={errors.avalista} hint="Quem garante a livrança. Vazio = sem avalista.">
+              <Field label="Avalista / fiador (opcional)" name="as-avalista" error={errors.avalista} hint="Vem do 2.º titular / fiador da venda. Vazio = sem avalista.">
                 <input id="f-as-avalista" value={form.avalista} onChange={set("avalista")} />
               </Field>
               <Field label="NIF do avalista" name="as-avalista-nif" error={errors.avalistaNif}>
                 <input id="f-as-avalista-nif" inputMode="numeric" value={form.avalistaNif} onChange={set("avalistaNif")} />
+              </Field>
+              <Field label="Morada do avalista" name="as-avalista-morada" error={errors.avalistaMorada} wide>
+                <input id="f-as-avalista-morada" value={form.avalistaMorada} onChange={set("avalistaMorada")} />
               </Field>
               <Field label="Local" name="as-local" error={errors.local}>
                 <input id="f-as-local" value={form.local} onChange={set("local")} />

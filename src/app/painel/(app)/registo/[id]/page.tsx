@@ -4,8 +4,8 @@ import { desc, eq } from "drizzle-orm";
 import { ChevronLeft } from "lucide-react";
 import { db, schema } from "@/db";
 import { RegistrationEditor } from "@/components/painel/registration-editor";
-import { emptyParty, emptyRegistrationVehicle, type RegistrationParty, type RegistrationVehicle } from "@/lib/registo";
-import { requirePagePermission } from "@/server/auth/session";
+import { emptyParty, emptyPayment, emptyRegistrationVehicle, type RegistrationParty, type RegistrationPayment, type RegistrationVehicle } from "@/lib/registo";
+import { can, requirePagePermission } from "@/server/auth/session";
 import { customerOptions } from "@/server/queries";
 import { getCompanyInfo, type CompanyInfo } from "@/server/settings";
 
@@ -23,7 +23,7 @@ const asParty = (c: CompanyInfo): RegistrationParty => ({
 });
 
 export default async function RegistrationPage(props: PageProps<"/painel/registo/[id]">) {
-  await requirePagePermission("forms.generate");
+  const user = await requirePagePermission("forms.generate");
   const { id } = await props.params;
   const [row] = await db.select().from(schema.registrations).where(eq(schema.registrations.id, id)).limit(1);
   if (!row) notFound();
@@ -56,7 +56,9 @@ export default async function RegistrationPage(props: PageProps<"/painel/registo
           vehicleId: row.vehicleId,
           status: row.status,
           notes: row.notes ?? "",
+          payment: { ...emptyPayment(), ...(row.payment ?? {}) } as RegistrationPayment,
         }}
+        canCharge={can(user, "billing.manage")}
         vehicles={stock.map((v) => ({ id: v.id, label: `${v.make} ${v.model}${v.plate ? ` · ${v.plate}` : ""}`, plate: v.plate ?? "", make: v.make, model: v.model, vin: v.vin ?? "" }))}
         customers={await customerOptions()}
         companies={[

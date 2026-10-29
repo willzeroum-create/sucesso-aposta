@@ -20,17 +20,36 @@ const money = (label: string, { allowZero = false } = {}) =>
 const isoDate = z.string().refine(isIsoDate, "Data inválida.");
 const method = z.enum(Object.keys(PAYMENT_METHODS) as [keyof typeof PAYMENT_METHODS, ...(keyof typeof PAYMENT_METHODS)[]]).default("dinheiro");
 
+const newCustomerSchema = z.object({
+  fullName: z.string().trim().min(2, "Indique o nome do cliente.").max(160),
+  phone: z.string().trim().max(30).default(""),
+  nif: z.string().trim().max(20).default(""),
+  email: z.string().trim().max(254).default(""),
+  address: z.string().trim().max(300).default(""),
+  postalCode: z.string().trim().max(20).default(""),
+  city: z.string().trim().max(120).default(""),
+  idDocumentType: z.string().trim().max(80).default(""),
+  idDocumentNumber: z.string().trim().max(60).default(""),
+  idDocumentExpiry: z.string().trim().max(10).default(""),
+});
+type NewCustomer = z.output<typeof newCustomerSchema>;
+
+/** Segundo titular / fiador: um cliente da lista ou um novo. */
+const secondSchema = z
+  .object({ customerId: z.string().max(60).optional(), newCustomer: newCustomerSchema.optional() })
+  .superRefine((v, ctx) => {
+    if (!v.customerId && !v.newCustomer) ctx.addIssue({ code: "custom", path: ["customerId"], message: "Escolha ou crie o segundo titular / fiador." });
+    if (v.newCustomer?.nif && !isValidNif(v.newCustomer.nif.replace(/\D/g, ""))) ctx.addIssue({ code: "custom", path: ["newCustomer", "nif"], message: "NIF inválido." });
+  });
+export type SecondHolderInput = z.input<typeof secondSchema>;
+
 const contractSchema = z
   .object({
     customerId: z.string().max(60).optional(),
-    newCustomer: z
-      .object({
-        fullName: z.string().trim().min(2, "Indique o nome do cliente.").max(160),
-        phone: z.string().trim().max(30).default(""),
-        nif: z.string().trim().max(20).default(""),
-        email: z.string().trim().max(254).default(""),
-      })
-      .optional(),
+    newCustomer: newCustomerSchema.optional(),
+    second: secondSchema.nullable().optional(),
+    /** Compra e venda de onde veio (fica ligada à venda a prestações). */
+    registrationId: z.string().max(60).optional(),
     vehicleId: z.string().max(60).nullable().optional(),
     vehicle: z.object({
       make: z.string().trim().max(80).default(""),
@@ -52,10 +71,38 @@ const contractSchema = z
     if (!v.customerId && !v.newCustomer) ctx.addIssue({ code: "custom", path: ["customerId"], message: "Escolha ou crie o cliente." });
     if (!v.vehicle.make && !v.vehicle.model) ctx.addIssue({ code: "custom", path: ["vehicle", "model"], message: "Indique a marca ou o modelo." });
     if (v.downPayment > v.sale) ctx.addIssue({ code: "custom", path: ["downPayment"], message: "A entrada é maior do que a venda." });
+    else if (v.downPayment + v.financed > v.sale) ctx.addIssue({ code: "custom", path: ["financed"], message: "Entrada mais banco passa o valor da venda." });
     if (v.newCustomer?.nif && !isValidNif(v.newCustomer.nif.replace(/\D/g, ""))) ctx.addIssue({ code: "custom", path: ["newCustomer", "nif"], message: "NIF inválido." });
   });
 
 export type NewChargeContract = z.input<typeof contractSchema>;
+
+/** Cliente existente (confirma que existe) ou ficha nova criada aqui. */
+async function resolveCustomer(input: { customerId?: string; newCustomer?: NewCustomer }, userId: string, missing: string): Promise<string> {
+  if (input.customerId) {
+    const [c] = await db.select({ id: schema.customers.id }).from(schema.customers).where(eq(schema.customers.id, input.customerId)).limit(1);
+    if (!c) throw new UserError(missing);
+    return c.id;
+  }
+  const n = input.newCustomer!;
+  const id = newId("cus");
+  await db.insert(schema.customers).values({
+    id,
+    fullName: n.fullName,
+    phone: n.phone || null,
+    email: n.email || null,
+    nif: n.nif.replace(/\D/g, "") || null,
+    address: n.address || null,
+    postalCode: n.postalCode || null,
+    city: n.city || null,
+    idDocumentType: n.idDocumentType || null,
+    idDocumentNumber: n.idDocumentNumber || null,
+    idDocumentExpiry: /^\d{4}-\d{2}-\d{2}$/.test(n.idDocumentExpiry) ? n.idDocumentExpiry : null,
+    source: "Cobranças",
+    createdBy: userId,
+  });
+  return id;
+}
 
 const refresh = (id?: string) => {
   revalidatePath("/painel/cobrancas");
@@ -66,27 +113,14 @@ export async function createChargeContract(raw: NewChargeContract): Promise<Acti
   return run(async () => {
     const user = await assertPermission("billing.manage");
     const d = contractSchema.parse(raw);
-    let customerId = d.customerId;
-    if (customerId) {
-      const [c] = await db.select({ id: schema.customers.id }).from(schema.customers).where(eq(schema.customers.id, customerId)).limit(1);
-      if (!c) throw new UserError("Cliente não encontrado.");
-    } else if (d.newCustomer) {
-      customerId = newId("cus");
-      const nif = d.newCustomer.nif.replace(/\D/g, "") || null;
-      await db.insert(schema.customers).values({
-        id: customerId,
-        fullName: d.newCustomer.fullName,
-        phone: d.newCustomer.phone || null,
-        email: d.newCustomer.email || null,
-        nif,
-        source: "Cobranças",
-        createdBy: user.id,
-      });
-    }
+    if (d.second?.customerId && d.second.customerId === d.customerId) throw new UserError("O segundo titular tem de ser outra pessoa.", { "second.customerId": "É o mesmo cliente." });
+    const customerId = await resolveCustomer(d, user.id, "Cliente não encontrado.");
+    const secondCustomerId = d.second ? await resolveCustomer(d.second, user.id, "Segundo titular não encontrado.") : null;
     const id = newId("cob");
     await db.insert(schema.chargeContracts).values({
       id,
-      customerId: customerId!,
+      customerId,
+      secondCustomerId,
       vehicleId: d.vehicleId || null,
       make: d.vehicle.make,
       model: d.vehicle.model,
@@ -103,6 +137,16 @@ export async function createChargeContract(raw: NewChargeContract): Promise<Acti
       createdBy: user.id,
     });
     for (const i of d.installments) await db.insert(schema.chargeInstallments).values({ id: newId("pre"), contractId: id, dueDate: i.dueDate, amountCents: toCents(i.amount) });
+    if (d.registrationId) {
+      const [reg] = await db.select({ payment: schema.registrations.payment }).from(schema.registrations).where(eq(schema.registrations.id, d.registrationId)).limit(1);
+      if (reg) {
+        await db
+          .update(schema.registrations)
+          .set({ payment: { ...(reg.payment ?? {}), owed: "sim", how: "prestacoes", toCharges: "sim", chargeId: id }, updatedAt: new Date() })
+          .where(eq(schema.registrations.id, d.registrationId));
+        revalidatePath(`/painel/registo/${d.registrationId}`);
+      }
+    }
     await audit(user, {
       action: "charge.create",
       entityType: "charge",
@@ -152,6 +196,28 @@ export async function updateChargeContract(
     await audit(user, { action: "charge.update", entityType: "charge", entityId: id, summary: "Atualizou uma venda a prestações" });
     refresh(id);
   }, "Guardado.");
+}
+
+/** Põe, troca ou tira (null) o segundo titular / fiador de uma venda a prestações. */
+export async function setChargeSecondHolder(id: string, raw: SecondHolderInput | null): Promise<ActionResult> {
+  return run(async () => {
+    const user = await assertPermission("billing.manage");
+    const d = raw ? secondSchema.parse(raw) : null;
+    const [c] = await db.select({ customerId: schema.chargeContracts.customerId, secondCustomerId: schema.chargeContracts.secondCustomerId }).from(schema.chargeContracts).where(eq(schema.chargeContracts.id, id)).limit(1);
+    if (!c) throw new UserError("Venda não encontrada.");
+    if (d?.customerId && d.customerId === c.customerId) throw new UserError("O segundo titular tem de ser outra pessoa.", { customerId: "É o mesmo cliente." });
+    const secondCustomerId = d ? await resolveCustomer(d, user.id, "Segundo titular não encontrado.") : null;
+    await db.update(schema.chargeContracts).set({ secondCustomerId, updatedAt: new Date() }).where(eq(schema.chargeContracts.id, id));
+    const [who] = secondCustomerId ? await db.select({ name: schema.customers.fullName }).from(schema.customers).where(eq(schema.customers.id, secondCustomerId)).limit(1) : [];
+    await audit(user, {
+      action: "charge.update",
+      entityType: "charge",
+      entityId: id,
+      summary: who ? `Pôs ${who.name} como segundo titular / fiador de uma venda a prestações` : "Tirou o segundo titular / fiador de uma venda a prestações",
+    });
+    refresh(id);
+    for (const cid of [c.customerId, c.secondCustomerId, secondCustomerId]) if (cid) revalidatePath(`/painel/clientes/${cid}`);
+  }, raw ? "Segundo titular guardado." : "Segundo titular retirado.");
 }
 
 export async function deleteChargeContract(id: string): Promise<ActionResult> {

@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { PDFDocument } from "pdf-lib";
-import { defaultIssuer, docTypeFrom, emptyParty, registrationMissing } from "../src/lib/registo";
+import { defaultIssuer, docTypeFrom, emptyParty, emptyPayment, paymentPending, registrationMissing } from "../src/lib/registo";
+import { assuncaoBlocks, type Outorgante } from "../src/lib/assuncao";
 import { normalizePartiesExtraction, normalizeRequesterExtraction } from "../src/server/ai/documents";
 import { fillRegistration, splitAddress } from "../src/server/registo-pdf";
 
@@ -118,4 +119,42 @@ test("registo: documentos de duas pessoas de uma vez ficam separados", () => {
   assert.equal(r.people[1].docType, "outro");
   assert.equal(r.people[1].docExpiry, "2029-03-15");
   assert.equal(r.people[1].postalCode, "2700-001");
+});
+
+test("registo: o que ficou por pagar", () => {
+  const p = { ...emptyPayment(), sale: "30.000", down: "5000", bank: "15 000 €" };
+  assert.equal(paymentPending(p), 10000);
+  assert.equal(paymentPending({ ...p, pending: "9500,50" }), 9500.5);
+  assert.equal(paymentPending({ ...emptyPayment(), sale: "1000", down: "2000" }), 0);
+});
+
+const emptyOutorgante = (): Outorgante => ({ empresa: false, nome: "", nif: "", morada: "", representante: "", representanteNif: "" });
+
+test("assunção: o 2.º titular / fiador entra como avalista com NIF e morada", () => {
+  const base = {
+    primeiro: { ...emptyOutorgante(), empresa: true, nome: "Stand Lda", nif: "514904372", morada: "Sede", representante: "Gerente" },
+    segundo: { ...emptyOutorgante(), nome: "Ana Silva", nif: "123456789", morada: "Rua A 1, Lisboa" },
+    viatura: "BMW 330d",
+    matricula: "AA-00-BB",
+    entidade: "",
+    prestacao: 250,
+    numPrestacoes: 40,
+    divida: 10000,
+    primeiraData: "2026-11-30",
+    iuc: null,
+    penal: 500,
+    avalista: "Rui Fiador",
+    avalistaNif: "123456789",
+    avalistaMorada: "Rua B 2, Porto",
+    local: "Lisboa",
+    data: "2026-10-29",
+  };
+  const blocks = assuncaoBlocks(base);
+  const text = blocks.map((b) => ("text" in b ? b.text : "")).join("\n");
+  assert.ok(text.includes("Rui Fiador, NIF 123456789, residente em Rua B 2, Porto, intervém como avalista pessoal e solidário"));
+  assert.ok(text.includes("O avalista RUI FIADOR assume responsabilidade solidária e autónoma."));
+  const sigs = blocks.find((b) => b.kind === "signatures");
+  assert.deepEqual(sigs && "labels" in sigs ? sigs.labels : [], ["O Primeiro Outorgante", "O Segundo Outorgante", "O Avalista"]);
+  const alone = assuncaoBlocks({ ...base, avalista: "", avalistaNif: "", avalistaMorada: "" }).map((b) => ("text" in b ? b.text : "")).join("\n");
+  assert.ok(!alone.includes("avalista pessoal"), "sem fiador não há avalista");
 });

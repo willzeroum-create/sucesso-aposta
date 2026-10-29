@@ -30,6 +30,8 @@ export interface ContractRow {
   customerId: string;
   customerName: string;
   customerPhone: string;
+  secondCustomerId: string | null;
+  secondCustomerName: string | null;
   vehicleId: string | null;
   make: string;
   model: string;
@@ -79,6 +81,8 @@ export interface Installment {
 export interface Contract {
   id: string;
   customer: { id: string; name: string; phone: string };
+  /** Segundo titular / fiador (opcional). */
+  secondCustomer: { id: string; name: string } | null;
   vehicleId: string | null;
   vehicle: { label: string; make: string; model: string; color: string; year: number | null; plate: string; vin: string };
   deliveryDate: string | null;
@@ -103,6 +107,9 @@ export interface Contract {
 }
 
 export type InstallmentView = Installment & { customer: Contract["customer"]; vehicle: string; plate: string };
+
+/** "Ana Silva e João Costa" quando há segundo titular / fiador. */
+export const holderNames = (c: Pick<Contract, "customer" | "secondCustomer">) => [c.customer.name, c.secondCustomer?.name].filter(Boolean).join(" e ");
 
 /** Formatação partilhada entre servidor e navegador. */
 export const money = (v: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
@@ -219,6 +226,7 @@ export function assemble(contracts: ContractRow[], installments: InstallmentRow[
     return {
       id: c.id,
       customer: { id: c.customerId, name: c.customerName, phone: c.customerPhone },
+      secondCustomer: c.secondCustomerId ? { id: c.secondCustomerId, name: c.secondCustomerName ?? "" } : null,
       vehicleId: c.vehicleId,
       vehicle: { label: vehicleLabel(c), make: c.make, model: c.model, color: c.color, year: c.year, plate: c.plate, vin: c.vin },
       deliveryDate: c.deliveryDate,

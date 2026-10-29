@@ -1852,6 +1852,49 @@ a.a-stock-item:hover {
 .a-costs-side {
   display: grid;
 }
+/* Segundo titular (cobranças e contrato) */
+.a-second-holder {
+  display: grid;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+.a-second-holder > .a-btn {
+  justify-self: start;
+}
+.a-second-holder-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.a-second-holder-head p {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+.a-pay-q {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.a-pay-q > span {
+  font-weight: 600;
+  font-size: 14px;
+}
+.a-pay-q .a-seg {
+  flex-wrap: wrap;
+}
+.a-pay-next {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.a-pay-next p {
+  margin: 0;
+  font-size: 13px;
+}
+
 /* Cobranças: contrato de assunção de responsabilidade */
 .a-assume-list {
   list-style: none;

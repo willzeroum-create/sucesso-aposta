@@ -92,6 +92,34 @@
       "when": 1793211843609,
       "tag": "0012_custos_anotacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793271456645,
+      "tag": "0013_segundo_titular_pagamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793271830355,
+      "tag": "0014_tirar_titular_compra_venda",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793272004532,
+      "tag": "0015_fiador_cobrancas",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793272176417,
+      "tag": "0016_fiador_e_segundo_titular",
+      "breakpoints": true
     }
   ]
 }

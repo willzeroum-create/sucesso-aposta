@@ -1,0 +1,2 @@
+ALTER TABLE "charge_contracts" ADD COLUMN "guarantor_customer_id" text;--> statement-breakpoint
+ALTER TABLE "charge_contracts" ADD CONSTRAINT "charge_contracts_guarantor_customer_id_customers_id_fk" FOREIGN KEY ("guarantor_customer_id") REFERENCES "public"."customers"("id") ON DELETE set null ON UPDATE no action;

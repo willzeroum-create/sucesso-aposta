@@ -34,6 +34,37 @@ export interface RegistrationVehicle {
   vin: string;
 }
 
+/**
+ * Checklist do pagamento no fim da compra e venda: valores (texto em euros, como foi escrito),
+ * se ficou algo por pagar, como vai ser pago e se passou para as Cobranças.
+ */
+export interface RegistrationPayment {
+  sale: string;
+  down: string;
+  bank: string;
+  /** Vazio = venda − entrada − banco. */
+  pending: string;
+  owed: "" | "sim" | "nao";
+  how: "" | "vista" | "prestacoes";
+  toCharges: "" | "sim" | "nao";
+  /** À vista: data combinada para pagar. */
+  dueDate: string;
+  notes: string;
+  /** Venda a prestações criada a partir daqui. */
+  chargeId: string;
+}
+export const emptyPayment = (): RegistrationPayment => ({ sale: "", down: "", bank: "", pending: "", owed: "", how: "", toCharges: "", dueDate: "", notes: "", chargeId: "" });
+
+/** "12.500,50" / "12500.5" / "12 500 €" → 12500.5 (NaN se não for número). */
+export const parseEurosText = (v: string) => Number(v.replace(/\s|€/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
+
+/** O que ficou por pagar: o valor escrito ou, se vazio, venda − entrada − banco. */
+export function paymentPending(p: RegistrationPayment): number {
+  if (p.pending.trim()) return Math.max(0, parseEurosText(p.pending) || 0);
+  const n = (v: string) => (v.trim() ? parseEurosText(v) || 0 : 0);
+  return Math.max(0, Math.round((n(p.sale) - n(p.down) - n(p.bank)) * 100) / 100);
+}
+
 export const REGISTRATION_STATUS = {
   draft: "Em preparação",
   generated: "Requerimento gerado",

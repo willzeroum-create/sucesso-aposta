@@ -3,7 +3,7 @@ import { desc } from "drizzle-orm";
 import { FileCheck2, FilePlus2, FileSignature } from "lucide-react";
 import { db, schema } from "@/db";
 import { newRegistration } from "@/app/painel/_actions/registrations";
-import { REGISTRATION_STATUS, type RegistrationStatus } from "@/lib/registo";
+import { emptyPayment, paymentPending, REGISTRATION_STATUS, type RegistrationPayment, type RegistrationStatus } from "@/lib/registo";
 import { requirePagePermission } from "@/server/auth/session";
 import { vehicleOptions } from "@/server/queries";
 
@@ -50,6 +50,8 @@ export default async function RegistrationsPage() {
             {rows.map((r) => {
               const v = r.vehicle ?? {};
               const title = [v.plate, [v.make, v.model].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Viatura por identificar";
+              const pay = { ...emptyPayment(), ...(r.payment ?? {}) } as RegistrationPayment;
+              const owed = pay.owed === "sim" ? paymentPending(pay) : 0;
               return (
                 <Link key={r.id} href={`/painel/registo/${r.id}`} className="a-doc" style={{ color: "inherit", textDecoration: "none" }}>
                   <span className="a-doc-icon" aria-hidden="true">
@@ -60,6 +62,11 @@ export default async function RegistrationsPage() {
                     <small style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {r.seller?.name || "Vendedor por indicar"} → {r.buyer?.name || "comprador por indicar"}
                     </small>
+                    {pay.owed === "sim" && (
+                      <small style={{ display: "block" }}>
+                        {pay.chargeId ? "Resto a prestações, nas Cobranças" : `Ficou por pagar ${new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(owed)}${pay.how === "vista" ? " (à vista)" : pay.how === "prestacoes" ? " (em prestações)" : ""}`}
+                      </small>
+                    )}
                   </span>
                   <span className={`a-pill ${PILL[r.status]}`}>{REGISTRATION_STATUS[r.status]}</span>
                 </Link>

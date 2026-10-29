@@ -33,12 +33,26 @@ const partySchema = z
   })
   .partial();
 const vehicleSchema = z.object(Object.fromEntries(VEHICLE_FIELDS_RA.map((f) => [f.key, txt(120)]))).partial();
+const paymentSchema = z
+  .object({
+    sale: txt(20),
+    down: txt(20),
+    bank: txt(20),
+    pending: txt(20),
+    owed: z.enum(["", "sim", "nao"]),
+    how: z.enum(["", "vista", "prestacoes"]),
+    toCharges: z.enum(["", "sim", "nao"]),
+    dueDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, "Data inválida."),
+    notes: txt(4000),
+  })
+  .partial();
 type StatusKey = keyof typeof REGISTRATION_STATUS;
 
 const patchSchema = z.object({
   buyer: partySchema.optional(),
   seller: partySchema.optional(),
   vehicle: vehicleSchema.optional(),
+  payment: paymentSchema.optional(),
   contractDate: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, "Data inválida.").optional(),
   vehicleId: z.string().max(60).nullable().optional(),
   status: z.enum(Object.keys(REGISTRATION_STATUS) as [StatusKey, ...StatusKey[]]).optional(),
@@ -86,6 +100,8 @@ export async function saveRegistration(id: string, raw: RegistrationPatch): Prom
     if (patch.buyer) next.buyer = { ...row.buyer, ...(patch.buyer as Record<string, string>) };
     if (patch.seller) next.seller = { ...row.seller, ...(patch.seller as Record<string, string>) };
     if (patch.vehicle) next.vehicle = { ...row.vehicle, ...(patch.vehicle as Record<string, string>) };
+    // O chargeId só muda quando se cria a venda a prestações (não vem do navegador).
+    if (patch.payment) next.payment = { ...(row.payment ?? {}), ...(patch.payment as Record<string, string>) };
     if (patch.contractDate !== undefined) next.contractDate = patch.contractDate || null;
     if (patch.vehicleId !== undefined) next.vehicleId = patch.vehicleId || null;
     if (patch.status) next.status = patch.status;

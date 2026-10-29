@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, Building2, FileDown, FileText, Trash2, User, UserCheck } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Building2, FileDown, FileText, Trash2, User, UserCheck } from "lucide-react";
 import { deleteRegistration, generateRegistration, saveRegistration, type RegistrationPatch } from "@/app/painel/_actions/registrations";
 import { dealCustomer } from "@/app/painel/_actions/sales";
 import {
@@ -11,11 +12,13 @@ import {
   docTypeFrom,
   emptyParty,
   PARTY_FIELDS,
+  paymentPending,
   REGISTRATION_STATUS,
   registrationMissing,
   VEHICLE_FIELDS_RA,
   type PartyDocType,
   type RegistrationParty,
+  type RegistrationPayment,
   type RegistrationStatus,
   type RegistrationVehicle,
 } from "@/lib/registo";
@@ -44,13 +47,25 @@ const ROLE: Record<Role, { title: string; hint: string; tone: string }> = {
 export function RegistrationEditor({
   id,
   initial,
+  canCharge,
   vehicles,
   customers,
   companies,
   pdfUrl: initialPdf,
 }: {
   id: string;
-  initial: { buyer: RegistrationParty; seller: RegistrationParty; vehicle: RegistrationVehicle; contractDate: string; vehicleId: string | null; status: RegistrationStatus; notes: string };
+  initial: {
+    buyer: RegistrationParty;
+    seller: RegistrationParty;
+    vehicle: RegistrationVehicle;
+    contractDate: string;
+    vehicleId: string | null;
+    status: RegistrationStatus;
+    notes: string;
+    payment: RegistrationPayment;
+  };
+  /** Pode criar vendas a prestações (Cobranças). */
+  canCharge: boolean;
   vehicles: StockVehicle[];
   customers: Option[];
   companies: CompanyPreset[];
@@ -65,6 +80,7 @@ export function RegistrationEditor({
   const [vehicleId, setVehicleId] = useState(initial.vehicleId ?? "");
   const [status, setStatus] = useState(initial.status);
   const [notes, setNotes] = useState(initial.notes);
+  const [payment, setPayment] = useState(initial.payment);
   const [pdfUrl, setPdfUrl] = useState(initialPdf);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -74,7 +90,10 @@ export function RegistrationEditor({
   const [carOwner, setCarOwner] = useState("");
 
   // Grava sozinho pouco depois de cada alteração.
-  const snapshot = useMemo(() => JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status, notes }), [buyer, seller, vehicle, contractDate, vehicleId, status, notes]);
+  const snapshot = useMemo(
+    () => JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment }),
+    [buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment],
+  );
   const lastSaved = useRef(snapshot);
   const save = useCallback(
     async (patch: RegistrationPatch) => {
@@ -95,10 +114,11 @@ export function RegistrationEditor({
       vehicleId: vehicleId || null,
       status,
       notes,
+      payment: (({ chargeId: _c, ...p }) => p)(payment),
     });
     if (ok) lastSaved.current = snapshot;
     return ok;
-  }, [snapshot, save, buyer, seller, vehicle, contractDate, vehicleId, status, notes]);
+  }, [snapshot, save, buyer, seller, vehicle, contractDate, vehicleId, status, notes, payment]);
   useEffect(() => {
     if (snapshot === lastSaved.current) return;
     const t = setTimeout(() => void flush(), 900);
@@ -148,11 +168,31 @@ export function RegistrationEditor({
       setPdfUrl(res.data.url);
       if (status === "draft") {
         setStatus("generated");
-        lastSaved.current = JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status: "generated", notes });
+        lastSaved.current = JSON.stringify({ buyer, seller, vehicle, contractDate, vehicleId, status: "generated", notes, payment });
       }
       window.open(res.data.url, "_blank", "noopener");
       router.refresh();
     }
+  }
+
+  const owed = paymentPending(payment);
+  const eur = (v: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
+  const pay = (k: keyof RegistrationPayment, v: string) => setPayment((p) => ({ ...p, [k]: v }));
+  const choice = (k: "owed" | "how" | "toCharges", label: string, options: [string, string][]) => (
+    <div className="a-pay-q">
+      <span>{label}</span>
+      <div className="a-seg" role="group" aria-label={label}>
+        {options.map(([v, l]) => (
+          <button key={v} type="button" aria-pressed={payment[k] === v} onClick={() => pay(k, v)}>
+            {l}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+  async function openCharges() {
+    if (!(await flush())) return;
+    router.push(`/painel/cobrancas/nova?registo=${id}`);
   }
 
   const partyCard = (role: Role, p: RegistrationParty) => {
@@ -418,6 +458,93 @@ export function RegistrationEditor({
               <textarea id="f-reg-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
           </div>
+        </div>
+      </section>
+
+      {/* 6. Pagamento: checklist do que ficou por pagar */}
+      <section className="a-card">
+        <div className="a-card-head">
+          <div>
+            <h2>6. Pagamento</h2>
+            <p>Ficou alguma coisa por pagar? Responda e fica tudo anotado neste processo.</p>
+          </div>
+          {payment.owed === "nao" ? (
+            <span className="a-pill available">Pago</span>
+          ) : payment.owed === "sim" ? (
+            <span className="a-pill reserved">{payment.chargeId ? "Nas Cobranças" : `Falta ${eur(owed)}`}</span>
+          ) : null}
+        </div>
+        <div className="a-card-body" style={{ display: "grid", gap: 16 }}>
+          <div className="a-fields">
+            <Field label="Valor da venda (€)" name="pay-sale">
+              <input id="f-pay-sale" inputMode="decimal" value={payment.sale} onChange={(e) => pay("sale", e.target.value)} placeholder="ex.: 30000" />
+            </Field>
+            <Field label="Entrada paga (€)" name="pay-down" hint="O que o comprador já pagou.">
+              <input id="f-pay-down" inputMode="decimal" value={payment.down} onChange={(e) => pay("down", e.target.value)} placeholder="0" />
+            </Field>
+            <Field label="Pago pelo banco / financeira (€)" name="pay-bank" hint="Crédito automóvel, se houver.">
+              <input id="f-pay-bank" inputMode="decimal" value={payment.bank} onChange={(e) => pay("bank", e.target.value)} placeholder="0" />
+            </Field>
+          </div>
+          {choice("owed", "Ficou algum valor por pagar?", [
+            ["sim", "Sim"],
+            ["nao", "Não, está tudo pago"],
+          ])}
+          {payment.owed === "sim" && (
+            <>
+              <div className="a-fields">
+                <Field label="Ficou por pagar (€)" name="pay-pending" hint={payment.pending.trim() ? undefined : "Venda − entrada − banco. Pode mudar."}>
+                  <input id="f-pay-pending" inputMode="decimal" value={payment.pending} onChange={(e) => pay("pending", e.target.value)} placeholder={owed ? String(owed).replace(".", ",") : "0"} />
+                </Field>
+              </div>
+              {choice("how", "Como vai ser pago?", [
+                ["vista", "À vista"],
+                ["prestacoes", "Em prestações"],
+              ])}
+              {payment.how === "vista" && (
+                <div className="a-fields">
+                  <Field label="Paga até" name="pay-due" hint="Data combinada.">
+                    <input id="f-pay-due" type="date" value={payment.dueDate} onChange={(e) => pay("dueDate", e.target.value)} />
+                  </Field>
+                </div>
+              )}
+              {payment.how === "prestacoes" &&
+                (payment.chargeId ? (
+                  <Alert kind="ok" title="Já está nas Cobranças">
+                    <p>
+                      <Link href={`/painel/cobrancas/${payment.chargeId}`}>Abrir a venda a prestações</Link>
+                    </p>
+                  </Alert>
+                ) : (
+                  <>
+                    {choice("toCharges", "Passar para as Cobranças?", [
+                      ["sim", "Sim"],
+                      ["nao", "Não"],
+                    ])}
+                    {payment.toCharges === "sim" &&
+                      (canCharge ? (
+                        <div className="a-pay-next">
+                          <p className="muted">
+                            Abre a venda a prestações já preenchida com o comprador, o carro e os valores. Lá escolhe as prestações, junta o 2.º titular / fiador se houver e gera o contrato para assinar.
+                          </p>
+                          <button type="button" className="a-btn a-btn-primary" onClick={openCharges} disabled={pending}>
+                            <ArrowRight size={16} /> Abrir nas Cobranças
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="muted" style={{ margin: 0 }}>
+                          Só quem gere as Cobranças pode criar a venda a prestações. Fica anotado aqui.
+                        </p>
+                      ))}
+                  </>
+                ))}
+              <div className="a-fields">
+                <Field label="Como ficou combinado" name="pay-notes" wide hint="Anotações: quem paga, quando e como.">
+                  <textarea id="f-pay-notes" rows={3} value={payment.notes} onChange={(e) => pay("notes", e.target.value)} />
+                </Field>
+              </div>
+            </>
+          )}
         </div>
       </section>
 

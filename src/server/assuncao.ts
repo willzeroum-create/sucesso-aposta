@@ -32,27 +32,44 @@ async function standParties(): Promise<StandParties> {
   return out;
 }
 
+type PersonRow = { name: string; nif: string | null; address: string | null; postalCode: string | null; city: string | null; country: string | null };
+const person = (c: PersonRow): Outorgante => ({
+  empresa: false,
+  nome: c.name,
+  nif: c.nif ?? "",
+  morada: [c.address, [c.postalCode, c.city].filter(Boolean).join(" "), c.country && c.country !== "Portugal" ? c.country : ""].filter(Boolean).join(", "),
+  representante: "",
+  representanteNif: "",
+});
+const personColumns = {
+  name: schema.customers.fullName,
+  nif: schema.customers.nif,
+  address: schema.customers.address,
+  postalCode: schema.customers.postalCode,
+  city: schema.customers.city,
+  country: schema.customers.country,
+};
+
 export async function assuncaoSetup(chargeId: string) {
   const [c] = await db
     .select({
       customerId: schema.chargeContracts.customerId,
+      secondCustomerId: schema.chargeContracts.secondCustomerId,
       vehicleId: schema.chargeContracts.vehicleId,
       make: schema.chargeContracts.make,
       model: schema.chargeContracts.model,
       plate: schema.chargeContracts.plate,
       debtCents: schema.chargeContracts.debtCents,
-      name: schema.customers.fullName,
-      nif: schema.customers.nif,
-      address: schema.customers.address,
-      postalCode: schema.customers.postalCode,
-      city: schema.customers.city,
-      country: schema.customers.country,
+      ...personColumns,
     })
     .from(schema.chargeContracts)
     .innerJoin(schema.customers, eq(schema.customers.id, schema.chargeContracts.customerId))
     .where(eq(schema.chargeContracts.id, chargeId))
     .limit(1);
   if (!c) return null;
+  // O 2.º titular / fiador da venda entra no contrato como avalista.
+  const [second] = c.secondCustomerId ? await db.select(personColumns).from(schema.customers).where(eq(schema.customers.id, c.secondCustomerId)).limit(1) : [];
+  const avalista = second ? person(second) : null;
   const [vehicle] = c.vehicleId ? await db.select({ version: schema.vehicles.version }).from(schema.vehicles).where(eq(schema.vehicles.id, c.vehicleId)).limit(1) : [];
   const installments = await db
     .select({ dueDate: schema.chargeInstallments.dueDate, amountCents: schema.chargeInstallments.amountCents })
@@ -67,14 +84,7 @@ export async function assuncaoSetup(chargeId: string) {
   const stands = await standParties();
   const defaults: AssuncaoInput = {
     primeiro: (({ label: _l, city: _c, ...o }) => o)(stands.rent),
-    segundo: {
-      empresa: false,
-      nome: c.name,
-      nif: c.nif ?? "",
-      morada: [c.address, [c.postalCode, c.city].filter(Boolean).join(" "), c.country && c.country !== "Portugal" ? c.country : ""].filter(Boolean).join(", "),
-      representante: "",
-      representanteNif: "",
-    },
+    segundo: person(c),
     viatura: [c.make, c.model, vehicle?.version].filter(Boolean).join(" "),
     matricula: c.plate ? formatPlate(c.plate) : "",
     entidade: "",
@@ -84,8 +94,9 @@ export async function assuncaoSetup(chargeId: string) {
     primeiraData: installments[0]?.dueDate ?? "",
     iuc: null,
     penal: 500,
-    avalista: "",
-    avalistaNif: "",
+    avalista: avalista?.nome ?? "",
+    avalistaNif: avalista?.nif ?? "",
+    avalistaMorada: avalista?.morada ?? "",
     local: stands.rent.city,
     data: todayLisbon(),
   };

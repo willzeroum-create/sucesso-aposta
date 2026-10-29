@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, MessageCircle, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Check, MessageCircle, Plus, RotateCcw, Search, Trash2, UserPlus, X } from "lucide-react";
 import {
   addInstallments,
   addPayment,
@@ -12,6 +12,7 @@ import {
   deleteInstallment,
   deletePayment,
   payInstallment,
+  setChargeSecondHolder,
   undoInstallment,
   updateChargeContract,
 } from "@/app/painel/_actions/cobrancas";
@@ -240,27 +241,153 @@ export function ChargeContractList({ items }: { items: ContractListItem[] }) {
 
 type CustomerOption = { id: string; label: string };
 type StockVehicle = { id: string; label: string; make: string; model: string; color: string; year: number | null; plate: string; vin: string; price: number | null };
+type Errors = Record<string, string | undefined>;
 
-export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { customers: CustomerOption[]; vehicles: StockVehicle[]; defaultVehicleId?: string }) {
+/** Ficha nova criada com a venda (o documento vem calado quando chega da compra e venda). */
+export type Person = {
+  fullName: string;
+  phone: string;
+  nif: string;
+  email: string;
+  address: string;
+  postalCode: string;
+  city: string;
+  idDocumentType?: string;
+  idDocumentNumber?: string;
+  idDocumentExpiry?: string;
+};
+export type HolderDraft = { mode: "existing" | "new"; customerId: string; newCustomer: Person };
+/** Dados que chegam de outra página (ex.: compra e venda) para conferir. */
+export type ChargePrefill = {
+  from: string;
+  registrationId?: string;
+  values?: { sale: string; down: string; bank: string; debt: string };
+  holder: HolderDraft;
+  second: HolderDraft | null;
+  vehicleId: string;
+  vehicle: { make: string; model: string; plate: string; vin: string };
+  deliveryDate: string;
+};
+
+export const emptyPerson = (): Person => ({ fullName: "", phone: "", nif: "", email: "", address: "", postalCode: "", city: "" });
+const holderPayload = (h: HolderDraft) => (h.mode === "existing" ? { customerId: h.customerId } : { newCustomer: h.newCustomer });
+
+function PersonFields({ id, value, onChange, errors, errorKey }: { id: string; value: Person; onChange: (p: Person) => void; errors: Errors; errorKey: string }) {
+  const f = (k: keyof Person, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}, wide = false) => (
+    <Field label={label} name={`${id}-${k}`} error={errors[`${errorKey}.${k}`]} wide={wide}>
+      <input id={`f-${id}-${k}`} value={value[k] ?? ""} onChange={(e) => onChange({ ...value, [k]: e.target.value })} {...props} />
+    </Field>
+  );
+  return (
+    <>
+      {f("fullName", "Nome *", {}, true)}
+      {f("phone", "Telefone (para o WhatsApp)", { type: "tel" })}
+      {f("nif", "NIF", { inputMode: "numeric" })}
+      {f("email", "E-mail", { type: "email" })}
+      {f("address", "Morada", {}, true)}
+      {f("postalCode", "Código postal", { placeholder: "0000-000" })}
+      {f("city", "Localidade")}
+    </>
+  );
+}
+
+/** Segundo titular: escolher da lista ou criar a ficha. */
+function HolderInputs({
+  id,
+  value,
+  onChange,
+  customers,
+  exclude,
+  errors,
+  errorKey,
+}: {
+  id: string;
+  value: HolderDraft;
+  onChange: (h: HolderDraft) => void;
+  customers: CustomerOption[];
+  exclude?: string;
+  errors: Errors;
+  errorKey: string;
+}) {
+  return (
+    <>
+      <div className="a-tabs" role="tablist" aria-label="Segundo titular / fiador" style={{ border: 0 }}>
+        <button type="button" role="tab" aria-selected={value.mode === "existing"} onClick={() => onChange({ ...value, mode: "existing" })}>
+          Da lista
+        </button>
+        <button type="button" role="tab" aria-selected={value.mode === "new"} onClick={() => onChange({ ...value, mode: "new" })}>
+          Novo
+        </button>
+      </div>
+      <div className="a-fields">
+        {value.mode === "existing" ? (
+          <Field label="Segundo titular / fiador *" name={`${id}-customer`} error={errors[`${errorKey}customerId`]} wide>
+            <select id={`f-${id}-customer`} className="a-input" value={value.customerId} onChange={(e) => onChange({ ...value, customerId: e.target.value })}>
+              <option value="">Escolher…</option>
+              {customers
+                .filter((c) => c.id !== exclude)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+            </select>
+          </Field>
+        ) : (
+          <PersonFields id={id} value={value.newCustomer} onChange={(p) => onChange({ ...value, newCustomer: p })} errors={errors} errorKey={`${errorKey}newCustomer`} />
+        )}
+      </div>
+    </>
+  );
+}
+
+export function ChargeContractForm({
+  customers,
+  vehicles,
+  defaultVehicleId,
+  prefill,
+}: {
+  customers: CustomerOption[];
+  vehicles: StockVehicle[];
+  defaultVehicleId?: string;
+  prefill?: ChargePrefill;
+}) {
   const router = useRouter();
   const { pending, fields: errors, run } = useAction();
-  const first = vehicles.find((v) => v.id === defaultVehicleId);
+  const first = vehicles.find((v) => v.id === (prefill?.vehicleId || defaultVehicleId));
+  const pv = prefill?.vehicle;
   const today = new Date().toISOString().slice(0, 10);
   const nextMonth = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
-  const [customerMode, setCustomerMode] = useState<"existing" | "new">(customers.length ? "existing" : "new");
-  const [customerId, setCustomerId] = useState("");
-  const [newCustomer, setNewCustomer] = useState({ fullName: "", phone: "", nif: "", email: "" });
+  const [customerMode, setCustomerMode] = useState<"existing" | "new">(prefill?.holder.mode ?? (customers.length ? "existing" : "new"));
+  const [customerId, setCustomerId] = useState(prefill?.holder.customerId ?? "");
+  const [newCustomer, setNewCustomer] = useState<Person>(prefill?.holder.newCustomer ?? emptyPerson());
+  const [second, setSecond] = useState<HolderDraft | null>(prefill?.second ?? null);
   const [vehicleId, setVehicleId] = useState(first?.id ?? "");
-  const [vehicle, setVehicle] = useState({ make: first?.make ?? "", model: first?.model ?? "", color: first?.color ?? "", year: first?.year ? String(first.year) : "", plate: first?.plate ?? "", vin: first?.vin ?? "" });
-  const [values, setValues] = useState({ sale: first?.price ? String(first.price) : "", down: "", debt: "", deliveryDate: today, notes: "" });
-  /** Enquanto ninguém escreve a dívida, sugere-se venda − entrada. */
-  const [debtTouched, setDebtTouched] = useState(false);
+  const [vehicle, setVehicle] = useState({
+    make: first?.make ?? pv?.make ?? "",
+    model: first?.model ?? pv?.model ?? "",
+    color: first?.color ?? "",
+    year: first?.year ? String(first.year) : "",
+    plate: first?.plate ?? pv?.plate ?? "",
+    vin: first?.vin ?? pv?.vin ?? "",
+  });
+  const pre = prefill?.values;
+  const [values, setValues] = useState({
+    sale: pre?.sale || (first?.price ? String(first.price) : ""),
+    down: pre?.down ?? "",
+    bank: pre?.bank ?? "",
+    debt: pre?.debt ?? "",
+    deliveryDate: prefill?.deliveryDate || today,
+    notes: "",
+  });
+  /** Enquanto ninguém escreve a dívida, sugere-se venda − entrada − banco. */
+  const [debtTouched, setDebtTouched] = useState(Boolean(pre?.debt));
   const [plan, setPlan] = useState({ count: "6", firstDue: nextMonth, every: "" });
   const [planError, setPlanError] = useState("");
   const [edited, setEdited] = useState<{ dueDate: string; amount: string }[] | null>(null);
   const [withContract, setWithContract] = useState(true);
 
-  const suggestedDebt = Math.max(0, toCents(parseMoney(values.sale) || 0) - toCents(parseMoney(values.down) || 0));
+  const suggestedDebt = Math.max(0, toCents(parseMoney(values.sale) || 0) - toCents(parseMoney(values.down) || 0) - toCents(parseMoney(values.bank) || 0));
   const debtText = debtTouched ? values.debt : suggestedDebt ? String(toEuros(suggestedDebt)).replace(".", ",") : "";
   const toPlan = Math.max(0, toCents(parseMoney(debtText) || 0));
   const generated = useMemo(
@@ -290,11 +417,14 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
     const res = await run(() =>
       createChargeContract({
         ...(customerMode === "existing" ? { customerId } : { newCustomer }),
+        second: second ? holderPayload(second) : null,
+        registrationId: prefill?.registrationId,
         vehicleId: vehicleId || null,
         vehicle: { ...vehicle, year: vehicle.year ? Number(vehicle.year) : null },
         deliveryDate: values.deliveryDate || null,
         sale: parseMoney(values.sale),
         downPayment: parseMoney(values.down) || 0,
+        financed: parseMoney(values.bank) || 0,
         debt: parseMoney(debtText),
         notes: values.notes,
         installments: rows.map((r) => ({ dueDate: r.dueDate, amount: parseMoney(r.amount) })),
@@ -325,34 +455,48 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
             </button>
           </div>
         </div>
-        <div className="a-card-body a-fields">
-          {customerMode === "existing" ? (
-            <Field label="Cliente *" name="charge-customer" error={errors.customerId} wide>
-              <select id="f-charge-customer" className="a-input" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-                <option value="">Escolher…</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          ) : (
-            <>
-              <Field label="Nome *" name="nc-name" error={errors["newCustomer.fullName"]} wide>
-                <input id="f-nc-name" value={newCustomer.fullName} onChange={(e) => setNewCustomer((c) => ({ ...c, fullName: e.target.value }))} />
-              </Field>
-              <Field label="Telefone (para o WhatsApp)" name="nc-phone">
-                <input id="f-nc-phone" type="tel" value={newCustomer.phone} onChange={(e) => setNewCustomer((c) => ({ ...c, phone: e.target.value }))} />
-              </Field>
-              <Field label="NIF" name="nc-nif" error={errors["newCustomer.nif"]}>
-                <input id="f-nc-nif" inputMode="numeric" value={newCustomer.nif} onChange={(e) => setNewCustomer((c) => ({ ...c, nif: e.target.value }))} />
-              </Field>
-              <Field label="E-mail" name="nc-email">
-                <input id="f-nc-email" type="email" value={newCustomer.email} onChange={(e) => setNewCustomer((c) => ({ ...c, email: e.target.value }))} />
-              </Field>
-            </>
+        <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
+          {prefill && (
+            <Alert kind="info">
+              <p>Dados vindos {prefill.from}. Confira e complete os valores.</p>
+            </Alert>
           )}
+          <div className="a-fields">
+            {customerMode === "existing" ? (
+              <Field label="Cliente *" name="charge-customer" error={errors.customerId} wide>
+                <select id="f-charge-customer" className="a-input" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+                  <option value="">Escolher…</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ) : (
+              <PersonFields id="nc" value={newCustomer} onChange={setNewCustomer} errors={errors} errorKey="newCustomer" />
+            )}
+          </div>
+          <div className="a-second-holder">
+            {second ? (
+              <>
+                <div className="a-second-holder-head">
+                  <div>
+                    <strong>Segundo titular / fiador</strong>
+                    <p className="muted">Garante a dívida com o cliente. No contrato entra como avalista.</p>
+                  </div>
+                  <button type="button" className="a-btn a-btn-sm a-btn-ghost" onClick={() => setSecond(null)}>
+                    <X size={15} /> Tirar
+                  </button>
+                </div>
+                <HolderInputs id="sh" value={second} onChange={setSecond} customers={customers} exclude={customerMode === "existing" ? customerId : undefined} errors={errors} errorKey="second." />
+              </>
+            ) : (
+              <button type="button" className="a-btn a-btn-sm" onClick={() => setSecond({ mode: customers.length ? "existing" : "new", customerId: "", newCustomer: emptyPerson() })}>
+                <UserPlus size={15} /> Segundo titular / fiador (opcional)
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
@@ -398,11 +542,14 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
             <Field label="Entrada (€)" name="cv-down" error={errors.downPayment} hint="Paga na entrega. Não entra na dívida.">
               <input id="f-cv-down" inputMode="decimal" value={values.down} onChange={(e) => (setValues((v) => ({ ...v, down: e.target.value })), setEdited(null))} placeholder="0" />
             </Field>
+            <Field label="Pago pelo banco / financeira (€)" name="cv-bank" error={errors.financed} hint="Crédito automóvel, se houver. Não entra na dívida.">
+              <input id="f-cv-bank" inputMode="decimal" value={values.bank} onChange={(e) => (setValues((v) => ({ ...v, bank: e.target.value })), setEdited(null))} placeholder="0" />
+            </Field>
             <Field
               label="Valor da dívida (€) *"
               name="cv-debt"
               error={errors.debt}
-              hint={debtTouched ? "Financiado pelo stand. Pode incluir juros." : "Sugerido: venda − entrada. Altere se tiver juros."}
+              hint={debtTouched ? "Financiado pelo stand. Pode incluir juros." : "Sugerido: venda − entrada − banco. Altere se tiver juros."}
             >
               <input
                 id="f-cv-debt"
@@ -468,6 +615,76 @@ export function ChargeContractForm({ customers, vehicles, defaultVehicleId }: { 
 }
 
 /* ───────── Ficha de uma venda ───────── */
+
+/** Pôr, trocar ou tirar o segundo titular / fiador de uma venda já registada. */
+export function SecondHolderCard({
+  contractId,
+  current,
+  customers,
+  mainCustomerId,
+}: {
+  contractId: string;
+  current: { id: string; name: string } | null;
+  customers: CustomerOption[];
+  mainCustomerId: string;
+}) {
+  const router = useRouter();
+  const { pending, fields: errors, run } = useAction();
+  const [draft, setDraft] = useState<HolderDraft | null>(null);
+  const start = () => setDraft({ mode: customers.length ? "existing" : "new", customerId: "", newCustomer: emptyPerson() });
+  async function save(value: HolderDraft | null) {
+    const res = await run(() => setChargeSecondHolder(contractId, value ? holderPayload(value) : null));
+    if (res.ok) {
+      setDraft(null);
+      router.refresh();
+    }
+  }
+  return (
+    <section className="a-card">
+      <div className="a-card-head">
+        <div>
+          <h2>Segundo titular / fiador</h2>
+          <p>Opcional. Garante a dívida com o cliente e entra no contrato como avalista.</p>
+        </div>
+        {!draft &&
+          (current ? (
+            <div className="a-actions">
+              <button type="button" className="a-btn a-btn-sm" onClick={start}>
+                Trocar
+              </button>
+              <button type="button" className="a-btn a-btn-sm a-btn-ghost" disabled={pending} onClick={() => confirm(`Tirar ${current.name} desta venda?`) && void save(null)}>
+                <X size={15} /> Tirar
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="a-btn a-btn-sm" onClick={start}>
+              <UserPlus size={15} /> Adicionar
+            </button>
+          ))}
+      </div>
+      {current && !draft && (
+        <div className="a-card-body">
+          <Link href={`/painel/clientes/${current.id}`} className="a-row-link">
+            {current.name}
+          </Link>
+        </div>
+      )}
+      {draft && (
+        <div className="a-card-body" style={{ display: "grid", gap: 14 }}>
+          <HolderInputs id="sh" value={draft} onChange={setDraft} customers={customers} exclude={mainCustomerId} errors={errors} errorKey="" />
+          <div className="a-actions">
+            <button type="button" className="a-btn" onClick={() => setDraft(null)}>
+              Cancelar
+            </button>
+            <button type="button" className="a-btn a-btn-primary" onClick={() => void save(draft)} disabled={pending}>
+              {pending ? <Spinner /> : <Check size={16} />} Guardar
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 type PaymentInfo = { id: string; installmentId: string | null; date: string; amount: number; method: string; note: string };
 
