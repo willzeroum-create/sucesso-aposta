@@ -190,6 +190,13 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
     : [];
   useEffect(() => setDetailImage(0), [detail?.id]);
 
+  // Link direto para a ficha: /?viatura=<slug> (usado pelo atendimento no WhatsApp).
+  useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get("viatura");
+    const match = slug ? vehicles.find((v) => v.slug === slug) : undefined;
+    if (match) setDetail(match);
+  }, [vehicles]);
+
   useEffect(() => {
     try {
       const stored: unknown = JSON.parse(
