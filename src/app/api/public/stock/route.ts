@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
         km: v.onOrder ? "Por encomenda" : v.mileageKm,
         combustivel: FUEL[v.fuel] ?? v.fuel,
         caixa: GEARBOX[v.transmission] ?? v.transmission,
+        link: `${origin}/?viatura=${encodeURIComponent(v.slug)}`,
         potenciaCv: v.powerHp,
         tipo: CATEGORY[v.category] ?? v.category,
         preco: v.priceEur ? `${v.priceEur.toLocaleString("pt-PT")} €` : "Sob consulta",
