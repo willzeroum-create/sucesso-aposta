@@ -68,3 +68,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Stock indisponível." }, { status: 503 });
   }
 }
+
+/** POST: o webhook da blü chama com POST { chatNumber, contactName, lastMessage, context }; devolve o mesmo stock. */
+export async function POST(req: NextRequest) {
+  return GET(req);
+}
