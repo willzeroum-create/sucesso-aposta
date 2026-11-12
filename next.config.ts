@@ -19,6 +19,16 @@ const nextConfig: NextConfig = {
     "/painel/**": DOCX_PDF_FILES,
     "/api/admin/**": DOCX_PDF_FILES,
   },
+  // Só o domínio próprio fica no ar: o endereço *.vercel.app de produção redireciona para sucessopromissor.pt.
+  // A API fica de fora para não partir integrações (WhatsApp, blü) que ainda chamem o endereço antigo.
+  async redirects() {
+    if (process.env.VERCEL_ENV !== "production") return [];
+    const vercelHost = [{ type: "host" as const, value: "(?<sub>.+)\\.vercel\\.app" }];
+    return [
+      { source: "/", has: vercelHost, destination: "https://sucessopromissor.pt/", permanent: true },
+      { source: "/:path((?!api/).*)", has: vercelHost, destination: "https://sucessopromissor.pt/:path", permanent: true },
+    ];
+  },
   async headers() {
     const base = [
       { key: "X-Content-Type-Options", value: "nosniff" },

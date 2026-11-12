@@ -12,6 +12,7 @@ import {
   Menu,
   Plus,
   Search,
+  Share2,
   ShieldCheck,
   Zap,
   X,
@@ -156,7 +157,10 @@ function Dialog({
   );
 }
 
-export function Showroom({ catalog }: { catalog: CatalogData }) {
+/** Endereço próprio de cada viatura: /carros/<slug>. */
+export const vehiclePath = (v: Pick<Vehicle, "slug">) => `/carros/${encodeURIComponent(v.slug)}`;
+
+export function Showroom({ catalog, initialSlug }: { catalog: CatalogData; initialSlug?: string }) {
   const { site, vehicles, heroSlides, source } = catalog;
   const [activeHero, setActiveHero] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -167,7 +171,10 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [favoritesReady, setFavoritesReady] = useState(false);
-  const [detail, setDetail] = useState<Vehicle | null>(null);
+  const [detail, setDetail] = useState<Vehicle | null>(
+    () => (initialSlug && vehicles.find((v) => v.slug === initialSlug)) || null,
+  );
+  const [linkCopied, setLinkCopied] = useState(false);
   const [detailImage, setDetailImage] = useState(0);
   const [selectedVehicle, setSelectedVehicle] = useState<{
     id: string;
@@ -190,12 +197,50 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
     : [];
   useEffect(() => setDetailImage(0), [detail?.id]);
 
-  // Link direto para a ficha: /?viatura=<slug> (usado pelo atendimento no WhatsApp).
+  // A barra de endereço acompanha a ficha aberta (/carros/<slug>), para copiar e enviar o link do carro.
   useEffect(() => {
-    const slug = new URLSearchParams(window.location.search).get("viatura");
-    const match = slug ? vehicles.find((v) => v.slug === slug) : undefined;
-    if (match) setDetail(match);
+    setLinkCopied(false);
+    document.title = detail
+      ? `${detail.make} ${detail.model} ${detail.version} ${detail.year}`.replace(/\s+/g, " ") + ` | ${site.name}`
+      : `${site.name} — ${site.tagline.replace(/\.$/, "")}`;
+    const target = detail ? vehiclePath(detail) : "/";
+    const here = window.location.pathname;
+    if (here === target) return;
+    if (detail) {
+      if (here.startsWith("/carros/")) window.history.replaceState(window.history.state, "", target);
+      else window.history.pushState({ ...window.history.state, carro: true }, "", target);
+    } else if (window.history.state?.carro) window.history.back();
+    else window.history.replaceState(window.history.state, "", `/${window.location.hash}`);
+  }, [detail, site.name, site.tagline]);
+
+  // Botão "voltar" do telemóvel fecha a ficha (ou reabre a anterior).
+  useEffect(() => {
+    const onPop = () => {
+      const m = window.location.pathname.match(/^\/carros\/([^/]+)/);
+      setDetail(m ? (vehicles.find((v) => v.slug === decodeURIComponent(m[1])) ?? null) : null);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, [vehicles]);
+
+  async function shareVehicle(v: Vehicle) {
+    const url = `${window.location.origin}${vehiclePath(v)}`;
+    const title = `${v.make} ${v.model} ${v.version}`.replace(/\s+/g, " ").trim();
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+    } catch {
+      window.prompt("Copie o link do carro:", url);
+    }
+  }
 
   useEffect(() => {
     try {
@@ -1171,6 +1216,10 @@ export function Showroom({ catalog }: { catalog: CatalogData }) {
                 {favorites.includes(detail.id)
                   ? "Guardado nos favoritos"
                   : "Guardar para mais tarde"}
+              </button>
+              <button className="detail-save" onClick={() => shareVehicle(detail)}>
+                <Share2 size={17} />
+                {linkCopied ? "Link copiado" : "Partilhar este carro"}
               </button>
             </div>
           </div>

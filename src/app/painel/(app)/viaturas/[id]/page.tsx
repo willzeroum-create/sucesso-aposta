@@ -12,6 +12,7 @@ import { StatusTrack } from "@/components/painel/status-track";
 import { Plate } from "@/components/painel/ui";
 import { VehicleForm } from "@/components/painel/vehicle-form";
 import { DeleteVehicle } from "@/components/painel/delete-vehicle";
+import { CopyVehicleLink } from "@/components/painel/copy-link";
 import { SalePanel } from "@/components/painel/sale-panel";
 import { RegistrationEditor, StartVehicleRegistration } from "@/components/painel/registration-editor";
 import { latestVehicleRegistration, registrationEditorProps } from "@/server/registration-editor";
@@ -149,9 +150,12 @@ export default async function VehiclePage(props: PageProps<"/painel/viaturas/[id
                 {buyer ? ` · Cliente: ${buyer.fullName}` : ""}
               </span>
               {v.section === "site" && v.published && v.status !== "preparation" && (
-                <a href={`/#${v.slug}`} target="_blank" rel="noopener" className="a-link" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                  Ver no site <ExternalLink size={13} />
-                </a>
+                <>
+                  <a href={`/carros/${encodeURIComponent(v.slug)}`} target="_blank" rel="noopener" className="a-link" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                    Ver no site <ExternalLink size={13} />
+                  </a>
+                  <CopyVehicleLink path={`/carros/${encodeURIComponent(v.slug)}`} />
+                </>
               )}
             </div>
           </div>
