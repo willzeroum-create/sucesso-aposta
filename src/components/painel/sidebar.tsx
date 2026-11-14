@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
-  Activity, ArrowLeftRight, Building2, Car, FileCheck2, KeyRound, Warehouse, FileSignature, Globe, Home, LogOut, Megaphone, Menu, Moon, Settings, Stamp, Sun, SunMoon, UserRound, UsersRound, Inbox, Wallet,
+  Activity, ArrowLeftRight, Building2, Car, FileCheck2, KeyRound, Warehouse, FileSignature, Globe, Home, LogOut, Megaphone, Menu, Moon, Settings, Stamp, Sun, SunMoon, UserRound, UsersRound, Inbox, Receipt, Wallet,
 } from "lucide-react";
 import { logout, setTheme } from "@/app/painel/_actions/auth";
 
@@ -14,6 +14,7 @@ export interface NavPerms {
   leads: boolean;
   forms: boolean;
   billing: boolean;
+  expenses: boolean;
   ads: boolean;
   site: boolean;
   users: boolean;
@@ -55,7 +56,7 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
         </Link>
         <nav className="a-nav">
           {item("/painel", "Início", Home)}
-          {(perms.vehicles || perms.customers || perms.forms || perms.billing) && <span className="a-nav-group">Stand</span>}
+          {(perms.vehicles || perms.customers || perms.forms || perms.billing || perms.expenses) && <span className="a-nav-group">Stand</span>}
           {perms.vehicles && item("/painel/viaturas", "Viaturas", Car)}
           {perms.vehicles && item("/painel/estoque", "Estoque", Warehouse)}
           {perms.vehicles && item("/painel/aluguer", "Aluguer", KeyRound)}
@@ -63,6 +64,7 @@ export function Sidebar({ perms, user, standName, newLeads }: { perms: NavPerms;
           {perms.forms && item("/painel/declaracoes", "Declarações", FileSignature)}
           {perms.forms && item("/painel/registo", "Compra e venda", ArrowLeftRight)}
           {perms.billing && item("/painel/cobrancas", "Cobranças", Wallet)}
+          {perms.expenses && item("/painel/gastos", "Gastos", Receipt)}
           {perms.forms && <span className="a-nav-group">Legalização</span>}
           {perms.forms && item("/painel/legalizacao", "Carros em legalização", Stamp, null, ["/painel/legalizacao/clientes", "/painel/legalizacao/registo-inicial"])}
           {perms.forms && item("/painel/legalizacao/clientes", "Clientes da legalização", Building2)}

@@ -2772,3 +2772,37 @@ a.a-stock-item:hover {
     display: none !important;
   }
 }
+
+/* Gastos da empresa */
+.a-input.a-input-sm {
+  min-height: 34px;
+  padding: 4px 10px;
+  font-size: 13.5px;
+  width: auto;
+}
+.a-gastos {
+  display: grid;
+  gap: 22px;
+}
+.a-gastos .is-good {
+  color: var(--ok, #2f7a4a);
+}
+.a-gastos .is-bad {
+  color: var(--danger);
+}
+.a-gastos-person {
+  width: 100%;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.a-gastos-person[aria-pressed="true"] {
+  background: var(--surface-2);
+}
+.a-gastos .a-doc.is-editing {
+  background: var(--surface-2);
+}

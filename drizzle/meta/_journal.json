@@ -134,6 +134,13 @@
       "when": 1793277017996,
       "tag": "0018_compra_venda_documentos",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794659464017,
+      "tag": "0019_gastos_empresa",
+      "breakpoints": true
     }
   ]
 }

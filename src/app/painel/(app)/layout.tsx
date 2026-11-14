@@ -31,6 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     leads: can(user, "leads.view"),
     forms: can(user, "forms.generate"),
     billing: can(user, "billing.manage"),
+    expenses: can(user, "expenses.manage"),
     ads: can(user, "ads.view"),
     site: can(user, "site.edit"),
     users: can(user, "users.manage"),

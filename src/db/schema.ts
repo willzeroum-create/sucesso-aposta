@@ -486,6 +486,28 @@ export const legalizations = pgTable(
   (t) => [index("legalizations_updated_idx").on(t.updatedAt), index("legalizations_client_idx").on(t.clientId), index("legalizations_stage_idx").on(t.stage)],
 );
 
+/**
+ * Gastos da empresa (aba Gastos): quem gastou, em quê, quanto e quem pagou.
+ * person = nome de quem gastou/pagou, ou "Empresa" para despesas da própria empresa (água, luz…).
+ * kind: gasto (saiu da conta da empresa), pagamento (a pessoa devolveu à empresa),
+ * adiantamento (a pessoa pagou do próprio bolso uma despesa da empresa).
+ */
+export const companyExpenses = pgTable(
+  "company_expenses",
+  {
+    id: text("id").primaryKey(),
+    date: text("date").notNull(),
+    person: text("person").notNull(),
+    kind: text("kind", { enum: ["gasto", "pagamento", "adiantamento"] }).notNull(),
+    description: text("description").notNull().default(""),
+    amountEur: doublePrecision("amount_eur").notNull(),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("company_expenses_date_idx").on(t.date), index("company_expenses_person_idx").on(t.person)],
+);
+
 /** Custos de cada viatura (transporte, legalização, reparações…) para a ficha financeira. */
 export const vehicleCosts = pgTable(
   "vehicle_costs",
