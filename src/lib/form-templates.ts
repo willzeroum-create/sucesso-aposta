@@ -149,7 +149,7 @@ export const DEFAULT_TEMPLATES: Record<TemplateId, FormTemplate> = {
     needsCustomer: true,
     needsVehicle: true,
     mode: "sale",
-    body: "{{empresa.nome}}, com o NIF {{empresa.nipc}} e com a sede em {{empresa.morada}}, declara para os devidos efeitos ter vendido como intermediária a {{cliente.nome}} com {{cliente.documento}}, {{cliente.morada}}, a viatura usada abaixo.",
+    body: "{{empresa.nome}}, com o NIF {{empresa.nipc}} e com a sede em {{empresa.morada}}, declara para os devidos efeitos, em especial para fazer fé perante as autoridades de trânsito e aduaneira, que vendemos a {{cliente.nome}} com {{cliente.documento}}, {{cliente.morada}}, a viatura usada abaixo.",
     table: VEHICLE_TABLE,
     signatures: ["{{empresa.nome}}"],
   },
